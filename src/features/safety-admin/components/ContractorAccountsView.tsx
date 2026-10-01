@@ -16,7 +16,11 @@ import {
   Building,
   Plus,
   Search,
+  CheckCircle2,
+  Settings2,
+  X,
 } from "lucide-react"
+import { RoutingSettingsModal } from "./RoutingSettingsModal"
 
 export function ContractorAccountsView({
   onOpenAddCompany,
@@ -24,6 +28,8 @@ export function ContractorAccountsView({
   onOpenAddCompany: () => void
 }) {
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [selectedCompanyForRouting, setSelectedCompanyForRouting] = React.useState<ClientCompany | null>(null)
+  const [successToast, setSuccessToast] = React.useState<string | null>(null)
   const companies: ClientCompany[] = MOCK_COMPANIES
 
   const filteredCompanies = React.useMemo(() => {
@@ -60,6 +66,22 @@ export function ContractorAccountsView({
           </Button>
         </div>
       </div>
+
+      {/* Success Notification */}
+      {successToast && (
+        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 shrink-0" />
+            <span>{successToast}</span>
+          </div>
+          <button
+            onClick={() => setSuccessToast(null)}
+            className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 cursor-pointer"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -151,9 +173,15 @@ export function ContractorAccountsView({
                       {comp.safetyScore}%
                     </Badge>
                   </td>
-                  <td className="px-4 py-3.5 text-right">
-                    <Button size="sm" variant="outline" className="h-7 text-xs">
-                      Manage Policy
+                  <td className="px-4 py-3.5 text-right space-x-1.5 whitespace-nowrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedCompanyForRouting(comp)}
+                      className="h-7 text-xs border-primary/40 text-primary hover:bg-primary/10 gap-1 cursor-pointer"
+                    >
+                      <Settings2 className="size-3" />
+                      Configure Routing
                     </Button>
                   </td>
                 </tr>
@@ -162,6 +190,20 @@ export function ContractorAccountsView({
           </table>
         </CardContent>
       </Card>
+
+      {/* Routing Configuration Modal */}
+      <RoutingSettingsModal
+        company={selectedCompanyForRouting}
+        isOpen={!!selectedCompanyForRouting}
+        onClose={() => setSelectedCompanyForRouting(null)}
+        onSave={() => {
+          setSuccessToast(
+            `✅ Custom routing destinations updated for ${selectedCompanyForRouting?.name}!`
+          )
+          setTimeout(() => setSuccessToast(null), 4000)
+        }}
+      />
     </div>
   )
 }
+

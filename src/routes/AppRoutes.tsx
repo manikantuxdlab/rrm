@@ -11,6 +11,10 @@ import {
   FleetMachineryView,
   WorkforceBadgesView,
   ContractorAccountsView,
+  UserAccountsView,
+  Osha300LogView,
+  ComplianceReportsView,
+  Osha1926LibraryView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 
@@ -115,6 +119,11 @@ export function AppRoutes({
           />
         }
       />
+
+      <Route path="/users" element={<UserAccountsView />} />
+      <Route path="/osha-300" element={<Osha300LogView />} />
+      <Route path="/compliance-reports" element={<ComplianceReportsView />} />
+      <Route path="/osha-1926" element={<Osha1926LibraryView />} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

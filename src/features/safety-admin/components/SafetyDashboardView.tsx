@@ -20,12 +20,10 @@ import {
   ShieldCheck,
   ClipboardCheck,
   AlertTriangle,
-  HardHat,
   TrendingUp,
   Building2,
   Eye,
   CheckCircle2,
-  Send,
 } from "lucide-react"
 import {
   AreaChart,
@@ -49,11 +47,11 @@ const chartData = [
 
 export function SafetyDashboardView({
   onSelectSubmission,
-  onOpenDispatch,
+  onOpenDispatch: _onOpenDispatch,
   onNavigateModule,
 }: {
   onSelectSubmission: (submission: SubmissionRecord) => void
-  onOpenDispatch: () => void
+  onOpenDispatch?: () => void
   onNavigateModule: (moduleKey: string) => void
 }) {
   const [selectedFilter, setSelectedFilter] = React.useState<string>("all")
@@ -78,33 +76,6 @@ export function SafetyDashboardView({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner Alert Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-primary text-primary-foreground">
-            <HardHat className="size-5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">
-              RRRM Safety Intelligence & Compliance Command
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Monitoring {MOCK_JOBSITES.length} active high-risk jobsites & 100+ field tradesmen across Southern California.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button
-            size="sm"
-            onClick={onOpenDispatch}
-            className="text-xs font-semibold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Send className="size-3.5" />
-            Dispatch Field Alert
-          </Button>
-        </div>
-      </div>
-
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1 */}

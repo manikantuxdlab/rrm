@@ -183,3 +183,32 @@ export interface EmailDispatchLog {
   priority: "normal" | "high" | "critical"
   type: string
 }
+
+export interface AppUser {
+  id: string
+  fullName: string
+  email: string
+  phone: string
+  companyId: string
+  companyName: string
+  role: "foreman" | "superintendent" | "safety_manager" | "admin"
+  assignedJobsiteIds: string[]
+  assignedJobsiteNames: string[]
+  languagePreference: Language
+  status: "active" | "deactivated" | "invited"
+  lastActive: string
+  submissionsCount: number
+  avatarUrl?: string
+}
+
+export interface CompanyRoutingConfig {
+  companyId: string
+  claimAlertEmail: string
+  claimAlertPhone: string
+  checklistSubmissionsEmail: string
+  toolboxRosterEmail: string
+  nearMissHazardEmail: string
+  coiNotificationEmail: string
+  autoCcBroker: boolean
+}
+

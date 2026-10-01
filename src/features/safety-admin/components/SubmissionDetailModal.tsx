@@ -34,12 +34,12 @@ export function SubmissionDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl text-card-foreground space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-border/60 pb-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 variant={
                   submission.moduleType === "claim_alert"
@@ -53,15 +53,29 @@ export function SubmissionDetailModal({
               <Badge variant="outline" className="text-[10px] font-mono">
                 {submission.id}
               </Badge>
-              <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                <CheckCircle2 className="size-3" />
-                Verified & Synced
-              </span>
+
+              {/* Dynamic Sync Status Badge */}
+              {submission.syncStatus === "synced" && (
+                <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <CheckCircle2 className="size-3" />
+                  Synced to Cloud
+                </span>
+              )}
+              {submission.syncStatus === "pending" && (
+                <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                  ⌛ Pending Sync (Offline Queue)
+                </span>
+              )}
+              {submission.syncStatus === "failed" && (
+                <span className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                  ✕ Sync Failed
+                </span>
+              )}
             </div>
             <h2 className="text-lg font-bold tracking-tight text-foreground">
               {submission.title}
             </h2>
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
               <Building2 className="size-3.5 text-primary" />
               <span>{submission.jobSiteName}</span>
               <span>•</span>

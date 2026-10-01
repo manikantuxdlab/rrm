@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 
 import { NavDocuments } from "./nav-documents"
 import { NavMain, type NavMainItem } from "./nav-main"
-import { NavSecondary } from "./nav-secondary"
 import { NavUser } from "./nav-user"
 import {
   Sidebar,
@@ -25,12 +24,10 @@ import {
   TruckIcon,
   AwardIcon,
   BuildingIcon,
-  Settings2Icon,
-  CircleHelpIcon,
+  UsersIcon,
   DatabaseIcon,
   FileChartColumnIcon,
   FileTextIcon,
-  SendIcon,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -48,12 +45,13 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   checklists: <ClipboardCheckIcon className="size-4" />,
   toolbox: <MessageSquareCheckIcon className="size-4" />,
   jha: <ShieldAlertIcon className="size-4" />,
-  incidents: <AlertTriangleIcon className="size-4 text-amber-500" />,
+  incidents: <AlertTriangleIcon className="size-4" />,
   coi: <ShieldCheckIcon className="size-4" />,
   jobsites: <Building2Icon className="size-4" />,
   fleet: <TruckIcon className="size-4" />,
   workforce: <AwardIcon className="size-4" />,
   companies: <BuildingIcon className="size-4" />,
+  users: <UsersIcon className="size-4" />,
 }
 
 const documentIconMap: Record<string, React.ReactNode> = {
@@ -85,24 +83,6 @@ export function AppSidebar({
     }))
   }, [])
 
-  const secondaryItems = [
-    {
-      title: "Dispatch Alert",
-      url: "#",
-      icon: <SendIcon className="size-4 text-amber-500" />,
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: <Settings2Icon className="size-4" />,
-    },
-    {
-      title: "OSHA Help & Support",
-      url: "#",
-      icon: <CircleHelpIcon className="size-4" />,
-    },
-  ]
-
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -130,8 +110,9 @@ export function AppSidebar({
           items={navMainItems}
           onQuickCreate={onQuickCreate}
         />
-        <NavDocuments items={navDocumentItems} />
-        <NavSecondary items={secondaryItems} className="mt-auto" />
+        <NavDocuments
+          items={navDocumentItems}
+        />
       </SidebarContent>
 
       <SidebarFooter>
