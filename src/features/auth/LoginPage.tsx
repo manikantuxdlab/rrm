@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
-import { Eye, EyeOff, Loader2, ArrowRight, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -14,11 +14,13 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const [signupFullName, setSignupFullName] = React.useState("")
   const [signupCompany, setSignupCompany] = React.useState("")
   const [feedbackMessage, setFeedbackMessage] = React.useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setFeedbackMessage(null)
+    setErrorMessage(null)
 
     setTimeout(() => {
       setIsLoading(false)
@@ -32,11 +34,17 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
         navigate("/dashboard")
         return
       }
-      // Login mode
-      localStorage.setItem("rrrm_authenticated", "true")
-      if (onLoginSuccess) onLoginSuccess()
-      navigate("/dashboard")
-    }, 800)
+
+      // Strict Login validation: admin@gmail.com / Test@123
+      if (email.trim().toLowerCase() === "admin@gmail.com" && password === "Test@123") {
+        localStorage.setItem("rrrm_authenticated", "true")
+        localStorage.setItem("rrrm_user_email", email.trim().toLowerCase())
+        if (onLoginSuccess) onLoginSuccess()
+        navigate("/dashboard")
+      } else {
+        setErrorMessage("Invalid credentials. Please enter a valid email and password.")
+      }
+    }, 600)
   }
 
   return (
@@ -56,18 +64,25 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
           </div>
 
           {/* Form Header */}
-          <div className="text-center space-y-1.5 mb-8">
+          <div className="text-center space-y-1.5 mb-6">
             <h1 className="text-2xl font-bold tracking-tight text-[#ff4e00]">
               {authMode === "login" && "Login to your account"}
               {authMode === "signup" && "Create your safety account"}
               {authMode === "forgot" && "Reset your password"}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {authMode === "login" && "Enter your email below to login to your account"}
+              {authMode === "login" && "Enter your email and password below to login"}
               {authMode === "signup" && "Register your contractor account for live OSHA compliance"}
               {authMode === "forgot" && "Enter your registered email to receive recovery instructions"}
             </p>
           </div>
+
+          {errorMessage && (
+            <div className="mb-4 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2 animate-in fade-in duration-200">
+              <AlertCircle className="size-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           {feedbackMessage && (
             <div className="mb-6 p-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs flex items-center gap-2 animate-in fade-in duration-200">
@@ -118,7 +133,10 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                 required
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (errorMessage) setErrorMessage(null)
+                }}
                 className="h-10 text-xs border-input bg-background focus-visible:ring-[#ff4e00]"
               />
             </div>
@@ -134,6 +152,7 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       type="button"
                       onClick={() => {
                         setFeedbackMessage(null)
+                        setErrorMessage(null)
                         setAuthMode("forgot")
                       }}
                       className="text-xs font-medium text-[#ff4e00] hover:underline cursor-pointer"
@@ -148,7 +167,10 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                     required
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (errorMessage) setErrorMessage(null)
+                    }}
                     className="h-10 pr-9 text-xs border-input bg-background focus-visible:ring-[#ff4e00]"
                   />
                   <button
