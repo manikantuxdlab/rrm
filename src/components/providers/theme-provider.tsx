@@ -1,9 +1,9 @@
 import * as React from "react"
 
-type Theme = "dark" | "light" | "system"
-type ResolvedTheme = "dark" | "light"
+export type Theme = "dark" | "light" | "system"
+export type ResolvedTheme = "dark" | "light"
 
-type ThemeProviderProps = {
+export type ThemeProviderProps = {
   children: React.ReactNode
   defaultTheme?: Theme
   storageKey?: string
