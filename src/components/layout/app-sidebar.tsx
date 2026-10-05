@@ -57,6 +57,7 @@ export function AppSidebar({
     return SAFETY_MODULES.map((m) => ({
       key: m.key,
       title: m.title,
+      url: m.url,
       badge: m.badge,
       icon: moduleIconMap[m.key] || <LayoutDashboardIcon className="size-4" />,
     }))

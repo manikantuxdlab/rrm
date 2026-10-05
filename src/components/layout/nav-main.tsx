@@ -11,6 +11,7 @@ import {
 export interface NavMainItem {
   key: string
   title: string
+  url?: string
   icon?: React.ReactNode
   badge?: string | number
 }
@@ -24,15 +25,43 @@ export function NavMain({
   const navigate = useNavigate()
   const location = useLocation()
 
+  const checkIsActive = (item: NavMainItem) => {
+    const targetPath = item.url || `/${item.key}`
+    if (location.pathname === targetPath || location.pathname.startsWith(`${targetPath}/`)) {
+      return true
+    }
+    if (item.key === "dashboard" && (location.pathname === "/" || location.pathname === "/dashboard")) {
+      return true
+    }
+    if (item.key === "companies" && location.pathname === "/users") {
+      return true
+    }
+    if (
+      item.key === "safety-config" &&
+      (location.pathname === "/checklists" ||
+        location.pathname === "/toolbox" ||
+        location.pathname === "/jha")
+    ) {
+      return true
+    }
+    if (
+      item.key === "submissions" &&
+      (location.pathname === "/incidents" ||
+        location.pathname === "/coi" ||
+        location.pathname === "/fleet")
+    ) {
+      return true
+    }
+    return false
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu className="gap-1">
           {items.map((item) => {
-            const targetPath = `/${item.key}`
-            const isActive =
-              location.pathname === targetPath ||
-              (item.key === "dashboard" && location.pathname === "/")
+            const targetPath = item.url || `/${item.key}`
+            const isActive = checkIsActive(item)
 
             return (
               <SidebarMenuItem key={item.key}>
@@ -40,9 +69,9 @@ export function NavMain({
                   tooltip={item.title}
                   isActive={isActive}
                   onClick={() => navigate(targetPath)}
-                  className={`cursor-pointer transition-all duration-150 ${
+                  className={`cursor-pointer transition-colors text-sm ${
                     isActive
-                      ? "bg-[#ff4e00]! text-white! font-semibold shadow-xs hover:bg-[#ff4e00]! hover:text-white! [&_svg]:text-white!"
+                      ? "bg-primary! text-primary-foreground! font-semibold shadow-xs hover:bg-primary! hover:text-primary-foreground! [&_svg]:text-primary-foreground!"
                       : "hover:bg-muted/70 text-sidebar-foreground"
                   }`}
                 >

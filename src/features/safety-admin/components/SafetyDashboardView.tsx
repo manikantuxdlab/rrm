@@ -194,12 +194,12 @@ export function SafetyDashboardView({
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="safetyChecklists" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff4e00" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#ff4e00" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.0} />
                   </linearGradient>
                   <linearGradient id="safetyTalks" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="opacity-10" />
@@ -209,7 +209,7 @@ export function SafetyDashboardView({
                   contentStyle={{
                     backgroundColor: "var(--card)",
                     borderColor: "var(--border)",
-                    borderRadius: "0.75rem",
+                    borderRadius: "0.5rem",
                     fontSize: "12px",
                   }}
                 />
@@ -217,7 +217,7 @@ export function SafetyDashboardView({
                   type="monotone"
                   dataKey="checklists"
                   name="Safety Checklists"
-                  stroke="#ff4e00"
+                  stroke="var(--primary)"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#safetyChecklists)"
@@ -226,7 +226,7 @@ export function SafetyDashboardView({
                   type="monotone"
                   dataKey="talks"
                   name="Toolbox Talks"
-                  stroke="#10b981"
+                  stroke="var(--chart-2)"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#safetyTalks)"
@@ -236,11 +236,11 @@ export function SafetyDashboardView({
           </div>
           <div className="flex items-center justify-center gap-6 pt-3 text-xs text-muted-foreground border-t border-border/60">
             <div className="flex items-center gap-2">
-              <span className="size-2.5 rounded-full bg-[#ff4e00]" />
+              <span className="size-2.5 rounded-full bg-primary" />
               <span>Daily Pre-Pour & Hazard Audits</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="size-2.5 rounded-full bg-[#10b981]" />
+              <span className="size-2.5 rounded-full bg-chart-2" />
               <span>Signed Toolbox Safety Talks</span>
             </div>
             <div className="flex items-center gap-2">
@@ -289,14 +289,14 @@ export function SafetyDashboardView({
 
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
+            <thead className="bg-muted/40 text-muted-foreground text-xs font-medium border-b border-border">
               <tr>
-                <th className="px-4 py-3 font-semibold">Record / Module</th>
-                <th className="px-4 py-3 font-semibold">Jobsite / Location</th>
-                <th className="px-4 py-3 font-semibold">Foreman / Lead</th>
-                <th className="px-4 py-3 font-semibold">Submitted</th>
-                <th className="px-4 py-3 font-semibold">Status / Severity</th>
-                <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                <th className="px-4 py-3">Record / Module</th>
+                <th className="px-4 py-3">Jobsite / Location</th>
+                <th className="px-4 py-3">Foreman / Lead</th>
+                <th className="px-4 py-3">Submitted</th>
+                <th className="px-4 py-3">Status / Severity</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -311,12 +311,12 @@ export function SafetyDashboardView({
                     onClick={() => onSelectSubmission(sub)}
                   >
                     <td className="px-4 py-3.5">
-                      <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                      <div className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
                         {sub.title}
                       </div>
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
-                          {sub.moduleType.replace("_", " ").toUpperCase()}
+                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {sub.moduleType.replace("_", " ")}
                         </Badge>
                         <span>{sub.companyName}</span>
                       </div>
