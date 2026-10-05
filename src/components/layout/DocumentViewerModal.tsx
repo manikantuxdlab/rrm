@@ -1,21 +1,21 @@
 import * as React from "react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   FileText,
   Printer,
   Download,
-  X,
   Search,
   CheckCircle2,
 } from "lucide-react"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 
 interface DocumentViewerModalProps {
   documentName: string | null
@@ -41,66 +41,38 @@ export function DocumentViewerModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-      <Card className="w-full max-w-4xl max-h-[88vh] flex flex-col bg-card border-border shadow-2xl text-card-foreground">
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-3xl flex flex-col p-0 overflow-hidden h-full">
         {/* Header */}
-        <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge className="bg-primary text-primary-foreground font-mono text-[10px]">
-                OFFICIAL RECORD
-              </Badge>
-              <Badge variant="outline" className="text-[10px]">
-                CY 2026 AUDIT CYCLE
-              </Badge>
-              <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                <CheckCircle2 className="size-3" />
-                OSHA Verified
-              </span>
-            </div>
-            <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-              <FileText className="size-5 text-primary" />
-              {documentName}
-            </CardTitle>
-            <CardDescription className="text-xs">
-              {documentName === "OSHA 300 Log" &&
-                "Log of Work-Related Injuries and Illnesses (Form OSHA 300 / 300A Summary)"}
-              {documentName === "Compliance Reports" &&
-                "Monthly & Annual Safety Performance, Audit Scorecard & Insurance Broker Submissions"}
-              {documentName === "OSHA 1926 Library" &&
-                "Federal OSHA 29 CFR 1926 Construction Safety Regulations & Standards Codebook"}
-            </CardDescription>
+        <SheetHeader className="px-6 py-5 border-b shrink-0 text-left">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <Badge className="bg-primary text-primary-foreground font-mono text-[10px]">
+              OFFICIAL RECORD
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              CY 2026 AUDIT CYCLE
+            </Badge>
+            <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+              <CheckCircle2 className="size-3" />
+              OSHA Verified
+            </span>
           </div>
+          <SheetTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+            <FileText className="size-5 text-primary" />
+            {documentName}
+          </SheetTitle>
+          <SheetDescription className="text-xs text-muted-foreground mt-0.5">
+            {documentName === "OSHA 300 Log" &&
+              "Log of Work-Related Injuries and Illnesses (Form OSHA 300 / 300A Summary)"}
+            {documentName === "Compliance Reports" &&
+              "Monthly & Annual Safety Performance, Audit Scorecard & Insurance Broker Submissions"}
+            {documentName === "OSHA 1926 Library" &&
+              "Federal OSHA 29 CFR 1926 Construction Safety Regulations & Standards Codebook"}
+          </SheetDescription>
+        </SheetHeader>
 
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handlePrint}
-              className="h-8 text-xs gap-1 cursor-pointer"
-            >
-              <Printer className="size-3.5" />
-              Print
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleDownload}
-              className="h-8 text-xs gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer"
-            >
-              <Download className="size-3.5" />
-              Export PDF
-            </Button>
-            <button
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted ml-1 cursor-pointer"
-            >
-              <X className="size-5" />
-            </button>
-          </div>
-        </CardHeader>
-
-        {/* Content Body */}
-        <CardContent className="flex-1 overflow-y-auto p-5 text-xs space-y-4">
+        {/* Content Body (Scrollable) */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5 text-xs">
           {/* Document 1: OSHA 300 Log */}
           {documentName === "OSHA 300 Log" && (
             <div className="space-y-4">
@@ -212,7 +184,7 @@ export function DocumentViewerModal({
                   placeholder="Search 29 CFR 1926 standards (e.g. 1926.501, Fall Protection, Trenching)..."
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
-                  className="w-full h-9 pl-8 pr-3 text-xs rounded-md border border-input bg-background text-foreground"
+                  className="w-full h-10 pl-8 pr-3 text-xs rounded-md border border-input bg-background text-foreground"
                 />
               </div>
 
@@ -264,8 +236,40 @@ export function DocumentViewerModal({
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        {/* Footer (Pinned) */}
+        <SheetFooter className="px-6 py-4 border-t bg-card shrink-0 flex flex-row items-center justify-between gap-3 mt-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-10 px-5 text-xs font-medium cursor-pointer"
+          >
+            Close
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrint}
+              className="h-10 px-4 text-xs gap-1.5 cursor-pointer"
+            >
+              <Printer className="size-3.5" />
+              Print
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDownload}
+              className="h-10 px-6 text-xs font-bold gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
+            >
+              <Download className="size-4" />
+              Export PDF
+            </Button>
+          </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

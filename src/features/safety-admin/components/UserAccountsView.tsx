@@ -1,11 +1,5 @@
 import * as React from "react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +19,14 @@ import {
   Phone,
   Globe,
 } from "lucide-react"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { MOCK_APP_USERS, MOCK_COMPANIES, MOCK_JOBSITES } from "@/data/safetyMockData"
 import type { AppUser } from "@/types"
 
@@ -404,153 +406,150 @@ export function UserAccountsView() {
         </div>
       </Card>
 
-      {/* Onboard / Invite User Modal */}
-      {isInviteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-          <Card className="w-full max-w-lg bg-card border-border shadow-2xl">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-4">
-              <div>
-                <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                  <UserPlus className="size-5 text-primary" />
-                  Onboard New Field Foreman / App User
-                </CardTitle>
-                <CardDescription className="text-xs mt-0.5">
-                  Creates mobile app credentials and links the user to specific customer jobsites
-                </CardDescription>
-              </div>
-              <button
-                onClick={() => setIsInviteModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
-              >
-                <X className="size-5" />
-              </button>
-            </CardHeader>
-
-            <form onSubmit={handleCreateUser}>
-              <CardContent className="space-y-3.5 pt-4 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-semibold text-foreground">Full Name *</label>
-                    <Input
-                      required
-                      placeholder="e.g. Sergio Ramos"
-                      value={newFullName}
-                      onChange={(e) => setNewFullName(e.target.value)}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-semibold text-foreground">Mobile Phone (SMS Invite) *</label>
-                    <Input
-                      required
-                      placeholder="e.g. (213) 555-0988"
-                      value={newPhone}
-                      onChange={(e) => setNewPhone(e.target.value)}
-                      className="h-8 text-xs"
-                    />
-                  </div>
+      {/* Onboard / Invite User Sheet */}
+      <Sheet open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl flex flex-col p-0 overflow-hidden h-full">
+          <form onSubmit={handleCreateUser} className="flex flex-col h-full justify-between overflow-hidden">
+            {/* Header */}
+            <SheetHeader className="px-6 py-5 border-b shrink-0 text-left">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                  <UserPlus className="size-5" />
                 </div>
+                <div>
+                  <SheetTitle className="text-base font-bold text-foreground">
+                    Onboard New Field Foreman / User
+                  </SheetTitle>
+                  <SheetDescription className="text-xs text-muted-foreground mt-0.5">
+                    Creates mobile app credentials & links user to customer jobsites
+                  </SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
 
-                <div className="space-y-1">
-                  <label className="font-semibold text-foreground">Work Email Address *</label>
+            {/* Scrollable Form Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Full Name *</label>
                   <Input
-                    type="email"
                     required
-                    placeholder="e.g. sramos@titanconcrete-ca.com"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="h-8 text-xs"
+                    placeholder="e.g. Sergio Ramos"
+                    value={newFullName}
+                    onChange={(e) => setNewFullName(e.target.value)}
+                    className="h-10 text-xs"
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-semibold text-foreground">Customer Company *</label>
-                    <select
-                      value={newCompanyId}
-                      onChange={(e) => setNewCompanyId(e.target.value)}
-                      className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-                    >
-                      {MOCK_COMPANIES.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-semibold text-foreground">Role / Permission *</label>
-                    <select
-                      value={newRole}
-                      onChange={(e) => setNewRole(e.target.value as AppUser["role"])}
-                      className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-                    >
-                      <option value="foreman">Field Foreman (Daily Checks & Talks)</option>
-                      <option value="superintendent">Superintendent (Jobsite Lead)</option>
-                      <option value="safety_manager">Safety Director / Officer</option>
-                      <option value="admin">Company Administrator</option>
-                    </select>
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Mobile Phone (SMS Invite) *</label>
+                  <Input
+                    required
+                    placeholder="e.g. (213) 555-0988"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    className="h-10 text-xs"
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-semibold text-foreground">Assigned Active Jobsite *</label>
-                    <select
-                      value={newJobsiteId}
-                      onChange={(e) => setNewJobsiteId(e.target.value)}
-                      className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-                    >
-                      {MOCK_JOBSITES.map((j) => (
-                        <option key={j.id} value={j.id}>
-                          {j.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-semibold text-foreground">App Language Preference</label>
-                    <select
-                      value={newLanguage}
-                      onChange={(e) => setNewLanguage(e.target.value as "en" | "es")}
-                      className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-                    >
-                      <option value="en">🇺🇸 English</option>
-                      <option value="es">🇲🇽 Spanish (Español)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-md bg-muted/60 border border-border text-[11px] text-muted-foreground flex items-center gap-2">
-                  <Smartphone className="size-4 text-primary shrink-0" />
-                  <span>
-                    Upon onboarding, a welcome SMS with a one-time magic login link and temporary password will be dispatched to the mobile phone.
-                  </span>
-                </div>
-              </CardContent>
-
-              <div className="flex items-center justify-end gap-2 border-t border-border/60 p-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsInviteModalOpen(false)}
-                  className="h-8 text-xs cursor-pointer"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer"
-                >
-                  Onboard & Send App Invite
-                </Button>
               </div>
-            </form>
-          </Card>
-        </div>
-      )}
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">Work Email Address *</label>
+                <Input
+                  type="email"
+                  required
+                  placeholder="e.g. sramos@titanconcrete-ca.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="h-10 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Customer Company *</label>
+                  <select
+                    value={newCompanyId}
+                    onChange={(e) => setNewCompanyId(e.target.value)}
+                    className="w-full h-10 text-xs rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {MOCK_COMPANIES.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Role / Permission *</label>
+                  <select
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value as AppUser["role"])}
+                    className="w-full h-10 text-xs rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="foreman">Field Foreman (Daily Checks & Talks)</option>
+                    <option value="superintendent">Superintendent (Jobsite Lead)</option>
+                    <option value="safety_manager">Safety Director / Officer</option>
+                    <option value="admin">Company Administrator</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Assigned Active Jobsite *</label>
+                  <select
+                    value={newJobsiteId}
+                    onChange={(e) => setNewJobsiteId(e.target.value)}
+                    className="w-full h-10 text-xs rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {MOCK_JOBSITES.map((j) => (
+                      <option key={j.id} value={j.id}>
+                        {j.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">App Language Preference</label>
+                  <select
+                    value={newLanguage}
+                    onChange={(e) => setNewLanguage(e.target.value as "en" | "es")}
+                    className="w-full h-10 text-xs rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="en">🇺🇸 English</option>
+                    <option value="es">🇲🇽 Spanish (Español)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-muted/60 border border-border text-[11px] text-muted-foreground flex items-center gap-2.5">
+                <Smartphone className="size-4 text-primary shrink-0" />
+                <span>
+                  Upon onboarding, a welcome SMS with a one-time magic login link and temporary password will be dispatched to the mobile phone.
+                </span>
+              </div>
+            </div>
+
+            {/* Footer (Pinned) */}
+            <SheetFooter className="px-6 py-4 border-t bg-card shrink-0 flex flex-row items-center justify-end gap-3 mt-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsInviteModalOpen(false)}
+                className="h-10 px-5 text-xs font-medium cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-10 px-6 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm cursor-pointer"
+              >
+                Onboard & Send App Invite
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

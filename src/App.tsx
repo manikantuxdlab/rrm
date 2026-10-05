@@ -54,7 +54,7 @@ export default function App() {
         isOpen={isAddCompanyOpen}
         onClose={() => setIsAddCompanyOpen(false)}
         onAdd={(data) => {
-          alert(`✅ Contractor "${data.name}" successfully onboarded with 26 safety topics!`)
+          alert(`✅ Contractor "${data.name}" successfully onboarded!`)
         }}
       />
 

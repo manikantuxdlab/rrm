@@ -9,10 +9,16 @@ import {
   Mail,
   ShieldAlert,
   User,
-  X,
   Printer,
-  Share2,
 } from "lucide-react"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 
 interface SubmissionDetailModalProps {
   submission: SubmissionRecord | null
@@ -34,209 +40,171 @@ export function SubmissionDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl text-card-foreground space-y-6">
+    <Sheet open={Boolean(submission)} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-3xl flex flex-col p-0 overflow-hidden h-full">
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-border/60 pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge
-                variant={
-                  submission.moduleType === "claim_alert"
-                    ? "destructive"
-                    : "outline"
-                }
-                className="uppercase text-[10px] tracking-wider"
-              >
-                {submission.moduleType.replace("_", " ")}
-              </Badge>
-              <Badge variant="outline" className="text-[10px] font-mono">
-                {submission.id}
-              </Badge>
+        <SheetHeader className="px-6 py-5 border-b shrink-0 text-left">
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            <Badge
+              variant={
+                submission.moduleType === "claim_alert"
+                  ? "destructive"
+                  : "outline"
+              }
+              className="uppercase text-[10px] tracking-wider font-semibold"
+            >
+              {submission.moduleType.replace("_", " ")}
+            </Badge>
+            <Badge variant="outline" className="text-[10px] font-mono">
+              {submission.id}
+            </Badge>
 
-              {/* Dynamic Sync Status Badge */}
-              {submission.syncStatus === "synced" && (
-                <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <CheckCircle2 className="size-3" />
-                  Synced to Cloud
-                </span>
-              )}
-              {submission.syncStatus === "pending" && (
-                <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                  ⌛ Pending Sync (Offline Queue)
-                </span>
-              )}
-              {submission.syncStatus === "failed" && (
-                <span className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
-                  ✕ Sync Failed
-                </span>
-              )}
-            </div>
-            <h2 className="text-lg font-bold tracking-tight text-foreground">
-              {submission.title}
-            </h2>
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
-              <Building2 className="size-3.5 text-primary" />
-              <span>{submission.jobSiteName}</span>
-              <span>•</span>
-              <Calendar className="size-3.5" />
-              <span>{submission.timestamp}</span>
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        {/* Company & Foreman Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 rounded-xl bg-muted/40 border border-border/60 text-xs">
-          <div>
-            <span className="text-muted-foreground block text-[11px]">Contractor Entity:</span>
-            <span className="font-semibold text-foreground">{submission.companyName}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground block text-[11px]">Field Lead / Foreman:</span>
-            <span className="font-semibold text-foreground flex items-center gap-1">
-              <User className="size-3 text-primary" />
-              {submission.foremanName} ({submission.foremanEmail})
-            </span>
-          </div>
-        </div>
-
-        {/* Submission Payload Data */}
-        <div className="space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-primary">
-            Record Data & Safety Documentation
-          </h3>
-
-          {/* Attendees if toolbox talk */}
-          {submission.data?.attendees && (
-            <div className="p-3.5 rounded-xl border border-border/80 bg-background/50 space-y-2 text-xs">
-              <span className="font-bold text-foreground">
-                Crew Attendance Roster ({submission.data.attendees.length} Verified Signatures):
+            {/* Dynamic Sync Status Badge */}
+            {submission.syncStatus === "synced" && (
+              <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <CheckCircle2 className="size-3" />
+                Synced
               </span>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {submission.data.attendees.map((att: string, i: number) => (
-                  <Badge key={i} variant="secondary" className="text-xs font-normal">
-                    {att}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
+            {submission.syncStatus === "pending" && (
+              <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                ⌛ Pending Sync
+              </span>
+            )}
+            {submission.syncStatus === "failed" && (
+              <span className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                ⚠️ Sync Failed
+              </span>
+            )}
+          </div>
 
-          {/* Key Notes / Hazards */}
-          {submission.data?.keyNotes && (
-            <div className="p-3.5 rounded-xl border border-border/80 bg-background/50 text-xs space-y-1">
-              <span className="font-bold text-foreground">Foreman Discussion & Meeting Notes:</span>
-              <p className="text-muted-foreground leading-relaxed">{submission.data.keyNotes}</p>
-            </div>
-          )}
+          <SheetTitle className="text-lg font-bold text-foreground">
+            {submission.title}
+          </SheetTitle>
+          <SheetDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-3 mt-1">
+            <span className="flex items-center gap-1 text-foreground font-medium">
+              <Building2 className="size-3.5 text-muted-foreground" />
+              {submission.companyName}
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <Calendar className="size-3.5" />
+              {submission.timestamp}
+            </span>
+          </SheetDescription>
+        </SheetHeader>
 
-          {/* OSHA Standard */}
-          {submission.data?.oshaStandard && (
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-xs flex items-center justify-between">
-              <span className="text-muted-foreground font-medium">OSHA Standard Applied:</span>
-              <span className="font-mono font-bold text-primary">{submission.data.oshaStandard}</span>
-            </div>
-          )}
-
-          {/* Checklist Deficiencies */}
-          {submission.data?.deficiencies && (
-            <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2 text-xs">
-              <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-bold">
-                <ShieldAlert className="size-4" />
-                <span>Flagged Deficiencies & Immediate Corrective Actions ({submission.data.deficiencies.length})</span>
-              </div>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                {submission.data.deficiencies.map((d: string, i: number) => (
-                  <li key={i}>{d}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Claim Alert specifics */}
-          {submission.data?.injuredWorker && (
-            <div className="p-3.5 rounded-xl border border-destructive/30 bg-destructive/5 space-y-2 text-xs">
-              <div className="font-bold text-destructive flex items-center gap-1.5">
-                <ShieldAlert className="size-4" />
-                <span>Injury Incident Report Details</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                <div><strong className="text-foreground">Worker:</strong> {submission.data.injuredWorker}</div>
-                <div><strong className="text-foreground">Type:</strong> {submission.data.incidentType}</div>
-                <div><strong className="text-foreground">Body Part:</strong> {submission.data.bodyPart}</div>
-                <div><strong className="text-foreground">Lost Time:</strong> {submission.data.lostTime}</div>
-              </div>
-              <p className="pt-1 text-foreground leading-relaxed">
-                <strong>Immediate Action:</strong> {submission.data.immediateAction}
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5 text-xs">
+          {/* Meta Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-muted/40 p-4 rounded-xl border border-border">
+            <div>
+              <span className="text-muted-foreground font-semibold">Active Jobsite:</span>
+              <p className="font-medium text-foreground mt-0.5">
+                {submission.jobSiteName}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Ref ID: {submission.jobSiteId}
               </p>
             </div>
-          )}
-
-          {/* Near Miss specifics */}
-          {submission.data?.hazardIdentified && (
-            <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2 text-xs">
-              <p className="text-foreground"><strong>Hazard Identified:</strong> {submission.data.hazardIdentified}</p>
-              <p className="text-muted-foreground"><strong>Action Taken:</strong> {submission.data.correctiveActionTaken}</p>
+            <div>
+              <span className="text-muted-foreground font-semibold">Submitting Lead / Foreman:</span>
+              <p className="font-medium text-foreground mt-0.5 flex items-center gap-1">
+                <User className="size-3.5 text-primary" />
+                {submission.foremanName}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {submission.foremanEmail}
+              </p>
             </div>
-          )}
+          </div>
 
-          {/* Endorsements / COI */}
-          {submission.data?.certificateHolder && (
-            <div className="p-3.5 rounded-xl border border-border/80 bg-background/50 space-y-2 text-xs">
-              <p className="text-foreground"><strong>Certificate Holder:</strong> {submission.data.certificateHolder}</p>
-              <p className="text-muted-foreground"><strong>Required Limits:</strong> {submission.data.limitRequirements}</p>
-              <p className="text-muted-foreground"><strong>Endorsements:</strong> {submission.data.specialEndorsements}</p>
-            </div>
-          )}
-
-          {/* Routing Logs */}
-          <div className="p-3 rounded-xl bg-muted/30 border border-border/40 text-xs space-y-1">
-            <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
-              <Mail className="size-3" />
-              Automated Email Dispatch Distribution ({submission.recipients.length} recipients):
-            </span>
-            <div className="flex flex-wrap gap-1">
-              {submission.recipients.map((email, i) => (
-                <span key={i} className="font-mono text-[10.5px] bg-background px-2 py-0.5 rounded border border-border/60">
-                  {email}
-                </span>
+          {/* Dynamic Payload Data */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Inspection / Form Submission Data
+            </h4>
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3 text-xs">
+              {Object.entries(submission.data || {}).map(([key, val]) => (
+                <div key={key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1.5 border-b border-border/40 last:border-0">
+                  <span className="font-semibold text-muted-foreground capitalize">
+                    {key.replace(/([A-Z])/g, " $1").trim()}:
+                  </span>
+                  <span className="font-medium text-foreground sm:text-right max-w-sm break-words">
+                    {Array.isArray(val) ? val.join(", ") : typeof val === "boolean" ? (val ? "Yes" : "No") : String(val)}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
+
+          {/* Electronic Signature & Notification Recipients */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            {/* Signature */}
+            <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+              <span className="font-semibold text-muted-foreground flex items-center gap-1.5">
+                <ShieldAlert className="size-3.5 text-primary" />
+                Foreman Digital Sign-Off
+              </span>
+              <div className="h-16 rounded-lg border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center text-center p-2">
+                <span className="font-serif italic text-base text-foreground font-bold">
+                  {submission.foremanName}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Timestamped: {submission.timestamp}
+                </span>
+              </div>
+            </div>
+
+            {/* Notification Route Recipients */}
+            <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+              <span className="font-semibold text-muted-foreground flex items-center gap-1.5">
+                <Mail className="size-3.5 text-emerald-600" />
+                Dispatched Email Recipients
+              </span>
+              <div className="space-y-1">
+                {submission.recipients?.map((r, i) => (
+                  <div key={i} className="text-[11px] font-mono text-muted-foreground truncate bg-muted/40 px-2 py-0.5 rounded">
+                    {r}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between border-t border-border/60 pt-4">
+        {/* Actions Footer (Pinned) */}
+        <SheetFooter className="px-6 py-4 border-t bg-card shrink-0 flex flex-row items-center justify-between gap-3 mt-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-10 px-5 text-xs font-medium cursor-pointer"
+          >
+            Close
+          </Button>
+
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1 text-xs">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrint}
+              className="h-10 px-4 text-xs gap-1.5 cursor-pointer"
+            >
               <Printer className="size-3.5" />
               Print
             </Button>
-            <Button variant="outline" size="sm" onClick={() => alert("Shareable audit link copied to clipboard")} className="gap-1 text-xs">
-              <Share2 className="size-3.5" />
-              Share Link
+            <Button
+              type="button"
+              onClick={handleDownload}
+              className="h-10 px-6 text-xs font-bold gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
+            >
+              <Download className="size-4" />
+              Download ACORD PDF
             </Button>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
-              Close
-            </Button>
-            <Button size="sm" onClick={handleDownload} className="gap-1 text-xs font-semibold">
-              <Download className="size-3.5" />
-              Download Signed PDF
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }
