@@ -19,6 +19,7 @@ import {
   Building2Icon,
   AwardIcon,
   BuildingIcon,
+  UsersIcon,
   BellRingIcon,
   FileTextIcon,
 } from "lucide-react"
@@ -36,6 +37,7 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 const moduleIconMap: Record<string, React.ReactNode> = {
   dashboard: <LayoutDashboardIcon className="size-4" />,
   companies: <BuildingIcon className="size-4" />,
+  users: <UsersIcon className="size-4" />,
   routing: <BellRingIcon className="size-4" />,
   "safety-config": <ClipboardCheckIcon className="size-4" />,
   jobsites: <Building2Icon className="size-4" />,

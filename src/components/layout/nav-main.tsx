@@ -33,9 +33,6 @@ export function NavMain({
     if (item.key === "dashboard" && (location.pathname === "/" || location.pathname === "/dashboard")) {
       return true
     }
-    if (item.key === "companies" && location.pathname === "/users") {
-      return true
-    }
     if (
       item.key === "safety-config" &&
       (location.pathname === "/checklists" ||

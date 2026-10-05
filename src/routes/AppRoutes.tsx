@@ -54,7 +54,7 @@ export function AppRoutes({
         }
       />
 
-      {/* 2. Companies & Users */}
+      {/* 2. Contractor Companies & User Management (Section 1 & 7) */}
       <Route
         path="/companies"
         element={

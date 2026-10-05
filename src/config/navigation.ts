@@ -20,9 +20,15 @@ export const SAFETY_MODULES: NavModuleItem[] = [
   },
   {
     key: "companies",
-    title: "Companies & Users",
+    title: "Contractor Companies",
     url: "/companies",
-    description: "Customer company onboarding & 1-20 foremen logins per company",
+    description: "Onboard and deactivate customer companies, policy schedules & multi-tenancy",
+  },
+  {
+    key: "users",
+    title: "User Management",
+    url: "/users",
+    description: "Onboard foremen, grant mobile access & manage 1-20 logins per company",
   },
   {
     key: "routing",
