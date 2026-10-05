@@ -16,17 +16,10 @@ import {
 import {
   LayoutDashboardIcon,
   ClipboardCheckIcon,
-  MessageSquareCheckIcon,
-  ShieldAlertIcon,
-  AlertTriangleIcon,
-  ShieldCheckIcon,
   Building2Icon,
-  TruckIcon,
   AwardIcon,
   BuildingIcon,
-  UsersIcon,
-  DatabaseIcon,
-  FileChartColumnIcon,
+  BellRingIcon,
   FileTextIcon,
 } from "lucide-react"
 import {
@@ -42,22 +35,16 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 const moduleIconMap: Record<string, React.ReactNode> = {
   dashboard: <LayoutDashboardIcon className="size-4" />,
-  checklists: <ClipboardCheckIcon className="size-4" />,
-  toolbox: <MessageSquareCheckIcon className="size-4" />,
-  jha: <ShieldAlertIcon className="size-4" />,
-  incidents: <AlertTriangleIcon className="size-4" />,
-  coi: <ShieldCheckIcon className="size-4" />,
-  jobsites: <Building2Icon className="size-4" />,
-  fleet: <TruckIcon className="size-4" />,
-  workforce: <AwardIcon className="size-4" />,
   companies: <BuildingIcon className="size-4" />,
-  users: <UsersIcon className="size-4" />,
+  routing: <BellRingIcon className="size-4" />,
+  "safety-config": <ClipboardCheckIcon className="size-4" />,
+  jobsites: <Building2Icon className="size-4" />,
+  workforce: <AwardIcon className="size-4" />,
+  submissions: <FileTextIcon className="size-4" />,
 }
 
 const documentIconMap: Record<string, React.ReactNode> = {
-  "OSHA 300 Log": <FileChartColumnIcon className="size-4 text-primary" />,
   "Compliance Reports": <FileTextIcon className="size-4" />,
-  "OSHA 1926 Library": <DatabaseIcon className="size-4" />,
 }
 
 export function AppSidebar({
@@ -110,9 +97,11 @@ export function AppSidebar({
           items={navMainItems}
           onQuickCreate={onQuickCreate}
         />
-        <NavDocuments
-          items={navDocumentItems}
-        />
+        {navDocumentItems.length > 0 && (
+          <NavDocuments
+            items={navDocumentItems}
+          />
+        )}
       </SidebarContent>
 
       <SidebarFooter>

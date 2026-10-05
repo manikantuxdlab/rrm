@@ -10,31 +10,12 @@ interface AppLayoutProps {
   onDispatchAlert?: () => void
 }
 
-const DOCUMENT_PAGE_METAS: Record<string, { title: string; description: string }> = {
-  "/osha-300": {
-    title: "OSHA 300 Log",
-    description: "Log of Work-Related Injuries and Illnesses (Form OSHA 300 / 300A Summary)",
-  },
-  "/compliance-reports": {
-    title: "Compliance Reports",
-    description: "Monthly & Annual Safety Performance, Audit Scorecard & Insurance Broker Submissions",
-  },
-  "/osha-1926": {
-    title: "OSHA 1926 Library",
-    description: "Federal OSHA 29 CFR 1926 Construction Safety Regulations & Standards Codebook",
-  },
-}
-
 export function AppLayout({ children, onDispatchAlert }: AppLayoutProps) {
   const location = useLocation()
 
   const currentModule = React.useMemo(() => {
     const mainMod = SAFETY_MODULES.find((m) => m.url === location.pathname)
     if (mainMod) return mainMod
-
-    if (DOCUMENT_PAGE_METAS[location.pathname]) {
-      return DOCUMENT_PAGE_METAS[location.pathname]
-    }
 
     return SAFETY_MODULES[0]
   }, [location.pathname])
