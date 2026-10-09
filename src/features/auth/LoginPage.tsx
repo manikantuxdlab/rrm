@@ -1,50 +1,65 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
-import { Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, AlertCircle, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useAuth } from "@/context"
+import { supabase } from "@/lib/supabase"
 
 export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const navigate = useNavigate()
-  const [email, setEmail] = React.useState("")
-  const [password, setPassword] = React.useState("")
+  const { signIn, user } = useAuth()
+
+  const [email, setEmail] = React.useState("admin@gmail.com")
+  const [password, setPassword] = React.useState("Test@123")
   const [showPassword, setShowPassword] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
-  const [authMode, setAuthMode] = React.useState<"login" | "signup" | "forgot">("login")
-  const [signupFullName, setSignupFullName] = React.useState("")
-  const [signupCompany, setSignupCompany] = React.useState("")
+  const [authMode, setAuthMode] = React.useState<"login" | "forgot">("login")
   const [feedbackMessage, setFeedbackMessage] = React.useState<string | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true })
+    }
+  }, [user, navigate])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setFeedbackMessage(null)
     setErrorMessage(null)
 
-    setTimeout(() => {
-      setIsLoading(false)
-      if (authMode === "forgot") {
-        setFeedbackMessage("Password reset instructions have been dispatched to your email.")
-        return
+    if (authMode === "forgot") {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase())
+        if (error) {
+          setErrorMessage(error.message)
+        } else {
+          setFeedbackMessage("Password reset instructions have been dispatched to your email.")
+        }
+      } catch (err: unknown) {
+        setErrorMessage(err instanceof Error ? err.message : "Failed to send reset link.")
+      } finally {
+        setIsLoading(false)
       }
-      if (authMode === "signup") {
-        localStorage.setItem("rrrm_authenticated", "true")
-        if (onLoginSuccess) onLoginSuccess()
-        navigate("/dashboard")
-        return
-      }
+      return
+    }
 
-      // Strict Login validation: admin@gmail.com / Test@123
-      if (email.trim().toLowerCase() === "admin@gmail.com" && password === "Test@123") {
-        localStorage.setItem("rrrm_authenticated", "true")
-        localStorage.setItem("rrrm_user_email", email.trim().toLowerCase())
-        if (onLoginSuccess) onLoginSuccess()
-        navigate("/dashboard")
+    try {
+      const { error } = await signIn(email, password)
+      if (error) {
+        setErrorMessage(error.message || "Invalid credentials. Please verify your email and password.")
       } else {
-        setErrorMessage("Invalid credentials. Please enter a valid email and password.")
+        if (onLoginSuccess) onLoginSuccess()
+        navigate("/dashboard", { replace: true })
       }
-    }, 600)
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Authentication failed.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -65,14 +80,16 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
 
           {/* Form Header */}
           <div className="text-center space-y-1.5 mb-6">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ff4e00]/10 text-[#ff4e00] text-[11px] font-semibold mb-1">
+              <ShieldCheck className="size-3.5" />
+              <span>Super Admin Portal</span>
+            </div>
             <h1 className="text-2xl font-bold tracking-tight text-[#ff4e00]">
               {authMode === "login" && "Login to your account"}
-              {authMode === "signup" && "Create your safety account"}
               {authMode === "forgot" && "Reset your password"}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {authMode === "login" && "Enter your email and password below to login"}
-              {authMode === "signup" && "Register your contractor account for live OSHA compliance"}
+              {authMode === "login" && "Enter your Super Admin credentials below to login"}
               {authMode === "forgot" && "Enter your registered email to receive recovery instructions"}
             </p>
           </div>
@@ -93,37 +110,6 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
 
           {/* Auth Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {authMode === "signup" && (
-              <>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">
-                    Full Name
-                  </label>
-                  <Input
-                    type="text"
-                    required
-                    placeholder="Enter your full name"
-                    value={signupFullName}
-                    onChange={(e) => setSignupFullName(e.target.value)}
-                    className="h-10 text-xs border-input bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">
-                    Company / Trade Name
-                  </label>
-                  <Input
-                    type="text"
-                    required
-                    placeholder="e.g. Titan Concrete & Masonry"
-                    value={signupCompany}
-                    onChange={(e) => setSignupCompany(e.target.value)}
-                    className="h-10 text-xs border-input bg-background"
-                  />
-                </div>
-              </>
-            )}
-
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">
                 Email
@@ -131,7 +117,7 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
               <Input
                 type="email"
                 required
-                placeholder="Enter your email"
+                placeholder="admin@gmail.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value)
@@ -141,25 +127,23 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
               />
             </div>
 
-            {authMode !== "forgot" && (
+            {authMode === "login" && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-foreground">
                     Password
                   </label>
-                  {authMode === "login" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFeedbackMessage(null)
-                        setErrorMessage(null)
-                        setAuthMode("forgot")
-                      }}
-                      className="text-xs font-medium text-[#ff4e00] hover:underline cursor-pointer"
-                    >
-                      Forgot your password?
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFeedbackMessage(null)
+                      setErrorMessage(null)
+                      setAuthMode("forgot")
+                    }}
+                    className="text-xs font-medium text-[#ff4e00] hover:underline cursor-pointer"
+                  >
+                    Forgot your password?
+                  </button>
                 </div>
                 <div className="relative">
                   <Input
@@ -196,13 +180,12 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="size-4 animate-spin" />
-                  <span>Authenticating...</span>
+                  <span>Authenticating with Supabase...</span>
                 </div>
               ) : (
                 <div className="flex items-center justify-center gap-1.5">
                   <span>
-                    {authMode === "login" && "Login"}
-                    {authMode === "signup" && "Create Account"}
+                    {authMode === "login" && "Login as Super Admin"}
                     {authMode === "forgot" && "Send Reset Link"}
                   </span>
                   <ArrowRight className="size-3.5" />
@@ -212,46 +195,15 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
           </form>
 
           {/* Alternate Mode Navigation */}
-          <div className="mt-6 text-center text-xs text-muted-foreground">
-            {authMode === "login" && (
-              <p>
-                Don't have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFeedbackMessage(null)
-                    setAuthMode("signup")
-                  }}
-                  className="font-semibold text-[#ff4e00] hover:underline cursor-pointer"
-                >
-                  Sign up
-                </button>
-              </p>
-            )}
-
-            {authMode === "signup" && (
-              <p>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFeedbackMessage(null)
-                    setAuthMode("login")
-                  }}
-                  className="font-semibold text-[#ff4e00] hover:underline cursor-pointer"
-                >
-                  Login
-                </button>
-              </p>
-            )}
-
-            {authMode === "forgot" && (
+          {authMode === "forgot" && (
+            <div className="mt-6 text-center text-xs text-muted-foreground">
               <p>
                 Remembered your password?{" "}
                 <button
                   type="button"
                   onClick={() => {
                     setFeedbackMessage(null)
+                    setErrorMessage(null)
                     setAuthMode("login")
                   }}
                   className="font-semibold text-[#ff4e00] hover:underline cursor-pointer"
@@ -259,8 +211,8 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                   Back to login
                 </button>
               </p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Footer info */}
