@@ -4,7 +4,7 @@ import { Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, AlertCircle, ShieldChec
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context"
-import { supabase } from "@/lib/supabase"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 
 export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const navigate = useNavigate()
@@ -93,6 +93,18 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
               {authMode === "forgot" && "Enter your registered email to receive recovery instructions"}
             </p>
           </div>
+
+          {!isSupabaseConfigured && (
+            <div className="mb-4 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex items-start gap-2">
+              <AlertCircle className="size-4 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Supabase environment variables missing</p>
+                <p className="mt-0.5 text-[11px] opacity-90">
+                  Please add <code className="font-mono bg-amber-500/20 px-1 rounded">VITE_SUPABASE_URL</code> and <code className="font-mono bg-amber-500/20 px-1 rounded">VITE_SUPABASE_ANON_KEY</code> to your deployment settings.
+                </p>
+              </div>
+            </div>
+          )}
 
           {errorMessage && (
             <div className="mb-4 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2 animate-in fade-in duration-200">
