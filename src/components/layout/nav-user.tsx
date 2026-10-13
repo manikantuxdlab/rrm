@@ -19,8 +19,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon, ShieldCheck } from "lucide-react"
+import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon, ShieldCheck, Sun, Moon } from "lucide-react"
 import { useAuth } from "@/context"
+import { useTheme } from "@/components/providers"
 
 export function NavUser({
   user,
@@ -34,6 +35,7 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
   const { user: authUser, profile, signOut } = useAuth()
+  const { theme, setTheme } = useTheme()
 
   const displayName = profile?.full_name || (authUser?.user_metadata?.full_name as string) || "Super Admin"
   const displayEmail = profile?.email || authUser?.email || user.email || "admin@gmail.com"
@@ -110,6 +112,22 @@ export function NavUser({
               <DropdownMenuItem>
                 <BellIcon />
                 Notifications
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? (
+                  <>
+                    <Sun className="size-4 text-amber-500" />
+                    <span>Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="size-4 text-sky-400" />
+                    <span>Dark Mode</span>
+                  </>
+                )}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

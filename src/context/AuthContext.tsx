@@ -98,6 +98,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (data.session && data.user) {
+      // Strictly verify Super Admin / Admin role from public.profiles
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle()
+
+      const userRole = profileRow?.role || (data.user.user_metadata?.role as string) || ""
+      const isSuperAdmin = userRole === "super_admin" || userRole === "admin"
+
+      if (!isSuperAdmin) {
+        // Block and signOut non-admin accounts immediately
+        await supabase.auth.signOut()
+        return {
+          error: new Error(
+            "Access Denied: Only Super Admin is authorized to login to this dashboard. Mobile field accounts cannot access administrative controls."
+          ),
+        }
+      }
+
       setSession(data.session)
       setUser(data.user)
       await fetchProfile(data.user)

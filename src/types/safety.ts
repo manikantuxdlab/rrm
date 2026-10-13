@@ -1,4 +1,3 @@
-export type UserRole = "foreman" | "boss" | "super_admin" | "underwriter" | "safety_director"
 export type Language = "en" | "es"
 export type SyncStatus = "draft" | "pending" | "synced" | "failed"
 
@@ -191,7 +190,7 @@ export interface AppUser {
   phone: string
   companyId: string
   companyName: string
-  role: "foreman" | "superintendent" | "safety_manager" | "admin"
+  role: "foreman" | "boss" | "super_admin"
   assignedJobsiteIds: string[]
   assignedJobsiteNames: string[]
   languagePreference: Language

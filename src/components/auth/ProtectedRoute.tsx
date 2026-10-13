@@ -29,5 +29,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
+  const { profile } = useAuth()
+  if (profile && profile.role !== "super_admin" && profile.role !== "admin") {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
   return <>{children}</>
 }
