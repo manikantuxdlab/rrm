@@ -1,4 +1,4 @@
--- ==============================================================================
+﻿-- ==============================================================================
 -- RRM Safety Dashboard: FAQ Knowledge Base Migration
 -- Table: public.faqs
 -- Description: Centralized FAQs and Field Guidance with Role-based access & RLS
@@ -23,11 +23,15 @@ DROP POLICY IF EXISTS "Allow super_admins full management of faqs" ON public.faq
 DROP POLICY IF EXISTS "Allow authenticated manage faqs" ON public.faqs;
 
 -- Read policy: Anyone authenticated can view FAQs
-CREATE POLICY "Allow authenticated read faqs"
+-- Allow both authenticated users and anon clients (mobile app / field workers) to read published FAQs
+DROP POLICY IF EXISTS "Allow authenticated read faqs" ON public.faqs;
+DROP POLICY IF EXISTS "Allow public read faqs" ON public.faqs;
+
+CREATE POLICY "Allow public read faqs"
     ON public.faqs
     FOR SELECT
-    TO authenticated
-    USING (true);
+    TO anon, authenticated
+    USING (status = 'published');
 
 -- Write policy: Authenticated staff can insert/update/delete FAQs
 CREATE POLICY "Allow authenticated manage faqs"
@@ -135,5 +139,6 @@ VALUES
     11,
     'published'
 );
+
 
 
