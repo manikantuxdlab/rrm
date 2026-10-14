@@ -66,6 +66,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     url: "/faqs",
     description: "Manage frequently asked questions, compliance guidance & mobile help",
   },
+  {
+    key: "tickets",
+    title: "Support Tickets",
+    url: "/tickets",
+    description: "Track, review, and resolve field safety inquiries, jobsite issues & contractor requests",
+  },
 ]
 
 export const SAFETY_DOCUMENTS: DocumentNavItem[] = []

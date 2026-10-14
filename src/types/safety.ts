@@ -233,4 +233,55 @@ export interface FAQItem {
   createdByName?: string
 }
 
+export type TicketCategory =
+  | "mobile_app"
+  | "incident_claim"
+  | "coi_billing"
+  | "osha_compliance"
+  | "jobsite_access"
+  | "general"
+
+export type TicketPriority = "low" | "medium" | "high" | "urgent"
+
+export type TicketStatus = "open" | "in_progress" | "waiting_on_user" | "resolved" | "closed"
+
+export type TicketStage =
+  | "company_level"
+  | "escalated_to_admin"
+  | "resolved_by_boss"
+  | "resolved_by_admin"
+
+export interface SupportTicketMessage {
+  id: string
+  ticketId: string
+  senderName: string
+  senderRole: "foreman" | "boss" | "super_admin"
+  message: string
+  createdAt: string
+}
+
+export interface SupportTicket {
+  id: string
+  ticketNumber: string
+  subject: string
+  description: string
+  category: TicketCategory
+  priority: TicketPriority
+  status: TicketStatus
+  stage: TicketStage
+  userId?: string | null
+  userName: string
+  userEmail: string
+  userRole: "foreman" | "boss" | "super_admin"
+  companyName: string
+  jobsiteName?: string | null
+  assignedTo?: string | null
+  resolutionNotes?: string | null
+  resolvedBy?: string | null
+  resolvedAt?: string | null
+  createdAt: string
+  updatedAt: string
+  messages?: SupportTicketMessage[]
+}
+
 

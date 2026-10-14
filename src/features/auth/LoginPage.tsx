@@ -8,7 +8,8 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 
 export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const navigate = useNavigate()
-  const { signIn, user } = useAuth()
+  const { signIn, user, profile } = useAuth()
+  const isSuperAdmin = profile?.role === "super_admin" || profile?.role === "admin"
 
   const [email, setEmail] = React.useState("admin@gmail.com")
   const [password, setPassword] = React.useState("Test@123")
@@ -18,12 +19,12 @@ export function LoginPage({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const [feedbackMessage, setFeedbackMessage] = React.useState<string | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated as Super Admin
   React.useEffect(() => {
-    if (user) {
+    if (user && isSuperAdmin) {
       navigate("/dashboard", { replace: true })
     }
-  }, [user, navigate])
+  }, [user, isSuperAdmin, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
