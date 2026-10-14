@@ -4,7 +4,7 @@ import { useAuth } from "@/context"
 import { Loader2 } from "lucide-react"
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -29,7 +29,6 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  const { profile } = useAuth()
   if (profile && profile.role !== "super_admin" && profile.role !== "admin") {
     return <Navigate to="/login" state={{ from: location }} replace />
   }

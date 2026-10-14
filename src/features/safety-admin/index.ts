@@ -9,4 +9,7 @@ export * from "./components/FieldSubmissionsView"
 export * from "./components/RoutingSettingsModal"
 export * from "./components/QuickActionModals"
 export * from "./components/SubmissionDetailModal"
+export * from "./components/FaqManagementView"
+
+
 

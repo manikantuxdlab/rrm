@@ -9,6 +9,7 @@ import {
   ActiveJobsitesView,
   WorkforceBadgesView,
   FieldSubmissionsView,
+  FaqManagementView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 
@@ -102,6 +103,9 @@ export function AppRoutes({
         path="/fleet"
         element={<Navigate to="/submissions" replace />}
       />
+
+      {/* 8. FAQ & Knowledge Base */}
+      <Route path="/faqs" element={<FaqManagementView />} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

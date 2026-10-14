@@ -60,6 +60,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     url: "/submissions",
     description: "Field claims, signed toolbox rosters, safety checklists & sync queue",
   },
+  {
+    key: "faqs",
+    title: "FAQ Management",
+    url: "/faqs",
+    description: "Manage frequently asked questions, compliance guidance & mobile help",
+  },
 ]
 
 export const SAFETY_DOCUMENTS: DocumentNavItem[] = []

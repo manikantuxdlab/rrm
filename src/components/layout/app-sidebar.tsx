@@ -22,6 +22,7 @@ import {
   UsersIcon,
   BellRingIcon,
   FileTextIcon,
+  HelpCircle,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -43,6 +44,7 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   jobsites: <Building2Icon className="size-4" />,
   workforce: <AwardIcon className="size-4" />,
   submissions: <FileTextIcon className="size-4" />,
+  faqs: <HelpCircle className="size-4" />,
 }
 
 const documentIconMap: Record<string, React.ReactNode> = {

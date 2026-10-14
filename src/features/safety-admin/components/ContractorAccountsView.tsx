@@ -57,10 +57,6 @@ import {
   HardHat,
   LayoutGrid,
   List,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
 } from "lucide-react"
 import { RoutingSettingsModal } from "./RoutingSettingsModal"
 

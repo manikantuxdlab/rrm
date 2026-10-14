@@ -211,3 +211,26 @@ export interface CompanyRoutingConfig {
   autoCcBroker: boolean
 }
 
+export type FAQCategory =
+  | "general"
+  | "toolbox_talks"
+  | "coi_insurance"
+  | "incidents_claims"
+  | "mobile_app"
+  | "osha_compliance"
+
+export type FAQTargetAudience = "all" | "foreman" | "boss" | "super_admin"
+
+export interface FAQItem {
+  id: string
+  question: string
+  answer: string
+  category: FAQCategory
+  targetAudience: FAQTargetAudience
+  orderIndex: number
+  status: "published" | "draft" | "archived"
+  updatedAt: string
+  createdByName?: string
+}
+
+
