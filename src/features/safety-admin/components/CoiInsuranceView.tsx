@@ -14,6 +14,7 @@ import {
   MOCK_SUBMISSIONS,
 } from "@/data/safetyMockData"
 import type { SubmissionRecord } from "@/types"
+import { GlobalDataTable, DataTablePagination } from "@/components/ui/data-table-global"
 import {
   ShieldCheck,
   CheckCircle2,
@@ -30,6 +31,8 @@ export function CoiInsuranceView({
   onOpenIssueCoi: () => void
 }) {
   const [activeTab, setActiveTab] = React.useState<"subcontractors" | "issued_cois">("subcontractors")
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [pageSize, setPageSize] = React.useState(10)
 
   const coiSubmissions = MOCK_SUBMISSIONS.filter((s) => s.moduleType === "customer_coi")
 
@@ -120,70 +123,111 @@ export function CoiInsuranceView({
       </div>
 
       {activeTab === "subcontractors" ? (
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Subcontractor Entity</th>
-                  <th className="px-4 py-3 font-semibold">Trade Specialty</th>
-                  <th className="px-4 py-3 font-semibold">Contact & Dispatch</th>
-                  <th className="px-4 py-3 font-semibold">Endorsed Policy Limits</th>
-                  <th className="px-4 py-3 font-semibold">Expiration Date</th>
-                  <th className="px-4 py-3 font-semibold">COI Status</th>
-                  <th className="px-4 py-3 font-semibold text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {MOCK_SAVED_SUBCONTRACTORS.map((sub) => {
+        <div className="space-y-3">
+          <GlobalDataTable<(typeof MOCK_SAVED_SUBCONTRACTORS)[0]>
+            data={MOCK_SAVED_SUBCONTRACTORS.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+            keyExtractor={(sub) => sub.id}
+            showRowNumbers
+            startIndex={(currentPage - 1) * pageSize + 1}
+            emptyMessage="No subcontractors found."
+            columns={[
+              {
+                key: "sub",
+                header: "Subcontractor Entity",
+                className: "min-w-[170px]",
+                cell: (sub) => (
+                  <div>
+                    <div className="font-semibold text-foreground">{sub.name}</div>
+                    <div className="text-[11px] text-muted-foreground font-mono">ID: {sub.id}</div>
+                  </div>
+                ),
+              },
+              {
+                key: "trade",
+                header: "Trade Specialty",
+                className: "min-w-[120px]",
+                cell: (sub) => (
+                  <Badge variant="outline" className="text-[10px]">
+                    {sub.trade}
+                  </Badge>
+                ),
+              },
+              {
+                key: "contact",
+                header: "Contact & Dispatch",
+                className: "min-w-[160px]",
+                cell: (sub) => (
+                  <div>
+                    <div className="text-foreground font-medium">{sub.contact}</div>
+                    <div className="text-[11px] text-muted-foreground">{sub.email}</div>
+                  </div>
+                ),
+              },
+              {
+                key: "limits",
+                header: "Endorsed Policy Limits",
+                className: "min-w-[140px] font-mono text-[11px] text-muted-foreground",
+                cell: (sub) => sub.defaultLimits,
+              },
+              {
+                key: "expiresDate",
+                header: "Expiration Date",
+                className: "min-w-[120px] text-muted-foreground font-mono text-[11px]",
+                cell: (sub) => sub.expiresDate,
+              },
+              {
+                key: "status",
+                header: "COI Status",
+                className: "min-w-[140px] text-center",
+                headerClassName: "text-center",
+                align: "center",
+                cell: (sub) => {
                   const isExpiring = sub.coiStatus === "expiring"
-                  return (
-                    <tr key={sub.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3.5">
-                        <div className="font-semibold text-foreground">{sub.name}</div>
-                        <div className="text-[11px] text-muted-foreground">ID: {sub.id}</div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <Badge variant="outline" className="text-[10px]">
-                          {sub.trade}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="text-foreground font-medium">{sub.contact}</div>
-                        <div className="text-[11px] text-muted-foreground">{sub.email}</div>
-                      </td>
-                      <td className="px-4 py-3.5 font-mono text-[11px] text-muted-foreground">
-                        {sub.defaultLimits}
-                      </td>
-                      <td className="px-4 py-3.5 text-muted-foreground">
-                        {sub.expiresDate}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {isExpiring ? (
-                          <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px] flex items-center gap-1">
-                            <AlertTriangle className="size-3" />
-                            Expiring Soon
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10 text-[10px] flex items-center gap-1">
-                            <CheckCircle2 className="size-3" />
-                            Active & Compliant
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
-                          <Eye className="size-3" />
-                          View ACORD
-                        </Button>
-                      </td>
-                    </tr>
+                  return isExpiring ? (
+                    <Badge
+                      variant="outline"
+                      className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px] inline-flex items-center gap-1"
+                    >
+                      <AlertTriangle className="size-3" />
+                      Expiring Soon
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10 text-[10px] inline-flex items-center gap-1"
+                    >
+                      <CheckCircle2 className="size-3" />
+                      Active & Compliant
+                    </Badge>
                   )
-                })}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+                },
+              },
+              {
+                key: "action",
+                header: "Action",
+                className: "w-28 text-center",
+                headerClassName: "text-center",
+                align: "center",
+                cell: () => (
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1 cursor-pointer">
+                    <Eye className="size-3" />
+                    View ACORD
+                  </Button>
+                ),
+              },
+            ]}
+          />
+
+          <DataTablePagination
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={MOCK_SAVED_SUBCONTRACTORS.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[5, 10, 20]}
+            itemLabel="subcontractors"
+          />
+        </div>
       ) : (
         <div className="space-y-4">
           {coiSubmissions.map((sub) => (

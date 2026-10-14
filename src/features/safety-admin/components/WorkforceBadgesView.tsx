@@ -14,6 +14,8 @@ import {
   MOCK_CREW,
   MOCK_CERTIFICATIONS,
 } from "@/data/safetyMockData"
+import type { CertificationRecord } from "@/types"
+import { GlobalDataTable, DataTablePagination } from "@/components/ui/data-table-global"
 import {
   Award,
   CheckCircle2,
@@ -25,6 +27,8 @@ import {
 export function WorkforceBadgesView() {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [activeTab, setActiveTab] = React.useState<"workers" | "certifications">("workers")
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [pageSize, setPageSize] = React.useState(10)
 
   const filteredWorkers = React.useMemo(() => {
     return MOCK_CREW.filter(
@@ -192,67 +196,95 @@ export function WorkforceBadgesView() {
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Worker Name</th>
-                  <th className="px-4 py-3 font-semibold">Certification Type</th>
-                  <th className="px-4 py-3 font-semibold">Credential #</th>
-                  <th className="px-4 py-3 font-semibold">Issuing Body</th>
-                  <th className="px-4 py-3 font-semibold">Valid Period</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {MOCK_CERTIFICATIONS.map((cert) => {
+        <div className="space-y-3">
+          <GlobalDataTable<CertificationRecord>
+            data={MOCK_CERTIFICATIONS.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+            keyExtractor={(cert) => cert.id}
+            showRowNumbers
+            startIndex={(currentPage - 1) * pageSize + 1}
+            emptyMessage="No certification records found."
+            columns={[
+              {
+                key: "worker",
+                header: "Worker Name",
+                className: "min-w-[170px]",
+                cell: (cert) => (
+                  <div>
+                    <div className="font-semibold text-foreground">{cert.workerName}</div>
+                    <div className="text-[11px] text-muted-foreground">{cert.companyName}</div>
+                  </div>
+                ),
+              },
+              {
+                key: "certType",
+                header: "Certification Type",
+                className: "min-w-[160px] font-medium text-foreground",
+                cell: (cert) => cert.certType,
+              },
+              {
+                key: "certNumber",
+                header: "Credential #",
+                className: "min-w-[130px] font-mono text-[11px] text-muted-foreground",
+                cell: (cert) => cert.certNumber,
+              },
+              {
+                key: "issuer",
+                header: "Issuing Body",
+                className: "min-w-[140px] text-muted-foreground",
+                cell: (cert) => cert.issuer,
+              },
+              {
+                key: "validPeriod",
+                header: "Valid Period",
+                className: "min-w-[170px] text-muted-foreground font-mono text-[11px]",
+                cell: (cert) => `${cert.issueDate} → ${cert.expirationDate}`,
+              },
+              {
+                key: "status",
+                header: "Status",
+                className: "w-32 text-center",
+                headerClassName: "text-center",
+                align: "center",
+                cell: (cert) => {
                   const isValid = cert.status === "valid"
                   const isExpiring = cert.status === "expiring_soon"
-
-                  return (
-                    <tr key={cert.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3.5">
-                        <div className="font-semibold text-foreground">{cert.workerName}</div>
-                        <div className="text-[11px] text-muted-foreground">{cert.companyName}</div>
-                      </td>
-                      <td className="px-4 py-3.5 font-medium text-foreground">
-                        {cert.certType}
-                      </td>
-                      <td className="px-4 py-3.5 font-mono text-[11px] text-muted-foreground">
-                        {cert.certNumber}
-                      </td>
-                      <td className="px-4 py-3.5 text-muted-foreground">
-                        {cert.issuer}
-                      </td>
-                      <td className="px-4 py-3.5 text-muted-foreground">
-                        {cert.issueDate} → {cert.expirationDate}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {isValid ? (
-                          <Badge variant="outline" className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10 text-[10px] flex items-center gap-1">
-                            <CheckCircle2 className="size-3" />
-                            Valid
-                          </Badge>
-                        ) : isExpiring ? (
-                          <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px] flex items-center gap-1">
-                            <AlertTriangle className="size-3" />
-                            Expiring Soon
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive" className="text-[10px] flex items-center gap-1">
-                            <XCircle className="size-3" />
-                            Expired
-                          </Badge>
-                        )}
-                      </td>
-                    </tr>
+                  return isValid ? (
+                    <Badge
+                      variant="outline"
+                      className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10 text-[10px] inline-flex items-center gap-1"
+                    >
+                      <CheckCircle2 className="size-3" />
+                      Valid
+                    </Badge>
+                  ) : isExpiring ? (
+                    <Badge
+                      variant="outline"
+                      className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px] inline-flex items-center gap-1"
+                    >
+                      <AlertTriangle className="size-3" />
+                      Expiring Soon
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="text-[10px] inline-flex items-center gap-1">
+                      <XCircle className="size-3" />
+                      Expired
+                    </Badge>
                   )
-                })}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+                },
+              },
+            ]}
+          />
+
+          <DataTablePagination
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={MOCK_CERTIFICATIONS.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[5, 10, 20]}
+            itemLabel="certifications"
+          />
+        </div>
       )}
     </div>
   )

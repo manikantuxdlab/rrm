@@ -19,16 +19,16 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "Multi-tenant sync status, real-time metrics & field activity feed",
   },
   {
-    key: "companies",
-    title: "Contractor Companies",
-    url: "/companies",
-    description: "Onboard and deactivate customer companies, policy schedules & multi-tenancy",
-  },
-  {
     key: "users",
     title: "User Management",
     url: "/users",
     description: "Onboard foremen, grant mobile access & manage 1-20 logins per company",
+  },
+  {
+    key: "companies",
+    title: "Contractor Companies",
+    url: "/companies",
+    description: "Onboard and deactivate customer companies, policy schedules & multi-tenancy",
   },
   {
     key: "routing",

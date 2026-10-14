@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select"
 import { MOCK_COMPANIES } from "@/data/safetyMockData"
 import type { ClientCompany } from "@/types"
+import { GlobalDataTable, DataTablePagination } from "@/components/ui/data-table-global"
 import {
   Building,
   Building2,
@@ -428,242 +429,159 @@ export function ContractorAccountsView({
           </div>
         )
       ) : (
-        /* Open-Sided Table (Border-Y only, Left & Right Open) */
-        <div className="border-y border-border overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Company Name</th>
-                <th className="px-4 py-3 font-semibold">Primary Trade</th>
-                <th className="px-4 py-3 font-semibold">Safety Routing Dispatch</th>
-                <th className="px-4 py-3 font-semibold">Policy Number & Expiry</th>
-                <th className="px-4 py-3 font-semibold">Active Jobs</th>
-                <th className="px-4 py-3 font-semibold">Safety Score</th>
-                <th className="px-4 py-3 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {filteredCompanies.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground text-xs">
-                    No contractor entities found matching your search.
-                  </td>
-                </tr>
-              ) : (
-                paginatedCompanies.map((comp) => (
-                  <tr
-                    key={comp.id}
-                    onClick={() => setViewingCompany(comp)}
-                    className="hover:bg-muted/50 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-4 py-3.5">
-                      <div className="font-bold text-foreground group-hover:text-primary transition-colors">{comp.name}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        Contact: {comp.contactPerson} ({comp.contactPhone})
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <Badge variant="outline" className="text-[10px]">
-                        {comp.trade}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3.5 font-medium text-primary">
-                      {comp.routingEmail}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-[11px]">
-                      <div className="text-foreground font-semibold">{comp.policyNumber}</div>
-                      <div className="text-muted-foreground text-[10px]">Expires: {comp.policyExpires}</div>
-                    </td>
-                    <td className="px-4 py-3.5 text-foreground font-medium">
-                      {comp.activeJobsCount} Active Sites
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-foreground border border-border">
-                        {comp.safetyScore}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      {/* Three Dot Action Dropdown */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="size-8 p-0 rounded-md hover:bg-muted cursor-pointer"
-                          >
-                            <MoreVertical className="size-4 text-muted-foreground hover:text-foreground" />
-                            <span className="sr-only">Company Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 text-xs">
-                          <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase font-semibold">
-                            Actions
-                          </DropdownMenuLabel>
-                          
-                          {/* View Details */}
-                          <DropdownMenuItem
-                            onClick={() => setViewingCompany(comp)}
-                            className="cursor-pointer gap-2"
-                          >
-                            <Eye className="size-3.5 text-primary" />
-                            <span>View Details</span>
-                          </DropdownMenuItem>
-
-                          {/* Edit Company */}
-                          <DropdownMenuItem
-                            onClick={() => handleOpenEdit(comp)}
-                            className="cursor-pointer gap-2"
-                          >
-                            <Edit className="size-3.5 text-blue-500" />
-                            <span>Edit Company</span>
-                          </DropdownMenuItem>
-
-                          {/* Configure Routing */}
-                          <DropdownMenuItem
-                            onClick={() => setSelectedCompanyForRouting(comp)}
-                            className="cursor-pointer gap-2"
-                          >
-                            <Settings2 className="size-3.5 text-amber-500" />
-                            <span>Configure Routing</span>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuSeparator />
-
-                          {/* Delete Company */}
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteCompany(comp)}
-                            className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
-                          >
-                            <Trash2 className="size-3.5 text-destructive" />
-                            <span>Delete Company</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        /* Excel Sheet-Style Clean & Compact Grid Table via GlobalDataTable */
+        <GlobalDataTable<ClientCompany>
+          data={paginatedCompanies}
+          keyExtractor={(comp) => comp.id}
+          showRowNumbers
+          startIndex={(safeCurrentPage - 1) * pageSize + 1}
+          emptyMessage="No contractor entities found matching your search."
+          onRowClick={(comp) => setViewingCompany(comp)}
+          columns={[
+            {
+              key: "name",
+              header: "Company Name",
+              className: "min-w-[180px]",
+              cell: (comp) => (
+                <div>
+                  <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                    {comp.name}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Contact: {comp.contactPerson} ({comp.contactPhone})
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "trade",
+              header: "Primary Trade",
+              className: "min-w-[120px]",
+              cell: (comp) => (
+                <Badge variant="outline" className="text-[10px]">
+                  {comp.trade}
+                </Badge>
+              ),
+            },
+            {
+              key: "routingEmail",
+              header: "Safety Routing Dispatch",
+              className: "min-w-[160px] font-mono text-[11px]",
+              cell: (comp) => (
+                <span className="font-medium text-primary">{comp.routingEmail}</span>
+              ),
+            },
+            {
+              key: "policy",
+              header: "Policy Number & Expiry",
+              className: "min-w-[150px] font-mono text-[11px]",
+              cell: (comp) => (
+                <div>
+                  <div className="text-foreground font-semibold">{comp.policyNumber}</div>
+                  <div className="text-muted-foreground text-[10px]">
+                    Expires: {comp.policyExpires}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "activeJobs",
+              header: "Active Jobs",
+              className: "min-w-[110px] text-center",
+              headerClassName: "text-center",
+              align: "center",
+              cell: (comp) => (
+                <span className="font-medium text-foreground">
+                  {comp.activeJobsCount} Active
+                </span>
+              ),
+            },
+            {
+              key: "safetyScore",
+              header: "Safety Score",
+              className: "min-w-[100px] text-center",
+              headerClassName: "text-center",
+              align: "center",
+              cell: (comp) => (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-foreground border border-border">
+                  {comp.safetyScore}%
+                </span>
+              ),
+            },
+            {
+              key: "actions",
+              header: "Actions",
+              className: "w-12 text-center",
+              headerClassName: "text-center",
+              align: "center",
+              cell: (comp) => (
+                <div
+                  className="flex items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="size-7 p-0 rounded-md hover:bg-muted cursor-pointer text-muted-foreground hover:text-foreground"
+                      >
+                        <MoreVertical className="size-3.5" />
+                        <span className="sr-only">Company Actions</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 text-xs">
+                      <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase font-semibold">
+                        Actions
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => setViewingCompany(comp)}
+                        className="cursor-pointer gap-2"
+                      >
+                        <Eye className="size-3.5 text-primary" />
+                        <span>View Details</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleOpenEdit(comp)}
+                        className="cursor-pointer gap-2"
+                      >
+                        <Edit className="size-3.5 text-blue-500" />
+                        <span>Edit Company</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setSelectedCompanyForRouting(comp)}
+                        className="cursor-pointer gap-2"
+                      >
+                        <Settings2 className="size-3.5 text-amber-500" />
+                        <span>Configure Routing</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteCompany(comp)}
+                        className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                      >
+                        <Trash2 className="size-3.5 text-destructive" />
+                        <span className="font-semibold text-destructive">Delete Company</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
 
-      {/* Pagination Bar */}
-      {filteredCompanies.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs border-t border-border/40">
-          {/* Info summary */}
-          <div className="text-muted-foreground text-xs">
-            Showing <span className="font-semibold text-foreground">{(safeCurrentPage - 1) * pageSize + 1}</span> to{" "}
-            <span className="font-semibold text-foreground">
-              {Math.min(safeCurrentPage * pageSize, filteredCompanies.length)}
-            </span>{" "}
-            of <span className="font-semibold text-foreground">{filteredCompanies.length}</span> contractors
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Rows per page selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">Rows per page:</span>
-              <Select
-                value={String(pageSize)}
-                onValueChange={(val) => {
-                  setPageSize(Number(val))
-                  setCurrentPage(1)
-                }}
-              >
-                <SelectTrigger className="h-8 w-18 text-xs bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="text-xs">
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Page Navigation */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(1)}
-                disabled={safeCurrentPage === 1}
-                className="size-8 p-0 cursor-pointer disabled:cursor-not-allowed border-border"
-                title="First Page"
-              >
-                <ChevronsLeft className="size-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={safeCurrentPage === 1}
-                className="size-8 p-0 cursor-pointer disabled:cursor-not-allowed border-border"
-                title="Previous Page"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-
-              {/* Page Number Buttons */}
-              <div className="flex items-center gap-1 mx-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter((p) => {
-                    if (totalPages <= 5) return true
-                    if (p === 1 || p === totalPages) return true
-                    return Math.abs(p - safeCurrentPage) <= 1
-                  })
-                  .map((p, idx, arr) => {
-                    const prev = arr[idx - 1]
-                    const showEllipsis = prev && p - prev > 1
-
-                    return (
-                      <React.Fragment key={p}>
-                        {showEllipsis && (
-                          <span className="px-1 text-muted-foreground">...</span>
-                        )}
-                        <Button
-                          variant={safeCurrentPage === p ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(p)}
-                          className={`size-8 p-0 text-xs font-semibold cursor-pointer ${
-                            safeCurrentPage === p
-                              ? "bg-primary text-primary-foreground"
-                              : "border-border text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          {p}
-                        </Button>
-                      </React.Fragment>
-                    )
-                  })}
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={safeCurrentPage === totalPages}
-                className="size-8 p-0 cursor-pointer disabled:cursor-not-allowed border-border"
-                title="Next Page"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={safeCurrentPage === totalPages}
-                className="size-8 p-0 cursor-pointer disabled:cursor-not-allowed border-border"
-                title="Last Page"
-              >
-                <ChevronsRight className="size-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Global Pagination Bar */}
+      <DataTablePagination
+        currentPage={safeCurrentPage}
+        pageSize={pageSize}
+        totalItems={filteredCompanies.length}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[5, 10, 20, 50]}
+        itemLabel="contractors"
+      />
 
       {/* ================= VIEW COMPANY DETAILS SHEET ================= */}
       <Sheet open={!!viewingCompany} onOpenChange={(open) => !open && setViewingCompany(null)}>
