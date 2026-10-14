@@ -205,7 +205,7 @@ export const userService = {
 
       const userRecord = mapDBProfileToUserRecord((data as DBUserProfile) || payload)
       // Attach temporary password for UI toast / confirmation dialog
-      ;(userRecord as Record<string, unknown>).temporaryPassword = tempPassword
+      ;(userRecord as unknown as Record<string, unknown>).temporaryPassword = tempPassword
 
       return {
         data: userRecord,
