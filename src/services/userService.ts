@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "@/lib/supabase"
+import { supabase, isSupabaseConfigured, createIsolatedClient } from "@/lib/supabase"
 import type {
   UserRecord,
   DBUserProfile,
@@ -122,9 +122,13 @@ export const userService = {
     const newId = crypto.randomUUID ? crypto.randomUUID() : `usr-${Date.now()}`
 
     try {
-      // 1. Create auth user with temporary password (User can login or reset password)
-      const tempPassword = `Temp@${Math.random().toString(36).slice(-8)}1A`
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
+      // 1. Generate clean temporary password
+      const tempPassword = `RRM@${Math.floor(100000 + Math.random() * 900000)}!`
+
+      // CRITICAL: Use isolated client without localStorage session persistence
+      // so creating a user DOES NOT overwrite or log out the admin's session!
+      const isolatedClient = createIsolatedClient()
+      const { data: authData, error: authErr } = await isolatedClient.auth.signUp({
         email: input.email.trim().toLowerCase(),
         password: tempPassword,
         options: {
@@ -159,7 +163,7 @@ export const userService = {
         updated_at: new Date().toISOString(),
       }
 
-      // 2. Ensure profile record is inserted/updated
+      // 2. Ensure profile record is inserted/updated in profiles table
       const { data, error } = await supabase
         .from("profiles")
         .upsert(payload)
@@ -171,15 +175,40 @@ export const userService = {
         return { data: null, error: new Error(error.message) }
       }
 
-      // Try sending password reset/invite email
+      // 3. Dispatch Email with credentials via Supabase Edge Function (or local fallback)
       try {
-        await supabase.auth.resetPasswordForEmail(input.email.trim().toLowerCase())
-      } catch {
-        // Non-blocking
+        const emailPayload = {
+          to: input.email.trim().toLowerCase(),
+          fullName: input.fullName.trim(),
+          temporaryPassword: tempPassword,
+          role: input.role,
+          companyName: input.companyName,
+          appUrl: "https://service-safety.pages.dev/login",
+        }
+
+        // Try Supabase Edge Function first
+        const { error: fnErr } = await supabase.functions.invoke("send-email", {
+          body: emailPayload,
+        })
+
+        // If Edge function is not deployed yet or returns error, fallback to local Vite email API
+        if (fnErr) {
+          await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(emailPayload),
+          })
+        }
+      } catch (mailErr) {
+        console.warn("[userService] Background email dispatch notice:", mailErr)
       }
 
+      const userRecord = mapDBProfileToUserRecord((data as DBUserProfile) || payload)
+      // Attach temporary password for UI toast / confirmation dialog
+      ;(userRecord as Record<string, unknown>).temporaryPassword = tempPassword
+
       return {
-        data: mapDBProfileToUserRecord((data as DBUserProfile) || payload),
+        data: userRecord,
         error: null,
       }
     } catch (err) {

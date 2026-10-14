@@ -14,3 +14,18 @@ if (!isSupabaseConfigured) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+/**
+ * Creates an isolated client without persisting sessions to localStorage.
+ * Used for background admin operations (e.g. creating users) so the currently
+ * logged-in admin is NOT logged out when creating another user!
+ */
+export function createIsolatedClient() {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  })
+}

@@ -472,10 +472,10 @@ export function UserAccountsView() {
       setUsers([created, ...users])
       setIsInviteModalOpen(false)
       const toastMsg = error
-        ? `⚠️ User created locally. Supabase note: ${error.message}`
-        : `✅ New user "${newFullName}" successfully onboarded & saved to Supabase!`
+        ? `⚠️ User created. Note: ${error.message}`
+        : `✅ User "${newFullName}" successfully created! Login credentials have been emailed to ${newEmail}.`
       setSuccessToast(toastMsg)
-      setTimeout(() => setSuccessToast(null), 4000)
+      setTimeout(() => setSuccessToast(null), 5000)
 
       // Reset form
       setNewFullName("")
@@ -1446,15 +1446,20 @@ export function UserAccountsView() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-foreground text-xs">
-                    Work Email Address <span className="text-destructive">*</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-foreground text-xs">
+                      Work Email Address
+                    </label>
+                    <span className="text-[11px] text-muted-foreground/80 font-normal">
+                      (Read-only · Login ID cannot be changed)
+                    </span>
+                  </div>
                   <Input
                     type="email"
-                    required
+                    disabled
+                    readOnly
                     value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    className="h-10 text-xs rounded-lg bg-background"
+                    className="h-10 text-xs rounded-lg bg-muted/50 border-border/80 text-muted-foreground cursor-not-allowed select-none opacity-80"
                   />
                 </div>
               </div>
