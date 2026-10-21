@@ -38,7 +38,11 @@ export interface Worker {
   phone: string
   trade: string
   active: boolean
-  companyName: string
+  companyName?: string
+  jobSiteId?: string | null
+  foremanId?: string | null
+  foremanName?: string | null
+  documentUrl?: string | null
   certifications: {
     name: string
     issuedDate: string
