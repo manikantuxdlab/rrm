@@ -72,6 +72,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     url: "/tickets",
     description: "Track, review, and resolve field safety inquiries, jobsite issues & contractor requests",
   },
+    {
+    key: "attendance",
+    title: "Attendance",
+    url: "/attendance",
+    description: "Daily crew check-in/out, hours worked & site rosters",
+  },
 ]
 
 export const SAFETY_DOCUMENTS: DocumentNavItem[] = []

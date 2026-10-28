@@ -11,8 +11,10 @@ import {
   FieldSubmissionsView,
   FaqManagementView,
   SupportTicketsView,
+  
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
+import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
 
 interface AppRoutesProps {
   onSelectSubmission: (submission: SubmissionRecord) => void
@@ -110,6 +112,7 @@ export function AppRoutes({
 
       {/* 9. Support Ticket Management */}
       <Route path="/tickets" element={<SupportTicketsView />} />
+       <Route path="/attendance" element={<AttendanceView />} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
