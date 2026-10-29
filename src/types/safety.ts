@@ -28,6 +28,8 @@ export interface JobSite {
   }
   musterPoint: string
   utilityEmergency: string
+  accessGateInstructions?: string
+  companyName?: string
   activeCrewCount: number
 }
 

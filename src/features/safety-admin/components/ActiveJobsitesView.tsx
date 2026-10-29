@@ -10,7 +10,18 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MOCK_JOBSITES } from "@/data/safetyMockData"
+// import { MOCK_JOBSITES } from "@/data/safetyMockData"
+// import type { JobSite } from "@/types"
+// import {
+//   Building2,
+//   MapPin,
+//   Phone,
+//   Hospital,
+//   Search,
+//   Navigation,
+// } from "lucide-react"
+import { jobsitesService } from "@/services/jobsitesService"
+import { JobsiteEditForm } from "./JobsiteEditForm"
 import type { JobSite } from "@/types"
 import {
   Building2,
@@ -19,16 +30,130 @@ import {
   Hospital,
   Search,
   Navigation,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react"
 
 export function ActiveJobsitesView() {
+  // const [searchQuery, setSearchQuery] = React.useState("")
+  // const [selectedSite, setSelectedSite] = React.useState<JobSite | null>(
+  //   MOCK_JOBSITES[0] || null
+  // )
+
+  // const filteredSites = React.useMemo(() => {
+  //   return MOCK_JOBSITES.filter(
+    const [sites, setSites] = React.useState<JobSite[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [loadError, setLoadError] = React.useState("")
+  const [companies, setCompanies] = React.useState<string[]>([])
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [selectedSite, setSelectedSite] = React.useState<JobSite | null>(
-    MOCK_JOBSITES[0] || null
-  )
+  const [selectedSite, setSelectedSite] = React.useState<JobSite | null>(null)
+  const [draft, setDraft] = React.useState<JobSite | null>(null)
+  const [isNew, setIsNew] = React.useState(false)
+  const [saving, setSaving] = React.useState(false)
+  const [formError, setFormError] = React.useState("")
+
+  const loadSites = React.useCallback(async (selectId?: string) => {
+    try {
+      setLoading(true)
+      setLoadError("")
+      const data = await jobsitesService.fetchAll()
+      setSites(data)
+      setSelectedSite((prev) => {
+        const targetId = selectId ?? prev?.id
+        return data.find((s) => s.id === targetId) || data[0] || null
+      })
+    } catch (err: any) {
+      setLoadError(err?.message || "Failed to load jobsites")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    loadSites()
+    jobsitesService.fetchCompanyNames().then(setCompanies).catch(() => {})
+  }, [loadSites])
+
+  const startAdd = () => {
+    setIsNew(true)
+    setFormError("")
+    setDraft({
+      id: `job-${Date.now()}`,
+      name: "",
+      jobNumber: "",
+      companyName: "",
+      address: "",
+      cityStateZip: "",
+      superintendent: "",
+      superPhone: "",
+      gcCompany: "",
+      gcContact: "",
+      gcPhone: "",
+      gcEmail: "",
+      trade: "",
+      status: "active",
+      emergencyHospital: { name: "", address: "", phone: "", distanceMiles: 0 },
+      urgentCare: { name: "", address: "", phone: "" },
+      musterPoint: "",
+      utilityEmergency: "",
+      accessGateInstructions: "",
+      activeCrewCount: 0,
+    })
+  }
+
+  const startEdit = () => {
+    if (!selectedSite) return
+    setIsNew(false)
+    setFormError("")
+    setDraft({ ...selectedSite })
+  }
+
+  const phoneOk = (p: string) => !p || p.replace(/\D/g, "").length >= 10
+
+  const handleSave = async () => {
+    if (!draft) return
+    if (!draft.name.trim() || !draft.jobNumber.trim() || !draft.companyName) {
+      setFormError("Company, name and job number are required.")
+      return
+    }
+    const phones = [
+      draft.superPhone,
+      draft.gcPhone,
+      draft.emergencyHospital.phone,
+      draft.urgentCare.phone,
+    ]
+    if (!phones.every(phoneOk)) {
+      setFormError("Phone numbers must have at least 10 digits.")
+      return
+    }
+    setSaving(true)
+    setFormError("")
+    const res = await jobsitesService.upsert(draft)
+    setSaving(false)
+    if (!res.ok) {
+      setFormError(res.error || "Save failed")
+      return
+    }
+    setDraft(null)
+    await loadSites(draft.id)
+  }
+
+  const handleDelete = async () => {
+    if (!selectedSite) return
+    if (!window.confirm(`Delete "${selectedSite.name}"? This cannot be undone.`)) return
+    const ok = await jobsitesService.remove(selectedSite.id)
+    if (!ok) {
+      window.alert("Delete failed. Check permissions (RLS).")
+      return
+    }
+    setSelectedSite(null)
+    await loadSites()
+  }
 
   const filteredSites = React.useMemo(() => {
-    return MOCK_JOBSITES.filter(
+    return sites.filter(
       (j) =>
         j.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         j.jobNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -36,7 +161,8 @@ export function ActiveJobsitesView() {
         j.gcCompany.toLowerCase().includes(searchQuery.toLowerCase()) ||
         j.superintendent.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  }, [searchQuery])
+  // }, [searchQuery])
+    }, [searchQuery, sites])
 
   return (
     <div className="space-y-6">
@@ -52,9 +178,16 @@ export function ActiveJobsitesView() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="bg-emerald-600 text-white font-semibold">
+          {/* <Badge className="bg-emerald-600 text-white font-semibold">
             {MOCK_JOBSITES.length} Active Sites
+          </Badge> */}
+                    <Badge className="bg-emerald-600 text-white font-semibold">
+            {sites.length} Sites
           </Badge>
+          <Button size="sm" className="text-xs font-semibold gap-1" onClick={startAdd}>
+            <Plus className="size-3.5" />
+            Add Jobsite
+          </Button>
         </div>
       </div>
 
@@ -72,7 +205,14 @@ export function ActiveJobsitesView() {
             />
           </div>
 
-          <div className="space-y-3">
+          {/* <div className="space-y-3">
+            {filteredSites.map((site) => { */}
+                      <div className="space-y-3">
+            {loading && <p className="text-xs text-muted-foreground">Loading jobsites...</p>}
+            {loadError && <p className="text-xs text-destructive">{loadError}</p>}
+            {!loading && !loadError && filteredSites.length === 0 && (
+              <p className="text-xs text-muted-foreground">No jobsites yet. Click "Add Jobsite".</p>
+            )}
             {filteredSites.map((site) => {
               const isSelected = selectedSite?.id === site.id
               return (
@@ -95,9 +235,10 @@ export function ActiveJobsitesView() {
                     </span>
                   </div>
 
-                  <div className="font-bold text-foreground text-sm">
+                    <div className="font-bold text-foreground text-sm">
                     {site.name}
                   </div>
+                  <div className="text-[11px] text-muted-foreground">{site.companyName}</div>
 
                   <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                     <MapPin className="size-3 text-primary shrink-0" />
@@ -115,8 +256,21 @@ export function ActiveJobsitesView() {
         </div>
 
         {/* Right column: Site Emergency Detail */}
-        <div className="lg:col-span-7">
-          {selectedSite ? (
+        {/* <div className="lg:col-span-7">
+          {selectedSite ? ( */}
+                  <div className="lg:col-span-7">
+          {draft ? (
+            <JobsiteEditForm
+              draft={draft}
+              isNew={isNew}
+              companies={companies}
+              saving={saving}
+              error={formError}
+              onChange={setDraft}
+              onSave={handleSave}
+              onCancel={() => setDraft(null)}
+            />
+          ) : selectedSite ? (
             <Card className="h-full flex flex-col justify-between">
               <CardHeader className="space-y-3 border-b border-border/60 pb-4">
                 <div className="flex items-center justify-between">
@@ -196,6 +350,16 @@ export function ActiveJobsitesView() {
                     {selectedSite.urgentCare.phone}
                   </div>
                 </div>
+                {/* Access Gate */}
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/60 text-xs">
+                  <span className="font-semibold text-foreground flex items-center gap-1 mb-0.5">
+                    <Navigation className="size-3.5 text-primary" />
+                    Access Gate:
+                  </span>
+                  <span className="text-muted-foreground">
+                    {selectedSite.accessGateInstructions || "Not set"}
+                  </span>
+                </div>
 
                 {/* Muster Point & 811 DigAlert */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -218,10 +382,20 @@ export function ActiveJobsitesView() {
                 <span className="text-xs text-muted-foreground">
                   Trade: {selectedSite.trade}
                 </span>
-                <Button size="sm" className="text-xs font-semibold gap-1 bg-primary text-primary-foreground">
+                {/* <Button size="sm" className="text-xs font-semibold gap-1 bg-primary text-primary-foreground">
                   <Navigation className="size-3.5" />
                   Dispatch Emergency Route to Foremen
-                </Button>
+                </Button> */}
+                                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" className="text-xs font-semibold gap-1 text-destructive" onClick={handleDelete}>
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </Button>
+                  <Button size="sm" className="text-xs font-semibold gap-1" onClick={startEdit}>
+                    <Pencil className="size-3.5" />
+                    Edit
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           ) : null}
