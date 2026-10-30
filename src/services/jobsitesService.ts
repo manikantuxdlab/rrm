@@ -35,17 +35,24 @@ const mapRow = (r: any): JobSite => ({
 
 export const jobsitesService = {
   async fetchAll(): Promise<JobSite[]> {
-    if (!isSupabaseConfigured) return []
+    if (!isSupabaseConfigured) {
+      console.error("[jobsitesService] Supabase not configured in .env")
+      return []
+    }
     const { data, error } = await supabase
       .from("jobsites")
       .select("*")
       .order("created_at", { ascending: false })
-    if (error) throw error
+    if (error) {
+      console.error("[jobsitesService] Error fetching jobsites from Supabase:", error.message)
+      throw error
+    }
     return (data ?? []).map(mapRow)
   },
 
   async upsert(site: JobSite): Promise<{ ok: boolean; error?: string }> {
-    if (!isSupabaseConfigured) return { ok: false, error: "Supabase not configured" }
+    if (!isSupabaseConfigured) return { ok: false, error: "Supabase not configured in .env" }
+    
     const { error } = await supabase.from("jobsites").upsert({
       id: site.id,
       name: site.name,
@@ -69,20 +76,34 @@ export const jobsitesService = {
       active_crew_count: site.activeCrewCount,
       updated_at: new Date().toISOString(),
     })
-    return error ? { ok: false, error: error.message } : { ok: true }
+    
+    if (error) {
+      console.error("[jobsitesService] Upsert error:", error.message)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
   },
 
   async remove(id: string): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
     const { error } = await supabase.from("jobsites").delete().eq("id", id)
-    return !error
+    if (error) {
+      console.error("[jobsitesService] Remove error:", error.message)
+      return false
+    }
+    return true
   },
 
   async fetchCompanyNames(): Promise<string[]> {
+    if (!isSupabaseConfigured) return []
     const { data, error } = await supabase
       .from("profiles")
       .select("company_name")
       .not("company_name", "is", null)
-    if (error) throw error
+    if (error) {
+      console.error("[jobsitesService] fetchCompanyNames error:", error.message)
+      return []
+    }
     return [...new Set((data ?? []).map((r: any) => r.company_name as string))].sort()
   },
 }
