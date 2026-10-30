@@ -7,7 +7,6 @@ import { AppRoutes } from "@/routes"
 import { LoginPage } from "@/features/auth/LoginPage"
 import {
   DispatchAlertModal,
-  AddCompanyModal,
   AddEquipmentModal,
   IssueCoiModal,
   SubmissionDetailModal,
@@ -18,7 +17,6 @@ function AppContent() {
   const location = useLocation()
   const [selectedSubmission, setSelectedSubmission] = React.useState<SubmissionRecord | null>(null)
   const [isDispatchOpen, setIsDispatchOpen] = React.useState(false)
-  const [isAddCompanyOpen, setIsAddCompanyOpen] = React.useState(false)
   const [isAddEquipmentOpen, setIsAddEquipmentOpen] = React.useState(false)
   const [isIssueCoiOpen, setIsIssueCoiOpen] = React.useState(false)
 
@@ -32,7 +30,6 @@ function AppContent() {
         <AppRoutes
           onSelectSubmission={(sub) => setSelectedSubmission(sub)}
           onOpenDispatch={() => setIsDispatchOpen(true)}
-          onOpenAddCompany={() => setIsAddCompanyOpen(true)}
           onOpenAddEquipment={() => setIsAddEquipmentOpen(true)}
           onOpenIssueCoi={() => setIsIssueCoiOpen(true)}
         />
@@ -50,14 +47,6 @@ function AppContent() {
             alert(
               `🚨 Safety Alert Dispatched to field mobile apps:\n\nTitle: ${data.title}\nTrade: ${data.trade}\nPriority: ${data.priority.toUpperCase()}`
             )
-          }}
-        />
-
-        <AddCompanyModal
-          isOpen={isAddCompanyOpen}
-          onClose={() => setIsAddCompanyOpen(false)}
-          onAdd={(data) => {
-            alert(`✅ Contractor "${data.name}" successfully onboarded!`)
           }}
         />
 

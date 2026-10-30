@@ -19,7 +19,6 @@ import { AttendanceView } from "@/features/safety-admin/components/AttendanceVie
 interface AppRoutesProps {
   onSelectSubmission: (submission: SubmissionRecord) => void
   onOpenDispatch: () => void
-  onOpenAddCompany: () => void
   onOpenAddEquipment: () => void
   onOpenIssueCoi: () => void
 }
@@ -27,7 +26,6 @@ interface AppRoutesProps {
 export function AppRoutes({
   onSelectSubmission,
   onOpenDispatch,
-  onOpenAddCompany,
   onOpenAddEquipment: _onOpenAddEquipment,
   onOpenIssueCoi: _onOpenIssueCoi,
 }: AppRoutesProps) {
@@ -62,9 +60,7 @@ export function AppRoutes({
       <Route
         path="/companies"
         element={
-          <ContractorAccountsView
-            onOpenAddCompany={onOpenAddCompany}
-          />
+          <ContractorAccountsView />
         }
       />
       <Route path="/users" element={<UserAccountsView />} />
