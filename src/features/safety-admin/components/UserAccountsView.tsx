@@ -177,7 +177,8 @@ export function UserAccountsView() {
             companyName: u.companyName,
             role: (u.role as AppUser["role"]) || "foreman",
             assignedJobsiteIds: u.assignedJobsites || [],
-            assignedJobsiteNames: jobs.length > 0 ? jobs : ["Assigned Project"],
+            // assignedJobsiteNames: jobs.length > 0 ? jobs : ["Assigned Project"],
+                        assignedJobsiteNames: jobs.length > 0 ? jobs : [u.role === "boss" ? "—" : "Assigned Project"],
             languagePreference: (u.languagePreference as LanguagePreference) || "en",
             status: u.status === "inactive" ? "deactivated" : (u.status as AppUser["status"]),
             lastActive: u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleTimeString() : "Active Now",
@@ -307,7 +308,9 @@ export function UserAccountsView() {
         return [...prev, { id: finalCompanyId, name: customEditCompanyName.trim() }]
       })
     }
-    if (isEditCustomJobsite && customEditJobsiteName.trim()) {
+    // if (isEditCustomJobsite && customEditJobsiteName.trim()) {
+    //   setJobsites((prev) => {
+        if (editRole === "foreman" && isEditCustomJobsite && customEditJobsiteName.trim()) {
       setJobsites((prev) => {
         if (prev.some((j) => j.name.toLowerCase() === customEditJobsiteName.trim().toLowerCase())) return prev
         return [...prev, { id: finalJobsiteId, name: customEditJobsiteName.trim() }]
@@ -322,8 +325,11 @@ export function UserAccountsView() {
         companyName: finalCompanyName,
         role: editRole as UserRole,
         status: editStatus === "deactivated" ? "inactive" : "active",
-        languagePreference: editLanguage,
-        assignedJobsites: [finalJobsiteId],
+      //   languagePreference: editLanguage,
+      //   assignedJobsites: [finalJobsiteId],
+      // })
+              languagePreference: editLanguage,
+        assignedJobsites: editRole === "foreman" ? [finalJobsiteId] : [],
       })
 
       if (error) {
@@ -349,8 +355,13 @@ export function UserAccountsView() {
                   ? "Active Now"
                   : u.lastActive,
               languagePreference: editLanguage,
-              assignedJobsiteIds: [finalJobsiteId],
-              assignedJobsiteNames: [finalJobsiteName],
+          //     assignedJobsiteIds: [finalJobsiteId],
+          //     assignedJobsiteNames: [finalJobsiteName],
+          //   }
+          // }
+          // return u
+                        assignedJobsiteIds: editRole === "foreman" ? [finalJobsiteId] : [],
+              assignedJobsiteNames: editRole === "foreman" ? [finalJobsiteName] : ["—"],
             }
           }
           return u
@@ -433,7 +444,9 @@ export function UserAccountsView() {
         return [...prev, { id: finalCompanyId, name: customCompanyName.trim() }]
       })
     }
-    if (isCustomJobsite && customJobsiteName.trim()) {
+    // if (isCustomJobsite && customJobsiteName.trim()) {
+    //   setJobsites((prev) => {
+        if (newRole === "foreman" && isCustomJobsite && customJobsiteName.trim()) {
       setJobsites((prev) => {
         if (prev.some((j) => j.name.toLowerCase() === customJobsiteName.trim().toLowerCase())) return prev
         return [...prev, { id: finalJobsiteId, name: customJobsiteName.trim() }]
@@ -449,8 +462,11 @@ export function UserAccountsView() {
         companyName: finalCompanyName,
         role: newRole as UserRole,
         status: newStatus === "deactivated" ? "inactive" : "active",
-        languagePreference: newLanguage,
-        assignedJobsites: [finalJobsiteId],
+      //   languagePreference: newLanguage,
+      //   assignedJobsites: [finalJobsiteId],
+      // })
+              languagePreference: newLanguage,
+        assignedJobsites: newRole === "foreman" ? [finalJobsiteId] : [],
       })
 
       const created: AppUser = {
@@ -461,8 +477,11 @@ export function UserAccountsView() {
         companyId: finalCompanyId,
         companyName: finalCompanyName,
         role: newRole,
-        assignedJobsiteIds: [finalJobsiteId],
-        assignedJobsiteNames: [finalJobsiteName],
+        // assignedJobsiteIds: [finalJobsiteId],
+        // assignedJobsiteNames: [finalJobsiteName],
+        // languagePreference: newLanguage,
+                assignedJobsiteIds: newRole === "foreman" ? [finalJobsiteId] : [],
+        assignedJobsiteNames: newRole === "foreman" ? [finalJobsiteName] : ["—"],
         languagePreference: newLanguage,
         status: newStatus,
         lastActive: newStatus === "deactivated" ? "Access Revoked" : "Just invited",
@@ -1546,6 +1565,7 @@ export function UserAccountsView() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                           {editRole === "foreman" && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="font-semibold text-foreground text-xs">
@@ -1595,9 +1615,10 @@ export function UserAccountsView() {
                             + Add New Jobsite...
                           </SelectItem>
                         </SelectContent>
-                      </Select>
+                                </Select>
                     )}
                   </div>
+                  )}
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground text-xs">
                       App Language Preference
@@ -1831,6 +1852,7 @@ export function UserAccountsView() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            {newRole === "foreman" && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="font-semibold text-foreground text-xs">
@@ -1880,9 +1902,10 @@ export function UserAccountsView() {
                             + Add New Jobsite...
                           </SelectItem>
                         </SelectContent>
-                      </Select>
+                              </Select>
                     )}
                   </div>
+                  )}
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground text-xs">
                       App Language Preference
