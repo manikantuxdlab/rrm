@@ -59,3 +59,4 @@ export function setupChecklistRealtime() {
     supabase.removeChannel(channel)
   }
 }
+

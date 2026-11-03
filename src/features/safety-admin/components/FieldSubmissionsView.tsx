@@ -6,8 +6,9 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MOCK_SUBMISSIONS, MOCK_COMPANIES } from "@/data/safetyMockData"
-import type { SubmissionRecord } from "@/types"
+import type { SubmissionRecord, ClientCompany } from "@/types"
+import { submissionsService } from "@/services/submissionsService"
+import { fetchCompanies } from "@/services/companiesService"
 import {
   FileText,
   Search,
@@ -45,13 +46,43 @@ export function FieldSubmissionsView({
   onSelectSubmission,
   onOpenDispatch,
 }: FieldSubmissionsViewProps) {
+  const [submissions, setSubmissions] = React.useState<SubmissionRecord[]>([])
+  const [companies, setCompanies] = React.useState<ClientCompany[]>([])
+  const [isLoading, setIsLoading] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<string>("all")
   const [searchQuery, setSearchQuery] = React.useState<string>("")
   const [selectedCompany, setSelectedCompany] = React.useState<string>("all")
   const [selectedSyncStatus, setSelectedSyncStatus] = React.useState<string>("all")
 
+  const loadData = React.useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const [subs, comps] = await Promise.all([
+        submissionsService.fetchAll(),
+        fetchCompanies().catch(() => []),
+      ])
+      setSubmissions(subs)
+      setCompanies(comps)
+    } catch (err) {
+      console.error("Error loading submissions:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  React.useEffect(() => {
+    const unsub = submissionsService.subscribeToChanges(() => {
+      loadData()
+    })
+    return () => unsub()
+  }, [loadData])
+
   const filteredSubmissions = React.useMemo(() => {
-    return MOCK_SUBMISSIONS.filter((item) => {
+    return submissions.filter((item) => {
       const matchesTab = activeTab === "all" || item.moduleType === activeTab
       const matchesCompany =
         selectedCompany === "all" || item.companyName === selectedCompany
@@ -175,7 +206,7 @@ export function FieldSubmissionsView({
           className="h-9 px-3 rounded-md border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
           <option value="all">All Companies</option>
-          {MOCK_COMPANIES.map((c) => (
+          {companies.map((c) => (
             <option key={c.id} value={c.name}>
               {c.name}
             </option>
@@ -196,7 +227,12 @@ export function FieldSubmissionsView({
 
       {/* Submissions List */}
       <div className="space-y-3">
-        {filteredSubmissions.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12 border rounded-xl bg-card text-muted-foreground">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent mb-2" />
+            <p className="text-xs">Loading live submissions from Supabase...</p>
+          </div>
+        ) : filteredSubmissions.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-card text-muted-foreground">
             <FileText className="size-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm font-medium">No submission records found</p>

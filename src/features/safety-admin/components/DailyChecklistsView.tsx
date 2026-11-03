@@ -8,9 +8,9 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MOCK_SUBMISSIONS } from "@/data/safetyMockData"
 import type { SubmissionRecord, ChecklistItem, JobSite } from "@/types"
 import { jobsitesService } from "@/services/jobsitesService"
+import { submissionsService } from "@/services/submissionsService"
 import { ChecklistImportModal } from "./ChecklistImportModal"
 import { ChecklistItemEditModal } from "./ChecklistItemEditModal"
 import { useAppDispatch, useAppSelector } from "@/store"
@@ -94,13 +94,39 @@ export function DailyChecklistsView({
     return jobsites.find((s) => s.id === selectedSiteId) || null
   }, [selectedSiteId, jobsites])
 
-  const checklistSubmissions = React.useMemo(() => {
-    let list = MOCK_SUBMISSIONS.filter((s) => s.moduleType === "daily_checklist")
-    if (selectedSiteId !== "global") {
-      list = list.filter((s) => s.jobSiteId === selectedSiteId)
+  const [submissions, setSubmissions] = React.useState<SubmissionRecord[]>([])
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = React.useState(false)
+
+  // Fetch real submissions for the active site scope
+  const loadSubmissions = React.useCallback(async () => {
+    setIsLoadingSubmissions(true)
+    try {
+      const records = await submissionsService.fetchAll({
+        moduleType: "daily_checklist",
+        jobSiteId: selectedSiteId === "global" ? undefined : selectedSiteId,
+      })
+      setSubmissions(records)
+    } catch (err) {
+      console.error("Failed to load submissions:", err)
+    } finally {
+      setIsLoadingSubmissions(false)
     }
-    return list
   }, [selectedSiteId])
+
+  // Load submissions whenever selectedSiteId changes
+  React.useEffect(() => {
+    loadSubmissions()
+  }, [loadSubmissions])
+
+  // Subscribe to real-time submission additions/updates
+  React.useEffect(() => {
+    const unsubscribe = submissionsService.subscribeToChanges(() => {
+      loadSubmissions()
+    })
+    return () => {
+      unsubscribe()
+    }
+  }, [loadSubmissions])
 
   const filteredChecklistItems = React.useMemo(() => {
     if (selectedCategory === "all") return checklistItems
@@ -266,7 +292,7 @@ export function DailyChecklistsView({
               }`}
             >
               <CheckCircle2 className="size-3.5 text-emerald-600" />
-              Field Audits ({checklistSubmissions.length})
+              Field Audits ({submissions.length})
             </button>
           </div>
         </div>
@@ -509,89 +535,114 @@ export function DailyChecklistsView({
         /* Submitted Audits Tab */
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
-            {checklistSubmissions.map((sub) => (
-              <Card
-                key={sub.id}
-                className="hover:border-primary/40 transition-colors cursor-pointer"
-                onClick={() => onSelectSubmission(sub)}
-              >
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] uppercase font-mono">
-                          {sub.id}
-                        </Badge>
-                        <Badge variant="outline" className="text-emerald-600 border-emerald-500/20 bg-emerald-500/10 text-[10px]">
-                          <CheckCircle2 className="size-3 mr-1" />
-                          Cal/OSHA Compliant
-                        </Badge>
+            {isLoadingSubmissions && (
+              <div className="p-12 text-center text-xs text-muted-foreground">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent mb-2" />
+                <p>Loading field audits from Supabase cloud...</p>
+              </div>
+            )}
+
+            {!isLoadingSubmissions &&
+              submissions.map((sub) => (
+                <Card
+                  key={sub.id}
+                  className="hover:border-primary/40 transition-colors cursor-pointer"
+                  onClick={() => onSelectSubmission(sub)}
+                >
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                            {sub.id}
+                          </Badge>
+                          <Badge variant="outline" className="text-emerald-600 border-emerald-500/20 bg-emerald-500/10 text-[10px]">
+                            <CheckCircle2 className="size-3 mr-1" />
+                            Cal/OSHA Compliant
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-base font-bold text-foreground">
+                          {sub.title}
+                        </CardTitle>
                       </div>
-                      <CardTitle className="text-base font-bold text-foreground">
-                        {sub.title}
-                      </CardTitle>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-semibold text-foreground">{sub.timestamp}</div>
-                      <div className="text-[11px] text-muted-foreground">Foreman: {sub.foremanName}</div>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-muted/40 text-xs">
-                    <div>
-                      <span className="text-muted-foreground block text-[11px]">Jobsite Location:</span>
-                      <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
-                        <Building2 className="size-3.5 text-primary" />
-                        {sub.jobSiteName}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-[11px]">Audit Results:</span>
-                      <span className="font-semibold text-emerald-600 mt-0.5 block">
-                        {sub.data?.passedCount ?? 0} Passed • {sub.data?.failedCount ?? 0} Corrected On-Site
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-[11px]">Photo Documentation:</span>
-                      <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
-                        <Camera className="size-3.5 text-primary" />
-                        {sub.data?.photoCount ?? 0} Evidence Photos
-                      </span>
-                    </div>
-                  </div>
-
-                  {sub.data?.deficiencies && sub.data.deficiencies.length > 0 && (
-                    <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs space-y-1">
-                      <div className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                        <AlertTriangle className="size-3.5" />
-                        Identified & Immediate Corrective Actions:
+                      <div className="text-right">
+                        <div className="text-xs font-semibold text-foreground">{sub.timestamp}</div>
+                        <div className="text-[11px] text-muted-foreground">Foreman: {sub.foremanName}</div>
                       </div>
-                      <ul className="list-disc list-inside space-y-0.5 text-muted-foreground pl-1">
-                        {sub.data.deficiencies.map((def: string, i: number) => (
-                          <li key={i} className="text-[11px]">{def}</li>
-                        ))}
-                      </ul>
                     </div>
-                  )}
-                </CardContent>
+                  </CardHeader>
 
-                <CardFooter className="flex items-center justify-between border-t border-border/60 pt-3">
-                  <div className="text-xs text-muted-foreground">
-                    Emailed to: {sub.recipients?.join(", ") || "Safety Director"}
-                  </div>
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
-                    <Eye className="size-3" />
-                    View Signed Audit PDF
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-muted/40 text-xs">
+                      <div>
+                        <span className="text-muted-foreground block text-[11px]">Jobsite Location:</span>
+                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
+                          <Building2 className="size-3.5 text-primary" />
+                          {sub.jobSiteName}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[11px]">Audit Results:</span>
+                        <span className="font-semibold text-emerald-600 mt-0.5 block">
+                          {sub.data?.passedCount ?? 0} Passed • {sub.data?.failedCount ?? 0} Corrected On-Site
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[11px]">Photo Documentation:</span>
+                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
+                          <Camera className="size-3.5 text-primary" />
+                          {sub.data?.photoCount ?? 0} Evidence Photos
+                        </span>
+                      </div>
+                    </div>
 
-            {checklistSubmissions.length === 0 && (
-              <div className="p-12 text-center text-xs text-muted-foreground rounded-2xl border border-dashed border-border">
-                No submitted field audits for this jobsite yet. Completed daily checklists submitted by foremen in the mobile app appear here automatically.
+                    {sub.data?.deficiencies && sub.data.deficiencies.length > 0 && (
+                      <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs space-y-1">
+                        <div className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                          <AlertTriangle className="size-3.5" />
+                          Identified & Immediate Corrective Actions:
+                        </div>
+                        <ul className="list-disc list-inside space-y-0.5 text-muted-foreground pl-1">
+                          {sub.data.deficiencies.map((def: string, i: number) => (
+                            <li key={i} className="text-[11px]">{def}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+
+                  <CardFooter className="flex items-center justify-between border-t border-border/60 pt-3">
+                    <div className="text-xs text-muted-foreground">
+                      Emailed to: {sub.recipients?.join(", ") || "Safety Director"}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onSelectSubmission(sub)
+                      }}
+                    >
+                      <Eye className="size-3" />
+                      View Signed Audit PDF
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+
+            {!isLoadingSubmissions && submissions.length === 0 && (
+              <div className="p-14 text-center rounded-2xl border border-dashed border-border bg-card/40 flex flex-col items-center justify-center space-y-2">
+                <div className="size-11 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <ClipboardCheck className="size-5" />
+                </div>
+                <div className="font-semibold text-foreground text-sm">No Field Audits Found</div>
+                <p className="max-w-md text-xs text-muted-foreground">
+                  {selectedSite
+                    ? `No field checklist submissions recorded for ${selectedSite.name} yet.`
+                    : "No field checklist submissions recorded across jobsites yet."}{" "}
+                  Inspections submitted by foremen in the mobile app appear here automatically via live real-time sync.
+                </p>
               </div>
             )}
           </div>
