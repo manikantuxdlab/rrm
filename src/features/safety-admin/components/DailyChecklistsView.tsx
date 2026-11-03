@@ -687,87 +687,87 @@ export function DailyChecklistsView({
                         onClick={() => onSelectSubmission(sub)}
                         className="hover:bg-muted/40 transition-colors cursor-pointer group"
                       >
-                        <td className="px-4 py-3 align-top whitespace-nowrap">
-                          <div className="font-mono text-[10px] font-semibold text-foreground">
+                        <td className="px-5 py-5 align-middle whitespace-nowrap">
+                          <div className="font-mono text-xs font-bold text-foreground tracking-tight">
                             {sub.id}
                           </div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                          <div className="text-[11px] text-muted-foreground mt-1">
                             {sub.timestamp}
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 align-top max-w-xs">
-                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors leading-snug">
+                        <td className="px-5 py-5 align-middle max-w-sm">
+                          <div className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-relaxed">
                             {sub.title}
                           </div>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
-                              <CheckCircle2 className="size-2.5 mr-0.5" /> Cal/OSHA
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <Badge variant="outline" className="text-[10px] h-5 px-2 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
+                              <CheckCircle2 className="size-3 mr-1" /> Cal/OSHA
                             </Badge>
                             {sub.recipients && sub.recipients.length > 0 && (
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[140px]" title={sub.recipients.join(", ")}>
+                              <span className="text-[11px] text-muted-foreground truncate max-w-[200px]" title={sub.recipients.join(", ")}>
                                 to: {sub.recipients[0]}
                               </span>
                             )}
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex items-center gap-1 font-medium text-foreground">
-                            <Building2 className="size-3 text-primary shrink-0" />
-                            <span className="truncate max-w-[170px]" title={sub.jobSiteName}>
+                        <td className="px-5 py-5 align-middle">
+                          <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
+                            <Building2 className="size-3.5 text-primary shrink-0" />
+                            <span className="truncate max-w-[190px]" title={sub.jobSiteName}>
                               {sub.jobSiteName}
                             </span>
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 align-top whitespace-nowrap">
-                          <div className="flex items-center gap-1 font-medium text-foreground">
-                            <User className="size-3 text-muted-foreground shrink-0" />
+                        <td className="px-5 py-5 align-middle whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+                            <User className="size-3.5 text-muted-foreground shrink-0" />
                             <span>{sub.foremanName}</span>
                           </div>
                           {sub.companyName && (
-                            <div className="text-[10px] text-muted-foreground ml-4">
+                            <div className="text-[11px] text-muted-foreground ml-5 mt-0.5">
                               {sub.companyName}
                             </div>
                           )}
                         </td>
 
-                        <td className="px-4 py-3 align-top whitespace-nowrap">
-                          <div className="space-y-0.5">
-                            <div className="text-[11px] font-semibold text-emerald-600">
-                              {sub.data?.passedCount ?? 0} Passed
+                        <td className="px-5 py-5 align-middle whitespace-nowrap">
+                          <div className="space-y-1">
+                            <div className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                              <span>{sub.data?.passedCount ?? 0} Passed</span>
                               {Boolean(sub.data?.failedCount) && (
-                                <span className="text-amber-600 ml-1">
+                                <span className="text-amber-600 font-semibold ml-1">
                                   • {sub.data.failedCount} Corrected
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <Camera className="size-2.5" />
+                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                              <Camera className="size-3 text-muted-foreground/70" />
                               <span>{sub.data?.photoCount ?? 0} Evidence Photos</span>
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 align-top text-center whitespace-nowrap">
+                        <td className="px-5 py-5 align-middle text-center whitespace-nowrap">
                           {sub.isArchived ? (
-                            <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
+                            <Badge variant="outline" className="text-xs h-6 px-2.5 bg-muted text-muted-foreground border-border font-medium">
                               Archived
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                            <Badge variant="outline" className="text-xs h-6 px-2.5 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
                               Active
                             </Badge>
                           )}
                         </td>
 
-                        <td className="px-4 py-3 align-top text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1">
+                        <td className="px-5 py-5 align-middle text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              className="h-8 px-2.5 text-xs gap-1.5 text-primary hover:text-primary hover:bg-primary/10 font-medium"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 onSelectSubmission(sub)
@@ -781,7 +781,7 @@ export function DailyChecklistsView({
                               size="sm"
                               variant="ghost"
                               disabled={archivingId === sub.id}
-                              className={`h-7 px-2 text-xs gap-1 ${
+                              className={`h-8 px-2.5 text-xs gap-1.5 font-medium ${
                                 sub.isArchived
                                   ? "text-primary hover:text-primary hover:bg-primary/10"
                                   : "text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10"
