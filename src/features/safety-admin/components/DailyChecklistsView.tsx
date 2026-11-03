@@ -142,6 +142,19 @@ export function DailyChecklistsView({
     }
   }
 
+  const handleDeleteSubmission = async (e: React.MouseEvent, sub: SubmissionRecord) => {
+    e.stopPropagation()
+    if (!confirm(`Are you sure you want to permanently delete submission "${sub.title}" (${sub.id})?`)) {
+      return
+    }
+    const success = await submissionsService.deleteSubmission(sub.id)
+    if (success) {
+      setSubmissions((prev) => prev.filter((s) => s.id !== sub.id))
+    } else {
+      alert("Failed to delete submission.")
+    }
+  }
+
   const activeAuditsCount = React.useMemo(
     () => submissions.filter((s) => !s.isArchived).length,
     [submissions]
@@ -800,6 +813,15 @@ export function DailyChecklistsView({
                                   Archive
                                 </>
                               )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 px-2 text-xs text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
+                              onClick={(e) => handleDeleteSubmission(e, sub)}
+                              title="Delete submission permanently"
+                            >
+                              <Trash2 className="size-3.5" />
                             </Button>
                           </div>
                         </td>

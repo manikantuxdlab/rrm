@@ -92,6 +92,91 @@ export const submissionsService = {
   },
 
   /**
+   * Delete a submission permanently
+   */
+  async deleteSubmission(id: string): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
+    try {
+      const { error } = await supabase.from("submissions").delete().eq("id", id)
+      if (error) {
+        console.error("[submissionsService] Failed to delete submission:", error.message)
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error("[submissionsService] Error deleting submission:", err)
+      return false
+    }
+  },
+
+  /**
+   * Remove an evidence photo from a submission's payload
+   */
+  async deletePhoto(submissionId: string, photoUri: string, itemId?: string): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
+    try {
+      const { data: row, error: fetchErr } = await supabase
+        .from("submissions")
+        .select("data")
+        .eq("id", submissionId)
+        .single()
+
+      if (fetchErr || !row) {
+        console.error("[submissionsService] Failed to fetch submission for photo removal:", fetchErr?.message)
+        return false
+      }
+
+      const updatedData = { ...row.data }
+
+      // 1. Remove from item if matching
+      if (Array.isArray(updatedData.items)) {
+        updatedData.items = updatedData.items.map((item: any) => {
+          if ((itemId && item.id === itemId) || item.photoUri === photoUri) {
+            return { ...item, photoUri: undefined }
+          }
+          if (Array.isArray(item.photos)) {
+            return { ...item, photos: item.photos.filter((p: string) => p !== photoUri) }
+          }
+          return item
+        })
+      }
+
+      // 2. Remove from root photos / photoUrls
+      if (Array.isArray(updatedData.photos)) {
+        updatedData.photos = updatedData.photos.filter((p: string) => p !== photoUri)
+      }
+      if (Array.isArray(updatedData.photoUrls)) {
+        updatedData.photoUrls = updatedData.photoUrls.filter((p: string) => p !== photoUri)
+      }
+
+      // Recompute photoCount
+      let count = 0
+      if (Array.isArray(updatedData.items)) {
+        count += updatedData.items.filter((i: any) => Boolean(i.photoUri)).length
+      }
+      if (Array.isArray(updatedData.photos)) {
+        count += updatedData.photos.length
+      }
+      updatedData.photoCount = count
+
+      const { error: updateErr } = await supabase
+        .from("submissions")
+        .update({ data: updatedData })
+        .eq("id", submissionId)
+
+      if (updateErr) {
+        console.error("[submissionsService] Failed to update after photo deletion:", updateErr.message)
+        return false
+      }
+
+      return true
+    } catch (err) {
+      console.error("[submissionsService] Error deleting photo:", err)
+      return false
+    }
+  },
+
+  /**
    * Subscribe to real-time changes on submissions table
    */
   subscribeToChanges(onUpdate: () => void) {

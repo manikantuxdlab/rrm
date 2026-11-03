@@ -1,5 +1,6 @@
 import * as React from "react"
 import type { SubmissionRecord, ChecklistItem } from "@/types"
+import { submissionsService } from "@/services/submissionsService"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,6 +19,7 @@ import {
   ZoomIn,
   FileText,
   ClipboardList,
+  Trash2,
 } from "lucide-react"
 import {
   Sheet,
@@ -191,6 +193,56 @@ export function SubmissionDetailModal({
 
   // Signature data check
   const signatureData = submission.signatureUri || submission.data?.signatureUri
+  // Deleted photos tracking state
+  const [deletedPhotoUris, setDeletedPhotoUris] = React.useState<string[]>([])
+  const [isDeleting, setIsDeleting] = React.useState(false)
+
+  // Visible photos list (excluding locally deleted)
+  const visiblePhotos = React.useMemo(() => {
+    return allPhotos.filter((p) => !deletedPhotoUris.includes(p.uri))
+  }, [allPhotos, deletedPhotoUris])
+
+  const handleDeletePhoto = async (photo: { uri: string; label: string; id?: string }) => {
+    if (!confirm(`Delete this evidence photo?\n"${photo.label}"`)) {
+      return
+    }
+    setIsDeleting(true)
+    try {
+      const ok = await submissionsService.deletePhoto(submission.id, photo.uri, photo.id)
+      if (ok) {
+        setDeletedPhotoUris((prev) => [...prev, photo.uri])
+        if (previewPhoto?.uri === photo.uri) {
+          setPreviewPhoto(null)
+        }
+      } else {
+        alert("Failed to delete photo. Please try again.")
+      }
+    } catch (err) {
+      console.error("Delete photo error:", err)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteSubmission = async () => {
+    if (!confirm(`Are you sure you want to permanently delete this audit submission?\n"${submission.title}" (${submission.id})\n\nThis action cannot be undone.`)) {
+      return
+    }
+    setIsDeleting(true)
+    try {
+      const ok = await submissionsService.deleteSubmission(submission.id)
+      if (ok) {
+        onClose()
+      } else {
+        alert("Failed to delete submission.")
+      }
+    } catch (err) {
+      console.error("Delete submission error:", err)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const isImageSignature =
     typeof signatureData === "string" &&
     (signatureData.startsWith("data:image") || signatureData.startsWith("http"))
@@ -283,7 +335,7 @@ export function SubmissionDetailModal({
                 }`}
               >
                 <Camera className="size-3.5" />
-                Evidence Photos ({allPhotos.length})
+                Evidence Photos ({visiblePhotos.length})
               </button>
 
               <button
@@ -534,7 +586,7 @@ export function SubmissionDetailModal({
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <Camera className="size-3.5 text-primary" />
-                    Uploaded Evidence Photos ({allPhotos.length})
+                    Uploaded Evidence Photos ({visiblePhotos.length})
                   </h4>
                   {allPhotos.length > 0 && (
                     <span className="text-[11px] text-muted-foreground">
@@ -543,19 +595,19 @@ export function SubmissionDetailModal({
                   )}
                 </div>
 
-                {allPhotos.length === 0 ? (
+                {visiblePhotos.length === 0 ? (
                   <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-card/40 flex flex-col items-center justify-center space-y-2">
                     <div className="size-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
                       <ImageIcon className="size-5 opacity-60" />
                     </div>
                     <div className="font-semibold text-foreground text-xs">No Uploaded Photos</div>
                     <p className="max-w-xs text-[11px] text-muted-foreground">
-                      No hazard or evidence photos were attached to this inspection report.
+                      No hazard or evidence photos attached to this inspection report.
                     </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {allPhotos.map((photo, i) => (
+                    {visiblePhotos.map((photo, i) => (
                       <div
                         key={i}
                         onClick={() => setPreviewPhoto(photo)}
@@ -579,14 +631,28 @@ export function SubmissionDetailModal({
                               {photo.category.replace("_", " ")}
                             </Badge>
                           )}
+                          <button
+                            type="button"
+                            title="Delete Photo"
+                            disabled={isDeleting}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeletePhoto(photo)
+                            }}
+                            className="absolute top-2 right-2 z-10 size-7 rounded-lg bg-background/85 hover:bg-rose-600 hover:text-white text-muted-foreground backdrop-blur-xs flex items-center justify-center transition-colors shadow-xs"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
                         </div>
-                        <div className="p-2.5">
-                          <p className="font-medium text-xs text-foreground truncate" title={photo.label}>
-                            {photo.label}
-                          </p>
-                          <span className="text-[10px] text-muted-foreground">
-                            Inspection Attachment
-                          </span>
+                        <div className="p-2.5 flex items-center justify-between gap-1">
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs text-foreground truncate" title={photo.label}>
+                              {photo.label}
+                            </p>
+                            <span className="text-[10px] text-muted-foreground">
+                              Inspection Attachment
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -760,14 +826,26 @@ export function SubmissionDetailModal({
 
           {/* Actions Footer (Pinned) */}
           <SheetFooter className="px-6 py-4 border-t bg-card shrink-0 flex flex-row items-center justify-between gap-3 mt-auto">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="h-9 px-4 text-xs font-medium cursor-pointer"
-            >
-              Close
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="h-9 px-4 text-xs font-medium cursor-pointer"
+              >
+                Close
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleDeleteSubmission}
+                disabled={isDeleting}
+                className="h-9 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 cursor-pointer gap-1.5"
+              >
+                <Trash2 className="size-3.5" />
+                Delete Audit
+              </Button>
+            </div>
 
             <div className="flex items-center gap-2">
               <Button
@@ -795,10 +873,22 @@ export function SubmissionDetailModal({
       {/* Lightbox Dialog for Full Image Preview */}
       <Dialog open={Boolean(previewPhoto)} onOpenChange={(open) => !open && setPreviewPhoto(null)}>
         <DialogContent className="max-w-3xl p-4">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle className="text-sm font-semibold text-foreground">
               {previewPhoto?.label || "Evidence Photo"}
             </DialogTitle>
+            {previewPhoto && (
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={isDeleting}
+                className="h-7 text-xs gap-1.5 cursor-pointer mr-6"
+                onClick={() => handleDeletePhoto(previewPhoto)}
+              >
+                <Trash2 className="size-3.5" />
+                Delete Photo
+              </Button>
+            )}
           </DialogHeader>
           <div className="mt-2 rounded-xl overflow-hidden bg-black/90 flex items-center justify-center max-h-[75vh]">
             {previewPhoto && (
