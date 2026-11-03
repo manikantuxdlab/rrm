@@ -25,6 +25,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "Site-wise custom checklist builder, file importer (Excel/CSV/JSON/TXT) & live mobile sync",
   },
   {
+    key: "toolbox-talks",
+    title: "Toolbox Safety Talks",
+    url: "/toolbox-talks",
+    description: "26 OSHA weekly topics, foreman signed attendance rosters & minutes",
+  },
+  {
     key: "jobsites",
     title: "Jobsites",
     url: "/jobsites",

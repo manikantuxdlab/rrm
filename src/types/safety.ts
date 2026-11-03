@@ -61,6 +61,7 @@ export interface ToolboxTopic {
   titleEs: string
   durationMinutes: number
   lastCovered?: string
+  status?: string
   keyHazards: string[]
   discussionPoints: string[]
   oshaStandard: string

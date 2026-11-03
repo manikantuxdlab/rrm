@@ -11,6 +11,7 @@ import {
   FieldSubmissionsView,
   FaqManagementView,
   SupportTicketsView,
+  ToolboxTalksView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -76,9 +77,13 @@ export function AppRoutes({
       {/* 5. Notification Routing */}
       <Route path="/routing" element={<RoutingSettingsView />} />
 
-      {/* 6. Safety Configurator */}
+      {/* 6. Safety Configurator & Toolbox Talks */}
       <Route path="/safety-config" element={<Navigate to="/checklists" replace />} />
-      <Route path="/toolbox" element={<Navigate to="/safety-config" replace />} />
+      <Route
+        path="/toolbox-talks"
+        element={<ToolboxTalksView onSelectSubmission={onSelectSubmission} />}
+      />
+      <Route path="/toolbox" element={<Navigate to="/toolbox-talks" replace />} />
       <Route path="/jha" element={<Navigate to="/safety-config" replace />} />
 
       {/* 7. Certifications Tracker */}
