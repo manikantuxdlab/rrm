@@ -34,7 +34,7 @@ export function emailApiPlugin(env: Record<string, string>) {
         req.on("end", async () => {
           try {
             const data = JSON.parse(body || "{}")
-            const { type, to, fullName, temporaryPassword, role, companyName, status, resetUrl, html: customHtml } = data
+            const { type, to, cc, subject: customSubject, fullName, temporaryPassword, role, companyName, status, resetUrl, html: customHtml, attachments } = data
 
             if (!to) {
               res.statusCode = 400
@@ -49,11 +49,11 @@ export function emailApiPlugin(env: Record<string, string>) {
             const isReset = type === "forgot_password" || type === "reset_password"
             const isUpdate = type === "account_updated"
 
-            const subject = isReset
+            const subject = customSubject || (isReset
               ? "Password Reset Request • RRM Safety Portal"
               : isUpdate
                 ? "Account Updated • RRM Safety Portal"
-                : "Welcome to RRM Safety • Your Access Credentials"
+                : "Welcome to RRM Safety • Your Access Credentials")
 
             const actionUrl = isReset ? (resetUrl || loginUrl) : loginUrl
             const eyebrow = isReset ? "Security Verification" : (isUpdate ? "Account Update" : "Account Access Granted")
@@ -381,11 +381,16 @@ export function emailApiPlugin(env: Record<string, string>) {
 
             const htmlToSend = customHtml || defaultHtmlBody
 
+            const recipients = Array.isArray(to) ? to.join(", ") : to
+            const ccRecipients = cc ? (Array.isArray(cc) ? cc.join(", ") : cc) : undefined
+
             await transporter.sendMail({
               from: fromAddress,
-              to,
+              to: recipients,
+              cc: ccRecipients,
               subject,
               html: htmlToSend,
+              attachments: Array.isArray(attachments) ? attachments : undefined,
             })
 
             console.log(`[Email Service] ${isReset ? "Reset" : isUpdate ? "Update" : "Welcome"} email sent to ${to}`)

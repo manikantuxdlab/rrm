@@ -301,3 +301,4 @@ export async function generateSafetyAuditPdf(
     document.body.removeChild(container)
   }
 }
+

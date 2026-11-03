@@ -2,6 +2,7 @@ import * as React from "react"
 import type { SubmissionRecord, ChecklistItem } from "@/types"
 import { submissionsService } from "@/services/submissionsService"
 import { generateSafetyAuditPdf } from "@/services/pdfReportService"
+import { sendBrandedAuditEmail } from "@/services/brandedEmailService"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -168,7 +169,7 @@ export function SubmissionDetailModal({
     })
   }, [checklistItems, markingStatusFilter, markingCategoryFilter])
 
-  // Clean scalar summary entries (FILTER OUT items, failedItems, photos, signatureUri to eliminate [object Object])
+  // Clean scalar summary entries (FILTER OUT items, failedItems, photos, signatureUri, trade, inspectingArea to eliminate duplicates and [object Object])
   const cleanSummaryEntries = React.useMemo(() => {
     if (!submission?.data) return []
     const excludedKeys = new Set([
@@ -178,7 +179,10 @@ export function SubmissionDetailModal({
       "photoUrls",
       "signatureUri",
       "signature_uri",
+      "signature",
       "data",
+      "trade",
+      "inspectingArea",
       "photoCount",
       "passedCount",
       "failedCount",
@@ -187,13 +191,25 @@ export function SubmissionDetailModal({
     ])
     return Object.entries(submission.data).filter(([key, val]) => {
       if (excludedKeys.has(key)) return false
-      if (typeof val === "object" && val !== null && !Array.isArray(val)) return false
+      if (val === null || val === undefined) return false
+      if (typeof val === "object") {
+        if (Array.isArray(val)) {
+          // If array contains any objects, skip it
+          if (val.some((v) => typeof v === "object" && v !== null)) return false
+          if (val.length === 0) return false
+          return true
+        }
+        return false
+      }
       return true
     })
   }, [submission?.data])
 
   // Signature data check
-  const signatureData = submission.signatureUri || submission.data?.signatureUri
+  const signatureData =
+    submission.signatureUri ||
+    submission.data?.signatureUri ||
+    submission.data?.signature
   // Deleted photos tracking state
   const [deletedPhotoUris, setDeletedPhotoUris] = React.useState<string[]>([])
   const [isDeleting, setIsDeleting] = React.useState(false)
@@ -249,6 +265,24 @@ export function SubmissionDetailModal({
     (signatureData.startsWith("data:image") || signatureData.startsWith("http"))
 
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false)
+  const [isSendingEmail, setIsSendingEmail] = React.useState(false)
+
+  const handleSendEmail = async () => {
+    setIsSendingEmail(true)
+    try {
+      const ok = await sendBrandedAuditEmail(submission)
+      if (ok) {
+        alert("Branded Cal/OSHA compliance email with attached PDF was dispatched successfully!")
+      } else {
+        alert("Email dispatch completed. Please verify SMTP delivery logs.")
+      }
+    } catch (err) {
+      console.error("Email send failed:", err)
+      alert("Failed to send email. Check network or server configuration.")
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
 
   const handleDownload = async () => {
     setIsGeneratingPdf(true)
@@ -863,16 +897,26 @@ export function SubmissionDetailModal({
                 type="button"
                 variant="outline"
                 onClick={handlePrint}
-                className="h-9 px-3.5 text-xs gap-1.5 cursor-pointer"
+                className="h-9 px-3 text-xs gap-1.5 cursor-pointer"
               >
                 <Printer className="size-3.5" />
                 Print
               </Button>
               <Button
                 type="button"
+                variant="outline"
+                onClick={handleSendEmail}
+                disabled={isSendingEmail}
+                className="h-9 px-3 text-xs gap-1.5 cursor-pointer text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 font-medium"
+              >
+                <Mail className="size-3.5" />
+                {isSendingEmail ? "Dispatching..." : "Dispatch Branded Email"}
+              </Button>
+              <Button
+                type="button"
                 onClick={handleDownload}
                 disabled={isGeneratingPdf}
-                className="h-9 px-5 text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
+                className="h-9 px-4 text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
               >
                 {isGeneratingPdf ? (
                   <>
