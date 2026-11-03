@@ -34,7 +34,6 @@ import {
   Edit2,
   Download,
   Layers,
-  Globe,
 } from "lucide-react"
 
 export function DailyChecklistsView({
@@ -286,69 +285,108 @@ export function DailyChecklistsView({
         </div>
       </div>
 
-      {/* Site-Wise Selector Banner */}
-      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-background to-muted/20">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/15 text-primary">
-                {selectedSiteId === "global" ? (
-                  <Globe className="size-5" />
-                ) : (
-                  <Building2 className="size-5" />
-                )}
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-                    Active Inspection Scope
-                  </span>
-                  {selectedSiteId === "global" ? (
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
-                      Universal Global Default
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                      Site-Specific Custom Checklist
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {selectedSiteId === "global"
-                    ? "Applies automatically to all jobsites unless customized."
-                    : `${selectedSite?.address || ""} • Superintendent: ${selectedSite?.superintendent || "Assigned Foreman"}`}
-                </div>
-              </div>
-            </div>
-
-            {/* Selector Dropdown */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="site-select" className="text-xs font-semibold text-foreground whitespace-nowrap">
-                Select Jobsite:
-              </label>
-              <select
-                id="site-select"
-                value={selectedSiteId}
-                onChange={(e) => setSelectedSiteId(e.target.value)}
-                className="text-xs rounded-lg border border-border bg-card px-3 py-2 text-foreground font-medium shadow-xs focus:ring-2 focus:ring-primary focus:outline-hidden min-w-[260px]"
-              >
-                <option value="global">🌐 All Sites (Global Default Template)</option>
-                {jobsites.map((site) => (
-                  <option key={site.id} value={site.id}>
-                    🏗️ {site.name} ({site.jobNumber})
-                  </option>
-                ))}
-              </select>
-            </div>
+      {/* Unified Compact Control Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 p-2 px-3 rounded-xl bg-card border border-border/80 shadow-2xs">
+        {/* Left: Compact Site Selector */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground shrink-0">
+            <Building2 className="size-3.5 text-primary" />
+            <span>Site:</span>
           </div>
-        </CardContent>
-      </Card>
+          <select
+            id="site-select"
+            value={selectedSiteId}
+            onChange={(e) => setSelectedSiteId(e.target.value)}
+            className="text-xs rounded-lg border border-border bg-background px-2.5 py-1 text-foreground font-medium shadow-2xs focus:ring-1 focus:ring-primary focus:outline-hidden min-w-[220px] max-w-[320px] truncate"
+          >
+            <option value="global">🌐 All Sites (Global Template)</option>
+            {jobsites.map((site) => (
+              <option key={site.id} value={site.id}>
+                🏗️ {site.name} ({site.jobNumber})
+              </option>
+            ))}
+          </select>
+          {selectedSiteId === "global" ? (
+            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 shrink-0">
+              Global
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0">
+              Site-Specific
+            </Badge>
+          )}
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex flex-wrap items-center gap-1.5 justify-end">
+          <Button
+            size="sm"
+            onClick={handleAddItem}
+            className="h-7 text-xs px-2.5 gap-1 bg-primary text-primary-foreground font-semibold shadow-2xs cursor-pointer"
+          >
+            <Plus className="size-3" />
+            Add Item
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setImportModalOpen(true)}
+            className="h-7 text-xs px-2.5 gap-1 border-primary/30 text-primary hover:bg-primary/10 font-semibold cursor-pointer"
+          >
+            <UploadCloud className="size-3" />
+            Import (Excel, CSV, JSON, TXT)
+          </Button>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleExportJson}
+            className="h-7 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+            title="Export JSON"
+          >
+            <Download className="size-3" />
+            Export
+          </Button>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleResetToStandard}
+            className="h-7 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+            title="Reset to standard 20 items"
+          >
+            <RotateCcw className="size-3" />
+            Reset
+          </Button>
+
+          {hasUnsavedChanges && (
+            <span className="text-[10px] text-amber-600 font-medium px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 animate-pulse">
+              ● Unsaved
+            </span>
+          )}
+
+          <Button
+            size="sm"
+            onClick={handleSaveChecklist}
+            disabled={isSaving || !hasUnsavedChanges}
+            className={`h-7 text-xs px-3 gap-1 font-bold shadow-2xs cursor-pointer ${
+              hasUnsavedChanges
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                : "bg-muted text-muted-foreground opacity-60"
+            }`}
+          >
+            <Save className="size-3" />
+            {isSaving ? "Saving..." : "Save to Cloud"}
+          </Button>
+        </div>
+      </div>
 
       {/* Save Success Alert */}
       {saveSuccessMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium flex items-center justify-between animate-in fade-in duration-300">
+        <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium flex items-center justify-between animate-in fade-in duration-300">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 shrink-0" />
+            <CheckCircle2 className="size-3.5 shrink-0" />
             <span>{saveSuccessMessage}</span>
           </div>
           <span className="text-[10px] uppercase font-mono tracking-wider">Synced to Supabase</span>
@@ -356,72 +394,7 @@ export function DailyChecklistsView({
       )}
 
       {activeTab === "checklist_manager" ? (
-        <div className="space-y-4">
-          {/* Action Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border/60">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                onClick={handleAddItem}
-                className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs"
-              >
-                <Plus className="size-3.5" />
-                Add Inspection Item
-              </Button>
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setImportModalOpen(true)}
-                className="h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
-              >
-                <UploadCloud className="size-3.5" />
-                Import (Excel, CSV, JSON, TXT)
-              </Button>
-
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleExportJson}
-                className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
-              >
-                <Download className="size-3.5" />
-                Export JSON
-              </Button>
-
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleResetToStandard}
-                className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
-              >
-                <RotateCcw className="size-3.5" />
-                Reset Default
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {hasUnsavedChanges && (
-                <Badge variant="outline" className="text-[11px] text-amber-600 border-amber-500/30 bg-amber-500/10 animate-pulse">
-                  ● Unsaved Changes
-                </Badge>
-              )}
-              <Button
-                size="sm"
-                onClick={handleSaveChecklist}
-                disabled={isSaving || !hasUnsavedChanges}
-                className={`h-8 text-xs gap-1.5 font-bold shadow-xs ${
-                  hasUnsavedChanges
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <Save className="size-3.5" />
-                {isSaving ? "Saving..." : "Save & Publish to Cloud"}
-              </Button>
-            </div>
-          </div>
-
+        <div className="space-y-3">
           {/* Category Filter Chips */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
