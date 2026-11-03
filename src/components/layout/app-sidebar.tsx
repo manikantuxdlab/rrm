@@ -38,6 +38,7 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 const moduleIconMap: Record<string, React.ReactNode> = {
   dashboard: <LayoutDashboardIcon className="size-4" />,
+  checklists: <ClipboardCheckIcon className="size-4 text-primary" />,
   companies: <BuildingIcon className="size-4" />,
   users: <UsersIcon className="size-4" />,
   routing: <BellRingIcon className="size-4" />,
@@ -47,6 +48,7 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   submissions: <FileTextIcon className="size-4" />,
   faqs: <HelpCircle className="size-4" />,
   tickets: <LifeBuoy className="size-4" />,
+  attendance: <FileTextIcon className="size-4" />,
 }
 
 const documentIconMap: Record<string, React.ReactNode> = {

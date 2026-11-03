@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useNavigate } from "react-router-dom"
 import { LoginPage } from "@/features/auth/LoginPage"
 import {
   SafetyDashboardView,
+  DailyChecklistsView,
   ContractorAccountsView,
   UserAccountsView,
   RoutingSettingsView,
@@ -11,7 +12,6 @@ import {
   FieldSubmissionsView,
   FaqManagementView,
   SupportTicketsView,
-  
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -44,7 +44,9 @@ export function AppRoutes({
             onSelectSubmission={onSelectSubmission}
             onOpenDispatch={onOpenDispatch}
             onNavigateModule={(mod) => {
-              if (mod === "checklists" || mod === "toolbox" || mod === "jha") {
+              if (mod === "checklists") {
+                navigate("/checklists")
+              } else if (mod === "toolbox" || mod === "jha") {
                 navigate("/safety-config")
               } else if (mod === "incidents" || mod === "coi" || mod === "fleet") {
                 navigate("/submissions")
@@ -56,31 +58,34 @@ export function AppRoutes({
         }
       />
 
-      {/* 2. Contractor Companies & User Management (Section 1 & 7) */}
+      {/* 2. Checklist Management (Site-wise Custom Builder, Importer & Live Sync) */}
+      <Route
+        path="/checklists"
+        element={<DailyChecklistsView onSelectSubmission={onSelectSubmission} />}
+      />
+
+      {/* 3. Jobsites & Projects */}
+      <Route path="/jobsites" element={<ActiveJobsitesView />} />
+
+      {/* 4. Contractor Companies & User Management */}
       <Route
         path="/companies"
-        element={
-          <ContractorAccountsView />
-        }
+        element={<ContractorAccountsView />}
       />
       <Route path="/users" element={<UserAccountsView />} />
 
-      {/* 3. Notification Routing */}
+      {/* 5. Notification Routing */}
       <Route path="/routing" element={<RoutingSettingsView />} />
 
-      {/* 4. Safety & Checklists Config */}
+      {/* 6. Safety Configurator */}
       <Route path="/safety-config" element={<SafetyConfigView />} />
-      <Route path="/checklists" element={<Navigate to="/safety-config" replace />} />
       <Route path="/toolbox" element={<Navigate to="/safety-config" replace />} />
       <Route path="/jha" element={<Navigate to="/safety-config" replace />} />
 
-      {/* 5. Jobsites & Projects */}
-      <Route path="/jobsites" element={<ActiveJobsitesView />} />
-
-      {/* 6. Certifications Tracker */}
+      {/* 7. Certifications Tracker */}
       <Route path="/workforce" element={<WorkforceBadgesView />} />
 
-      {/* 7. Field Submissions & Logs */}
+      {/* 8. Field Submissions & Logs */}
       <Route
         path="/submissions"
         element={
@@ -99,17 +104,20 @@ export function AppRoutes({
         element={<Navigate to="/submissions" replace />}
       />
       <Route
-        path="/fleet"
+        path="/claims"
         element={<Navigate to="/submissions" replace />}
       />
 
-      {/* 8. FAQ Management */}
+      {/* 9. FAQ Management */}
       <Route path="/faqs" element={<FaqManagementView />} />
 
-      {/* 9. Support Ticket Management */}
+      {/* 10. Support Tickets */}
       <Route path="/tickets" element={<SupportTicketsView />} />
-       <Route path="/attendance" element={<AttendanceView />} />
 
+      {/* 11. Attendance */}
+      <Route path="/attendance" element={<AttendanceView />} />
+
+      {/* Catch-all */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )

@@ -1,4 +1,5 @@
 export * from "./components/SafetyDashboardView"
+export * from "./components/DailyChecklistsView"
 export * from "./components/ContractorAccountsView"
 export * from "./components/UserAccountsView"
 export * from "./components/RoutingSettingsView"
@@ -11,6 +12,3 @@ export * from "./components/QuickActionModals"
 export * from "./components/SubmissionDetailModal"
 export * from "./components/FaqManagementView"
 export * from "./components/SupportTicketsView"
-
-
-

@@ -19,6 +19,18 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "Multi-tenant sync status, real-time metrics & field activity feed",
   },
   {
+    key: "checklists",
+    title: "Checklist Management",
+    url: "/checklists",
+    description: "Site-wise custom checklist builder, file importer (Excel/CSV/JSON/TXT) & live mobile sync",
+  },
+  {
+    key: "jobsites",
+    title: "Jobsites & Projects",
+    url: "/jobsites",
+    description: "Active/inactive sites, superintendent info & emergency contacts",
+  },
+  {
     key: "users",
     title: "User Management",
     url: "/users",
@@ -38,15 +50,9 @@ export const SAFETY_MODULES: NavModuleItem[] = [
   },
   {
     key: "safety-config",
-    title: "Safety & Checklists Config",
+    title: "Safety Configurator",
     url: "/safety-config",
     description: "Configure Toolbox Talk topics, Daily safety checklists & JHA templates",
-  },
-  {
-    key: "jobsites",
-    title: "Jobsites & Projects",
-    url: "/jobsites",
-    description: "Active/inactive sites, superintendent info & emergency contacts",
   },
   {
     key: "workforce",
@@ -72,7 +78,7 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     url: "/tickets",
     description: "Track, review, and resolve field safety inquiries, jobsite issues & contractor requests",
   },
-    {
+  {
     key: "attendance",
     title: "Attendance",
     url: "/attendance",

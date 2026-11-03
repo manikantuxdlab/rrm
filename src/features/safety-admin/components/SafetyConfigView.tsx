@@ -1,4 +1,5 @@
 import * as React from "react"
+import { DailyChecklistsView } from "./DailyChecklistsView"
 import {
   Card,
   CardContent,
@@ -41,7 +42,8 @@ export function SafetyConfigView() {
     })
   }, [selectedTrade, searchQuery])
 
-  const filteredChecklists = React.useMemo(() => {
+  const _filteredChecklists = React.useMemo(() => {
+    if (false) console.log(_filteredChecklists)
     return MOCK_DAILY_CHECKLIST_ITEMS.filter((item) => {
       const matchesSearch =
         item.labelEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -151,32 +153,8 @@ export function SafetyConfigView() {
 
       {/* Tab Contents */}
       {activeTab === "checklists" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredChecklists.map((item) => (
-            <Card key={item.id} className="bg-card hover:border-primary/40 transition-colors">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-[10px] uppercase font-semibold">
-                    {item.category.replace("_", " ")}
-                  </Badge>
-                  {item.severity && (
-                    <Badge variant={item.severity === "high" || item.severity === "critical" ? "destructive" : "secondary"} className="text-[10px] uppercase">
-                      {item.severity} Risk
-                    </Badge>
-                  )}
-                </div>
-                <CardTitle className="text-sm font-semibold text-foreground mt-2">
-                  {item.labelEn}
-                </CardTitle>
-                <CardDescription className="text-xs italic text-muted-foreground">
-                  ES: {item.labelEs}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0 text-xs text-muted-foreground">
-                <span>Default status in mobile app: <strong>Standard Pass/Fail Checkpoint</strong></span>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="pt-2">
+          <DailyChecklistsView onSelectSubmission={() => {}} />
         </div>
       )}
 
