@@ -1,11 +1,5 @@
 import * as React from "react"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { SubmissionRecord, ChecklistItem, JobSite } from "@/types"
@@ -28,7 +22,6 @@ import {
 import {
   ClipboardCheck,
   CheckCircle2,
-  AlertTriangle,
   Building2,
   Eye,
   Camera,
@@ -44,6 +37,10 @@ import {
   Download,
   Layers,
   Radio,
+  Archive,
+  ArchiveRestore,
+  Search,
+  User,
 } from "lucide-react"
 
 export function DailyChecklistsView({
@@ -112,6 +109,65 @@ export function DailyChecklistsView({
       setIsLoadingSubmissions(false)
     }
   }, [selectedSiteId])
+
+
+  const [auditFilter, setAuditFilter] = React.useState<"active" | "archived" | "all">("active")
+  const [auditSearch, setAuditSearch] = React.useState("")
+  const [archivingId, setArchivingId] = React.useState<string | null>(null)
+
+  const handleToggleArchive = async (e: React.MouseEvent, sub: SubmissionRecord) => {
+    e.stopPropagation()
+    setArchivingId(sub.id)
+    try {
+      const ok = await submissionsService.toggleArchive(sub.id, Boolean(sub.isArchived))
+      if (ok) {
+        setSubmissions((prev) =>
+          prev.map((s) =>
+            s.id === sub.id
+              ? {
+                  ...s,
+                  isArchived: !sub.isArchived,
+                  syncStatus: !sub.isArchived ? "archived" : "synced",
+                }
+              : s
+          )
+        )
+      } else {
+        alert("Failed to update archive status.")
+      }
+    } catch (err) {
+      console.error("Error toggling archive:", err)
+    } finally {
+      setArchivingId(null)
+    }
+  }
+
+  const activeAuditsCount = React.useMemo(
+    () => submissions.filter((s) => !s.isArchived).length,
+    [submissions]
+  )
+  const archivedAuditsCount = React.useMemo(
+    () => submissions.filter((s) => s.isArchived).length,
+    [submissions]
+  )
+
+  const filteredAudits = React.useMemo(() => {
+    return submissions.filter((sub) => {
+      if (auditFilter === "active" && sub.isArchived) return false
+      if (auditFilter === "archived" && !sub.isArchived) return false
+
+      if (auditSearch.trim()) {
+        const q = auditSearch.toLowerCase()
+        const matches =
+          sub.id.toLowerCase().includes(q) ||
+          sub.title.toLowerCase().includes(q) ||
+          sub.jobSiteName.toLowerCase().includes(q) ||
+          sub.foremanName.toLowerCase().includes(q)
+        if (!matches) return false
+      }
+      return true
+    })
+  }, [submissions, auditFilter, auditSearch])
 
   // Load submissions whenever selectedSiteId changes
   React.useEffect(() => {
@@ -292,7 +348,7 @@ export function DailyChecklistsView({
               }`}
             >
               <CheckCircle2 className="size-3.5 text-emerald-600" />
-              Field Audits ({submissions.length})
+              Field Audits ({activeAuditsCount})
             </button>
           </div>
         </div>
@@ -532,120 +588,228 @@ export function DailyChecklistsView({
           </Card>
         </div>
       ) : (
-        /* Submitted Audits Tab */
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            {isLoadingSubmissions && (
-              <div className="p-12 text-center text-xs text-muted-foreground">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent mb-2" />
-                <p>Loading field audits from Supabase cloud...</p>
-              </div>
-            )}
+        /* Submitted Audits Tabular View */
+        <div className="space-y-3">
+          {/* Sub-bar: Filter buttons (Active, Archived, All) and Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="inline-flex rounded-lg border border-border bg-muted p-1 text-xs">
+              <button
+                onClick={() => setAuditFilter("active")}
+                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                  auditFilter === "active"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                Active ({activeAuditsCount})
+              </button>
+              <button
+                onClick={() => setAuditFilter("archived")}
+                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                  auditFilter === "archived"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Archive className="size-3.5 text-amber-600" />
+                Archived ({archivedAuditsCount})
+              </button>
+              <button
+                onClick={() => setAuditFilter("all")}
+                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                  auditFilter === "all"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All Records ({submissions.length})
+              </button>
+            </div>
 
-            {!isLoadingSubmissions &&
-              submissions.map((sub) => (
-                <Card
-                  key={sub.id}
-                  className="hover:border-primary/40 transition-colors cursor-pointer"
-                  onClick={() => onSelectSubmission(sub)}
-                >
-                  <CardHeader>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] uppercase font-mono">
-                            {sub.id}
-                          </Badge>
-                          <Badge variant="outline" className="text-emerald-600 border-emerald-500/20 bg-emerald-500/10 text-[10px]">
-                            <CheckCircle2 className="size-3 mr-1" />
-                            Cal/OSHA Compliant
-                          </Badge>
-                        </div>
-                        <CardTitle className="text-base font-bold text-foreground">
-                          {sub.title}
-                        </CardTitle>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-semibold text-foreground">{sub.timestamp}</div>
-                        <div className="text-[11px] text-muted-foreground">Foreman: {sub.foremanName}</div>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-muted/40 text-xs">
-                      <div>
-                        <span className="text-muted-foreground block text-[11px]">Jobsite Location:</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
-                          <Building2 className="size-3.5 text-primary" />
-                          {sub.jobSiteName}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[11px]">Audit Results:</span>
-                        <span className="font-semibold text-emerald-600 mt-0.5 block">
-                          {sub.data?.passedCount ?? 0} Passed • {sub.data?.failedCount ?? 0} Corrected On-Site
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[11px]">Photo Documentation:</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
-                          <Camera className="size-3.5 text-primary" />
-                          {sub.data?.photoCount ?? 0} Evidence Photos
-                        </span>
-                      </div>
-                    </div>
-
-                    {sub.data?.deficiencies && sub.data.deficiencies.length > 0 && (
-                      <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs space-y-1">
-                        <div className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                          <AlertTriangle className="size-3.5" />
-                          Identified & Immediate Corrective Actions:
-                        </div>
-                        <ul className="list-disc list-inside space-y-0.5 text-muted-foreground pl-1">
-                          {sub.data.deficiencies.map((def: string, i: number) => (
-                            <li key={i} className="text-[11px]">{def}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-
-                  <CardFooter className="flex items-center justify-between border-t border-border/60 pt-3">
-                    <div className="text-xs text-muted-foreground">
-                      Emailed to: {sub.recipients?.join(", ") || "Safety Director"}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onSelectSubmission(sub)
-                      }}
-                    >
-                      <Eye className="size-3" />
-                      View Signed Audit PDF
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-
-            {!isLoadingSubmissions && submissions.length === 0 && (
-              <div className="p-14 text-center rounded-2xl border border-dashed border-border bg-card/40 flex flex-col items-center justify-center space-y-2">
-                <div className="size-11 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <ClipboardCheck className="size-5" />
-                </div>
-                <div className="font-semibold text-foreground text-sm">No Field Audits Found</div>
-                <p className="max-w-md text-xs text-muted-foreground">
-                  {selectedSite
-                    ? `No field checklist submissions recorded for ${selectedSite.name} yet.`
-                    : "No field checklist submissions recorded across jobsites yet."}{" "}
-                  Inspections submitted by foremen in the mobile app appear here automatically via live real-time sync.
-                </p>
-              </div>
-            )}
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search audit ID, title, jobsite, foreman..."
+                value={auditSearch}
+                onChange={(e) => setAuditSearch(e.target.value)}
+                className="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
           </div>
+
+          {/* Clean Tabular View Card */}
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-muted/60 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Audit ID & Date</th>
+                    <th className="px-4 py-3 font-semibold">Inspection Scope</th>
+                    <th className="px-4 py-3 font-semibold">Jobsite Location</th>
+                    <th className="px-4 py-3 font-semibold">Foreman</th>
+                    <th className="px-4 py-3 font-semibold">Audit Results</th>
+                    <th className="px-4 py-3 font-semibold text-center">Status</th>
+                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {isLoadingSubmissions ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-xs text-muted-foreground">
+                        <div className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent mb-2" />
+                        <p>Loading field audits from Supabase cloud...</p>
+                      </td>
+                    </tr>
+                  ) : filteredAudits.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-xs text-muted-foreground">
+                        <div className="size-10 rounded-full bg-muted mx-auto flex items-center justify-center text-muted-foreground mb-2">
+                          <ClipboardCheck className="size-5 opacity-60" />
+                        </div>
+                        <p className="font-medium text-foreground">
+                          {auditFilter === "archived"
+                            ? "No archived field audits."
+                            : "No field audits found."}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {auditSearch
+                            ? "Try adjusting your search query."
+                            : "Completed daily checklists from the mobile app will automatically appear here."}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAudits.map((sub) => (
+                      <tr
+                        key={sub.id}
+                        onClick={() => onSelectSubmission(sub)}
+                        className="hover:bg-muted/40 transition-colors cursor-pointer group"
+                      >
+                        <td className="px-4 py-3 align-top whitespace-nowrap">
+                          <div className="font-mono text-[10px] font-semibold text-foreground">
+                            {sub.id}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            {sub.timestamp}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 align-top max-w-xs">
+                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors leading-snug">
+                            {sub.title}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
+                              <CheckCircle2 className="size-2.5 mr-0.5" /> Cal/OSHA
+                            </Badge>
+                            {sub.recipients && sub.recipients.length > 0 && (
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[140px]" title={sub.recipients.join(", ")}>
+                                to: {sub.recipients[0]}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex items-center gap-1 font-medium text-foreground">
+                            <Building2 className="size-3 text-primary shrink-0" />
+                            <span className="truncate max-w-[170px]" title={sub.jobSiteName}>
+                              {sub.jobSiteName}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 align-top whitespace-nowrap">
+                          <div className="flex items-center gap-1 font-medium text-foreground">
+                            <User className="size-3 text-muted-foreground shrink-0" />
+                            <span>{sub.foremanName}</span>
+                          </div>
+                          {sub.companyName && (
+                            <div className="text-[10px] text-muted-foreground ml-4">
+                              {sub.companyName}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3 align-top whitespace-nowrap">
+                          <div className="space-y-0.5">
+                            <div className="text-[11px] font-semibold text-emerald-600">
+                              {sub.data?.passedCount ?? 0} Passed
+                              {Boolean(sub.data?.failedCount) && (
+                                <span className="text-amber-600 ml-1">
+                                  • {sub.data.failedCount} Corrected
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Camera className="size-2.5" />
+                              <span>{sub.data?.photoCount ?? 0} Evidence Photos</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 align-top text-center whitespace-nowrap">
+                          {sub.isArchived ? (
+                            <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
+                              Archived
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                              Active
+                            </Badge>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3 align-top text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onSelectSubmission(sub)
+                              }}
+                              title="View Signed Compliance PDF"
+                            >
+                              <Eye className="size-3.5" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={archivingId === sub.id}
+                              className={`h-7 px-2 text-xs gap-1 ${
+                                sub.isArchived
+                                  ? "text-primary hover:text-primary hover:bg-primary/10"
+                                  : "text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10"
+                              }`}
+                              onClick={(e) => handleToggleArchive(e, sub)}
+                              title={sub.isArchived ? "Restore submission" : "Archive submission"}
+                            >
+                              {sub.isArchived ? (
+                                <>
+                                  <ArchiveRestore className="size-3.5" />
+                                  Restore
+                                </>
+                              ) : (
+                                <>
+                                  <Archive className="size-3.5" />
+                                  Archive
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

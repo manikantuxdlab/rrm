@@ -51,6 +51,7 @@ export const submissionsService = {
             })
           : "Recently",
         syncStatus: (row.sync_status || "synced") as any,
+        isArchived: row.sync_status === "archived" || Boolean(row.data?.archived),
         recipients: row.recipients || [],
         data: row.data || {},
         signatureUri: row.signature_uri || row.data?.signatureUri,
@@ -59,6 +60,34 @@ export const submissionsService = {
     } catch (err) {
       console.error("[submissionsService] Unexpected fetch error:", err)
       return []
+    }
+  },
+
+  /**
+   * Toggle archive status for a submission
+   */
+  async toggleArchive(id: string, currentArchived: boolean): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
+    try {
+      const newArchived = !currentArchived
+      const { data: row } = await supabase.from("submissions").select("data").eq("id", id).single()
+      const updatedData = { ...(row?.data || {}), archived: newArchived }
+      const { error } = await supabase
+        .from("submissions")
+        .update({
+          sync_status: newArchived ? "archived" : "synced",
+          data: updatedData,
+        })
+        .eq("id", id)
+
+      if (error) {
+        console.error("[submissionsService] Failed to toggle archive:", error.message)
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error("[submissionsService] Error toggling archive:", err)
+      return false
     }
   },
 

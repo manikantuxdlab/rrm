@@ -1,5 +1,5 @@
 export type Language = "en" | "es"
-export type SyncStatus = "draft" | "pending" | "synced" | "failed"
+export type SyncStatus = "draft" | "pending" | "synced" | "failed" | "archived"
 
 export interface JobSite {
   id: string
@@ -77,6 +77,7 @@ export interface ChecklistItem {
   notes?: string
   photoUri?: string
   severity?: "low" | "medium" | "high" | "critical"
+  isArchived?: boolean
   oshaRef?: string
 }
 
@@ -110,6 +111,7 @@ export interface SubmissionRecord {
   signatureUri?: string
   pdfGenerated?: boolean
   severity?: "low" | "medium" | "high" | "critical"
+  isArchived?: boolean
 }
 
 export interface CertificationRecord {
