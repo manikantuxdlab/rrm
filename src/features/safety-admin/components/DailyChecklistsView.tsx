@@ -688,24 +688,24 @@ export function DailyChecklistsView({
                         className="hover:bg-muted/40 transition-colors cursor-pointer group"
                       >
                         <td className="px-5 py-5 align-middle whitespace-nowrap">
-                          <div className="font-mono text-xs font-bold text-foreground tracking-tight">
+                          <div className="font-mono text-[11px] font-medium text-foreground tracking-tight">
                             {sub.id}
                           </div>
-                          <div className="text-[11px] text-muted-foreground mt-1">
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
                             {sub.timestamp}
                           </div>
                         </td>
 
                         <td className="px-5 py-5 align-middle max-w-sm">
-                          <div className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-relaxed">
+                          <div className="font-medium text-xs text-foreground group-hover:text-primary transition-colors leading-snug">
                             {sub.title}
                           </div>
-                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                            <Badge variant="outline" className="text-[10px] h-5 px-2 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
-                              <CheckCircle2 className="size-3 mr-1" /> Cal/OSHA
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <Badge variant="outline" className="text-[9px] h-4.5 px-1.5 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
+                              <CheckCircle2 className="size-2.5 mr-0.5" /> Cal/OSHA
                             </Badge>
                             {sub.recipients && sub.recipients.length > 0 && (
-                              <span className="text-[11px] text-muted-foreground truncate max-w-[200px]" title={sub.recipients.join(", ")}>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={sub.recipients.join(", ")}>
                                 to: {sub.recipients[0]}
                               </span>
                             )}
