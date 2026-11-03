@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react"
 import type { JobSite } from "@/types"
+import { MapLocationPickerModal, type LocationSelectionResult } from "./MapLocationPickerModal"
 
 interface Props {
   open: boolean
@@ -95,6 +96,8 @@ export function JobsiteFormModal({
   const [utilityEmergency, setUtilityEmergency] = React.useState("")
 
   const [errorMsg, setErrorMsg] = React.useState("")
+  const [isMapPickerOpen, setIsMapPickerOpen] = React.useState(false)
+  const [mapPickerMode, setMapPickerMode] = React.useState<"site" | "hospital">("site")
 
   // Populate state on open or initialData change
   React.useEffect(() => {
@@ -164,6 +167,33 @@ export function JobsiteFormModal({
     }
   }, [open, isNew, initialData, companies])
 
+  const handleLocationPicked = (result: LocationSelectionResult) => {
+    if (mapPickerMode === "site") {
+      if (result.address) setAddress(result.address)
+      if (result.cityStateZip) setCityStateZip(result.cityStateZip)
+
+      // Automatically sync nearest trauma center / emergency hospital
+      if (result.nearestHospital) {
+        if (result.nearestHospital.name) setEmergencyHospitalName(result.nearestHospital.name)
+        if (result.nearestHospital.address) setEmergencyHospitalAddress(result.nearestHospital.address)
+        if (result.nearestHospital.phone) setEmergencyHospitalPhone(result.nearestHospital.phone)
+        if (result.nearestHospital.distanceMiles !== undefined) {
+          setEmergencyHospitalDistance(result.nearestHospital.distanceMiles)
+        }
+      }
+    } else {
+      if (result.name) setEmergencyHospitalName(result.name)
+      if (result.address) {
+        setEmergencyHospitalAddress(
+          result.cityStateZip ? `${result.address}, ${result.cityStateZip}` : result.address
+        )
+      }
+      if (result.phone) setEmergencyHospitalPhone(result.phone)
+      if (result.distanceMiles !== undefined) setEmergencyHospitalDistance(result.distanceMiles)
+    }
+    setIsMapPickerOpen(false)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const selectedCompany = isCustomCompany ? customCompanyName.trim() : companyName.trim()
@@ -225,7 +255,7 @@ export function JobsiteFormModal({
 
   return (
     <Sheet open={open} onOpenChange={(val) => !val && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col h-full bg-card">
+      <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0 flex flex-col h-full bg-card shadow-2xl">
         <SheetHeader className="p-5 border-b border-border/60 bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-primary/10 text-primary">
@@ -243,7 +273,7 @@ export function JobsiteFormModal({
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="p-5 space-y-5 text-xs overflow-y-auto flex-1">
+          <div className="p-5 space-y-5 text-xs overflow-y-auto flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {errorMsg && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
                 {errorMsg}
@@ -338,8 +368,7 @@ export function JobsiteFormModal({
                 </FormField>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormField label="Trade / Scope">
+              <FormField label="Trade / Scope">
                   <Input
                     className={inputCls}
                     placeholder="e.g. Concrete & Masonry, Framing"
@@ -347,22 +376,29 @@ export function JobsiteFormModal({
                     onChange={(e) => setTrade(e.target.value)}
                   />
                 </FormField>
-                <FormField label="Active Crew Count">
-                  <Input
-                    type="number"
-                    min="0"
-                    className={inputCls}
-                    placeholder="0"
-                    value={activeCrewCount}
-                    onChange={(e) => setActiveCrewCount(Number(e.target.value) || 0)}
-                  />
-                </FormField>
-              </div>
             </div>
 
             {/* 2. Physical Location / Address */}
             <div className="space-y-3">
-              <SectionHeading title="2. Physical Location (911 Dispatch)" icon={MapPin} />
+              <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <MapPin className="size-3.5 text-primary" />
+                  <span>2. Physical Location (911 Dispatch)</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMapPickerMode("site")
+                    setIsMapPickerOpen(true)
+                  }}
+                  className="h-7 px-2.5 text-[11px] gap-1.5 text-primary border-primary/30 hover:bg-primary/10 hover:text-primary font-medium"
+                >
+                  <MapPin className="size-3" />
+                  <span>Pick on Map</span>
+                </Button>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField label="Street Address">
                   <Input
@@ -454,7 +490,25 @@ export function JobsiteFormModal({
 
             {/* 4. Emergency Action Plan */}
             <div className="space-y-3">
-              <SectionHeading title="4. Emergency Action Plan & Trauma Center" icon={Hospital} />
+              <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Hospital className="size-3.5 text-primary" />
+                  <span>4. Emergency Action Plan & Trauma Center</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMapPickerMode("hospital")
+                    setIsMapPickerOpen(true)
+                  }}
+                  className="h-7 px-2.5 text-[11px] gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive font-medium"
+                >
+                  <Hospital className="size-3" />
+                  <span>Pick Hospital on Map</span>
+                </Button>
+              </div>
 
               <div className="p-3 rounded-lg border border-destructive/20 bg-destructive/5 space-y-2.5">
                 <div className="text-[11px] font-semibold text-destructive flex items-center gap-1.5">
@@ -578,6 +632,14 @@ export function JobsiteFormModal({
           </SheetFooter>
         </form>
       </SheetContent>
+
+      <MapLocationPickerModal
+        isOpen={isMapPickerOpen}
+        mode={mapPickerMode}
+        currentAddress={mapPickerMode === "site" ? address : emergencyHospitalAddress}
+        onClose={() => setIsMapPickerOpen(false)}
+        onSelect={handleLocationPicked}
+      />
     </Sheet>
   )
 }
