@@ -8,14 +8,23 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  MOCK_DAILY_CHECKLIST_ITEMS,
-  MOCK_SUBMISSIONS,
-} from "@/data/safetyMockData"
+import { MOCK_SUBMISSIONS } from "@/data/safetyMockData"
 import type { SubmissionRecord, ChecklistItem, JobSite } from "@/types"
 import { jobsitesService } from "@/services/jobsitesService"
 import { ChecklistImportModal } from "./ChecklistImportModal"
 import { ChecklistItemEditModal } from "./ChecklistItemEditModal"
+import { useAppDispatch, useAppSelector } from "@/store"
+import {
+  setSelectedSiteId,
+  loadChecklist,
+  publishChecklist,
+  addItem,
+  updateItem,
+  deleteItem,
+  moveItem,
+  importItems,
+  resetToStandard,
+} from "@/store/checklistSlice"
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -34,6 +43,7 @@ import {
   Edit2,
   Download,
   Layers,
+  Radio,
 } from "lucide-react"
 
 export function DailyChecklistsView({
@@ -41,14 +51,19 @@ export function DailyChecklistsView({
 }: {
   onSelectSubmission: (submission: SubmissionRecord) => void
 }) {
+  const dispatch = useAppDispatch()
+  const {
+    selectedSiteId,
+    items: checklistItems,
+    saving: isSaving,
+    hasUnsavedChanges,
+    realtimeConnected,
+    lastSyncedAt,
+  } = useAppSelector((state) => state.checklist)
+
   const [activeTab, setActiveTab] = React.useState<"checklist_manager" | "audits">("checklist_manager")
   const [jobsites, setJobsites] = React.useState<JobSite[]>([])
-  const [selectedSiteId, setSelectedSiteId] = React.useState<string>("global")
   const [selectedCategory, setSelectedCategory] = React.useState<string>("all")
-  const [checklistItems, setChecklistItems] = React.useState<ChecklistItem[]>(MOCK_DAILY_CHECKLIST_ITEMS)
-  const [, setIsLoadingChecklist] = React.useState(false)
-  const [isSaving, setIsSaving] = React.useState(false)
-  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const [saveSuccessMessage, setSaveSuccessMessage] = React.useState<string | null>(null)
 
   // Modals
@@ -69,22 +84,10 @@ export function DailyChecklistsView({
     loadSites()
   }, [])
 
-  // Load checklist items whenever selected site changes
+  // Load checklist items from Redux whenever selected site changes
   React.useEffect(() => {
-    async function loadChecklist() {
-      setIsLoadingChecklist(true)
-      try {
-        const items = await jobsitesService.fetchChecklist(selectedSiteId)
-        setChecklistItems(items)
-        setHasUnsavedChanges(false)
-      } catch (err) {
-        console.error("Failed to load checklist for site:", selectedSiteId, err)
-      } finally {
-        setIsLoadingChecklist(false)
-      }
-    }
-    loadChecklist()
-  }, [selectedSiteId])
+    dispatch(loadChecklist(selectedSiteId))
+  }, [dispatch, selectedSiteId])
 
   const selectedSite = React.useMemo(() => {
     if (selectedSiteId === "global") return null
@@ -113,42 +116,32 @@ export function DailyChecklistsView({
     return counts
   }, [checklistItems])
 
-  // Save checklist to Supabase
+  // Save checklist via Redux action
   const handleSaveChecklist = async () => {
-    setIsSaving(true)
     setSaveSuccessMessage(null)
-    try {
-      const res = await jobsitesService.saveChecklist(selectedSiteId, checklistItems)
-      if (res.ok) {
-        setHasUnsavedChanges(false)
-        const siteLabel = selectedSite ? selectedSite.name : "Global Default Template"
-        setSaveSuccessMessage(`Successfully published ${checklistItems.length} items for ${siteLabel}! Live in mobile app.`)
-        setTimeout(() => setSaveSuccessMessage(null), 4000)
-      } else {
-        alert("Failed to save checklist: " + (res.error || "Unknown error"))
-      }
-    } catch (err: any) {
-      alert("Error saving: " + err.message)
-    } finally {
-      setIsSaving(false)
+    const resultAction = await dispatch(
+      publishChecklist({ siteId: selectedSiteId, items: checklistItems })
+    )
+    if (publishChecklist.fulfilled.match(resultAction)) {
+      const siteLabel = selectedSite ? selectedSite.name : "Global Default Template"
+      setSaveSuccessMessage(
+        `Successfully published ${checklistItems.length} items for ${siteLabel}! Live in mobile app.`
+      )
+      setTimeout(() => setSaveSuccessMessage(null), 4000)
+    } else {
+      alert("Failed to save checklist: " + (resultAction.payload || "Unknown error"))
     }
   }
 
   // Handle Import
   const handleImport = (newItems: ChecklistItem[], mode: "replace" | "append") => {
-    if (mode === "replace") {
-      setChecklistItems(newItems)
-    } else {
-      setChecklistItems((prev) => [...prev, ...newItems])
-    }
-    setHasUnsavedChanges(true)
+    dispatch(importItems({ items: newItems, mode }))
   }
 
   // Handle Reset to standard template
   const handleResetToStandard = () => {
     if (confirm("Reset current checklist to the standard OSHA 20-item template?")) {
-      setChecklistItems(MOCK_DAILY_CHECKLIST_ITEMS)
-      setHasUnsavedChanges(true)
+      dispatch(resetToStandard())
     }
   }
 
@@ -166,56 +159,41 @@ export function DailyChecklistsView({
 
   // Save Add/Edit Item
   const handleSaveItem = (item: ChecklistItem) => {
-    setChecklistItems((prev) => {
-      const idx = prev.findIndex((i) => i.id === item.id)
-      if (idx >= 0) {
-        const copy = [...prev]
-        copy[idx] = item
-        return copy
-      }
-      return [...prev, item]
-    })
-    setHasUnsavedChanges(true)
+    const exists = checklistItems.some((i) => i.id === item.id)
+    if (exists) {
+      dispatch(updateItem(item))
+    } else {
+      dispatch(addItem(item))
+    }
   }
 
   // Delete Item
   const handleDeleteItem = (id: string) => {
-    setChecklistItems((prev) => prev.filter((i) => i.id !== id))
-    setHasUnsavedChanges(true)
+    dispatch(deleteItem(id))
   }
 
   // Move Item Up
   const handleMoveUp = (index: number) => {
     if (index === 0) return
-    setChecklistItems((prev) => {
-      const copy = [...prev]
-      const temp = copy[index - 1]
-      copy[index - 1] = copy[index]
-      copy[index] = temp
-      return copy
-    })
-    setHasUnsavedChanges(true)
+    dispatch(moveItem({ fromIndex: index, toIndex: index - 1 }))
   }
 
   // Move Item Down
   const handleMoveDown = (index: number) => {
     if (index === checklistItems.length - 1) return
-    setChecklistItems((prev) => {
-      const copy = [...prev]
-      const temp = copy[index + 1]
-      copy[index + 1] = copy[index]
-      copy[index] = temp
-      return copy
-    })
-    setHasUnsavedChanges(true)
+    dispatch(moveItem({ fromIndex: index, toIndex: index + 1 }))
   }
 
   // Export checklist as JSON
   const handleExportJson = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(checklistItems, null, 2))
+    const dataStr =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(checklistItems, null, 2))
     const downloadAnchor = document.createElement("a")
     downloadAnchor.setAttribute("href", dataStr)
-    const siteSlug = selectedSite ? selectedSite.name.toLowerCase().replace(/[^a-z0-9]/g, "_") : "global"
+    const siteSlug = selectedSite
+      ? selectedSite.name.toLowerCase().replace(/[^a-z0-9]/g, "_")
+      : "global"
     downloadAnchor.setAttribute("download", `checklist_${siteSlug}.json`)
     document.body.appendChild(downloadAnchor)
     downloadAnchor.click()
@@ -223,7 +201,7 @@ export function DailyChecklistsView({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Modals */}
       <ChecklistImportModal
         open={importModalOpen}
@@ -239,25 +217,34 @@ export function DailyChecklistsView({
       />
 
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-3">
         <div>
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-xl bg-primary/10 text-primary">
               <ClipboardCheck className="size-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground">
-                Daily Checklist & Field Inspection Management
-              </h2>
+              <h2 className="text-xl font-bold text-foreground">Checklist Management</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Site-wise custom checklist builder with universal file importer & live mobile synchronization
+                Redux-powered site-wise checklist builder with Supabase real-time cloud snapshots
               </p>
             </div>
           </div>
         </div>
 
-        {/* View Switcher Tabs */}
+        {/* View Switcher Tabs & Realtime Indicator */}
         <div className="flex items-center gap-2">
+          {realtimeConnected && (
+            <Badge
+              variant="outline"
+              className="text-[10px] gap-1 text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
+              title="Supabase Realtime WebSocket Active: Live snapshots enabled"
+            >
+              <Radio className="size-3 text-emerald-600 animate-pulse" />
+              Live Snapshot
+            </Badge>
+          )}
+
           <div className="inline-flex rounded-lg border border-border bg-muted p-1 text-xs">
             <button
               onClick={() => setActiveTab("checklist_manager")}
@@ -268,7 +255,7 @@ export function DailyChecklistsView({
               }`}
             >
               <Layers className="size-3.5 text-primary" />
-              Checklist Manager ({checklistItems.length} Items)
+              Checklist Manager ({checklistItems.length})
             </button>
             <button
               onClick={() => setActiveTab("audits")}
@@ -279,7 +266,7 @@ export function DailyChecklistsView({
               }`}
             >
               <CheckCircle2 className="size-3.5 text-emerald-600" />
-              Submitted Field Audits ({checklistSubmissions.length})
+              Field Audits ({checklistSubmissions.length})
             </button>
           </div>
         </div>
@@ -296,7 +283,7 @@ export function DailyChecklistsView({
           <select
             id="site-select"
             value={selectedSiteId}
-            onChange={(e) => setSelectedSiteId(e.target.value)}
+            onChange={(e) => dispatch(setSelectedSiteId(e.target.value))}
             className="text-xs rounded-lg border border-border bg-background px-2.5 py-1 text-foreground font-medium shadow-2xs focus:ring-1 focus:ring-primary focus:outline-hidden min-w-[220px] max-w-[320px] truncate"
           >
             <option value="global">All Sites (Global Template)</option>
@@ -389,7 +376,9 @@ export function DailyChecklistsView({
             <CheckCircle2 className="size-3.5 shrink-0" />
             <span>{saveSuccessMessage}</span>
           </div>
-          <span className="text-[10px] uppercase font-mono tracking-wider">Synced to Supabase</span>
+          <span className="text-[10px] uppercase font-mono tracking-wider">
+            {lastSyncedAt ? new Date(lastSyncedAt).toLocaleTimeString() : "Synced"}
+          </span>
         </div>
       )}
 
@@ -507,7 +496,7 @@ export function DailyChecklistsView({
                   {filteredChecklistItems.length === 0 && (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-xs text-muted-foreground">
-                        No checklist items found in this category. Click &quot;Add Inspection Item&quot; or &quot;Import&quot; to add items.
+                        No checklist items found in this category. Click &quot;Add Item&quot; or &quot;Import&quot; to add items.
                       </td>
                     </tr>
                   )}
