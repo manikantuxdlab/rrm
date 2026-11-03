@@ -6,7 +6,6 @@ import {
   ContractorAccountsView,
   UserAccountsView,
   RoutingSettingsView,
-  SafetyConfigView,
   ActiveJobsitesView,
   WorkforceBadgesView,
   FieldSubmissionsView,
@@ -78,7 +77,7 @@ export function AppRoutes({
       <Route path="/routing" element={<RoutingSettingsView />} />
 
       {/* 6. Safety Configurator */}
-      <Route path="/safety-config" element={<SafetyConfigView />} />
+      <Route path="/safety-config" element={<Navigate to="/checklists" replace />} />
       <Route path="/toolbox" element={<Navigate to="/safety-config" replace />} />
       <Route path="/jha" element={<Navigate to="/safety-config" replace />} />
 
