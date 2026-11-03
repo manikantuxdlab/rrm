@@ -299,10 +299,10 @@ export function DailyChecklistsView({
             onChange={(e) => setSelectedSiteId(e.target.value)}
             className="text-xs rounded-lg border border-border bg-background px-2.5 py-1 text-foreground font-medium shadow-2xs focus:ring-1 focus:ring-primary focus:outline-hidden min-w-[220px] max-w-[320px] truncate"
           >
-            <option value="global">🌐 All Sites (Global Template)</option>
+            <option value="global">All Sites (Global Template)</option>
             {jobsites.map((site) => (
               <option key={site.id} value={site.id}>
-                🏗️ {site.name} ({site.jobNumber})
+                {site.name} ({site.jobNumber})
               </option>
             ))}
           </select>
