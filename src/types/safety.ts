@@ -77,6 +77,7 @@ export interface ChecklistItem {
   notes?: string
   photoUri?: string
   severity?: "low" | "medium" | "high" | "critical"
+  oshaRef?: string
 }
 
 export type ModuleType =

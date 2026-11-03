@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabase"
-import type { JobSite } from "@/types"
+import type { JobSite, ChecklistItem } from "@/types"
+import { MOCK_DAILY_CHECKLIST_ITEMS } from "@/data/safetyMockData"
 
 const mapRow = (r: any): JobSite => ({
   id: r.id,
@@ -47,7 +48,9 @@ export const jobsitesService = {
       console.error("[jobsitesService] Error fetching jobsites from Supabase:", error.message)
       throw error
     }
-    return (data ?? []).map(mapRow)
+    return (data ?? [])
+      .filter((r: any) => r.id !== "global-checklist-template")
+      .map(mapRow)
   },
 
   async upsert(site: JobSite): Promise<{ ok: boolean; error?: string }> {
@@ -105,5 +108,103 @@ export const jobsitesService = {
       return []
     }
     return [...new Set((data ?? []).map((r: any) => r.company_name as string))].sort()
+  },
+
+  async fetchChecklist(jobsiteId: string): Promise<ChecklistItem[]> {
+    if (!isSupabaseConfigured) return MOCK_DAILY_CHECKLIST_ITEMS
+    try {
+      if (jobsiteId === "global") {
+        const { data } = await supabase
+          .from("jobsites")
+          .select("emergency_hospital")
+          .eq("id", "global-checklist-template")
+          .maybeSingle()
+        if (data?.emergency_hospital?.customChecklist?.length) {
+          return data.emergency_hospital.customChecklist
+        }
+        return MOCK_DAILY_CHECKLIST_ITEMS
+      }
+
+      // Fetch site specific checklist
+      const { data } = await supabase
+        .from("jobsites")
+        .select("emergency_hospital")
+        .eq("id", jobsiteId)
+        .maybeSingle()
+
+      if (data?.emergency_hospital?.customChecklist?.length) {
+        return data.emergency_hospital.customChecklist
+      }
+
+      // Fallback to global template
+      const { data: globalData } = await supabase
+        .from("jobsites")
+        .select("emergency_hospital")
+        .eq("id", "global-checklist-template")
+        .maybeSingle()
+
+      if (globalData?.emergency_hospital?.customChecklist?.length) {
+        return globalData.emergency_hospital.customChecklist
+      }
+
+      return MOCK_DAILY_CHECKLIST_ITEMS
+    } catch (e) {
+      console.error("[jobsitesService] Error fetching checklist:", e)
+      return MOCK_DAILY_CHECKLIST_ITEMS
+    }
+  },
+
+  async saveChecklist(jobsiteId: string, items: ChecklistItem[]): Promise<{ ok: boolean; error?: string }> {
+    if (!isSupabaseConfigured) return { ok: false, error: "Supabase not configured" }
+    try {
+      if (jobsiteId === "global") {
+        const { data: existing } = await supabase
+          .from("jobsites")
+          .select("emergency_hospital")
+          .eq("id", "global-checklist-template")
+          .maybeSingle()
+
+        const currentHospital = existing?.emergency_hospital || {}
+        const { error } = await supabase.from("jobsites").upsert({
+          id: "global-checklist-template",
+          name: "Global Default Checklist Template",
+          job_number: "GLOBAL-TEMPLATE",
+          company_name: "All Contractors",
+          status: "active",
+          emergency_hospital: {
+            ...currentHospital,
+            customChecklist: items,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        if (error) throw error
+        return { ok: true }
+      }
+
+      // Site specific
+      const { data: site } = await supabase
+        .from("jobsites")
+        .select("emergency_hospital")
+        .eq("id", jobsiteId)
+        .maybeSingle()
+
+      const currentHospital = site?.emergency_hospital || {}
+      const { error } = await supabase
+        .from("jobsites")
+        .update({
+          emergency_hospital: {
+            ...currentHospital,
+            customChecklist: items,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobsiteId)
+
+      if (error) throw error
+      return { ok: true }
+    } catch (e: any) {
+      console.error("[jobsitesService] saveChecklist error:", e)
+      return { ok: false, error: e?.message || "Failed to save checklist" }
+    }
   },
 }

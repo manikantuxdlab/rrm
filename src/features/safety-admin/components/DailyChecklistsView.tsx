@@ -2,7 +2,6 @@ import * as React from "react"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -13,7 +12,10 @@ import {
   MOCK_DAILY_CHECKLIST_ITEMS,
   MOCK_SUBMISSIONS,
 } from "@/data/safetyMockData"
-import type { SubmissionRecord } from "@/types"
+import type { SubmissionRecord, ChecklistItem, JobSite } from "@/types"
+import { jobsitesService } from "@/services/jobsitesService"
+import { ChecklistImportModal } from "./ChecklistImportModal"
+import { ChecklistItemEditModal } from "./ChecklistItemEditModal"
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -22,6 +24,17 @@ import {
   Eye,
   Camera,
   Filter,
+  UploadCloud,
+  Plus,
+  Save,
+  RotateCcw,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Edit2,
+  Download,
+  Layers,
+  Globe,
 } from "lucide-react"
 
 export function DailyChecklistsView({
@@ -29,91 +42,509 @@ export function DailyChecklistsView({
 }: {
   onSelectSubmission: (submission: SubmissionRecord) => void
 }) {
+  const [activeTab, setActiveTab] = React.useState<"checklist_manager" | "audits">("checklist_manager")
+  const [jobsites, setJobsites] = React.useState<JobSite[]>([])
+  const [selectedSiteId, setSelectedSiteId] = React.useState<string>("global")
   const [selectedCategory, setSelectedCategory] = React.useState<string>("all")
-  const [activeTab, setActiveTab] = React.useState<"audits" | "checklist_template">("audits")
+  const [checklistItems, setChecklistItems] = React.useState<ChecklistItem[]>(MOCK_DAILY_CHECKLIST_ITEMS)
+  const [, setIsLoadingChecklist] = React.useState(false)
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
+  const [saveSuccessMessage, setSaveSuccessMessage] = React.useState<string | null>(null)
 
-  const checklistSubmissions = MOCK_SUBMISSIONS.filter(
-    (s) => s.moduleType === "daily_checklist"
-  )
+  // Modals
+  const [importModalOpen, setImportModalOpen] = React.useState(false)
+  const [editModalOpen, setEditModalOpen] = React.useState(false)
+  const [editingItem, setEditingItem] = React.useState<ChecklistItem | null>(null)
+
+  // Fetch jobsites list on mount
+  React.useEffect(() => {
+    async function loadSites() {
+      try {
+        const sites = await jobsitesService.fetchAll()
+        setJobsites(sites)
+      } catch (err) {
+        console.error("Failed to load jobsites:", err)
+      }
+    }
+    loadSites()
+  }, [])
+
+  // Load checklist items whenever selected site changes
+  React.useEffect(() => {
+    async function loadChecklist() {
+      setIsLoadingChecklist(true)
+      try {
+        const items = await jobsitesService.fetchChecklist(selectedSiteId)
+        setChecklistItems(items)
+        setHasUnsavedChanges(false)
+      } catch (err) {
+        console.error("Failed to load checklist for site:", selectedSiteId, err)
+      } finally {
+        setIsLoadingChecklist(false)
+      }
+    }
+    loadChecklist()
+  }, [selectedSiteId])
+
+  const selectedSite = React.useMemo(() => {
+    if (selectedSiteId === "global") return null
+    return jobsites.find((s) => s.id === selectedSiteId) || null
+  }, [selectedSiteId, jobsites])
+
+  const checklistSubmissions = React.useMemo(() => {
+    let list = MOCK_SUBMISSIONS.filter((s) => s.moduleType === "daily_checklist")
+    if (selectedSiteId !== "global") {
+      list = list.filter((s) => s.jobSiteId === selectedSiteId)
+    }
+    return list
+  }, [selectedSiteId])
 
   const filteredChecklistItems = React.useMemo(() => {
-    if (selectedCategory === "all") return MOCK_DAILY_CHECKLIST_ITEMS
-    return MOCK_DAILY_CHECKLIST_ITEMS.filter((item) => item.category === selectedCategory)
-  }, [selectedCategory])
+    if (selectedCategory === "all") return checklistItems
+    return checklistItems.filter((item) => item.category === selectedCategory)
+  }, [checklistItems, selectedCategory])
+
+  // Category summary counts
+  const categoryCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {}
+    checklistItems.forEach((i) => {
+      counts[i.category] = (counts[i.category] || 0) + 1
+    })
+    return counts
+  }, [checklistItems])
+
+  // Save checklist to Supabase
+  const handleSaveChecklist = async () => {
+    setIsSaving(true)
+    setSaveSuccessMessage(null)
+    try {
+      const res = await jobsitesService.saveChecklist(selectedSiteId, checklistItems)
+      if (res.ok) {
+        setHasUnsavedChanges(false)
+        const siteLabel = selectedSite ? selectedSite.name : "Global Default Template"
+        setSaveSuccessMessage(`Successfully published ${checklistItems.length} items for ${siteLabel}! Live in mobile app.`)
+        setTimeout(() => setSaveSuccessMessage(null), 4000)
+      } else {
+        alert("Failed to save checklist: " + (res.error || "Unknown error"))
+      }
+    } catch (err: any) {
+      alert("Error saving: " + err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Handle Import
+  const handleImport = (newItems: ChecklistItem[], mode: "replace" | "append") => {
+    if (mode === "replace") {
+      setChecklistItems(newItems)
+    } else {
+      setChecklistItems((prev) => [...prev, ...newItems])
+    }
+    setHasUnsavedChanges(true)
+  }
+
+  // Handle Reset to standard template
+  const handleResetToStandard = () => {
+    if (confirm("Reset current checklist to the standard OSHA 20-item template?")) {
+      setChecklistItems(MOCK_DAILY_CHECKLIST_ITEMS)
+      setHasUnsavedChanges(true)
+    }
+  }
+
+  // Handle Add Item
+  const handleAddItem = () => {
+    setEditingItem(null)
+    setEditModalOpen(true)
+  }
+
+  // Handle Edit Item
+  const handleEditItem = (item: ChecklistItem) => {
+    setEditingItem(item)
+    setEditModalOpen(true)
+  }
+
+  // Save Add/Edit Item
+  const handleSaveItem = (item: ChecklistItem) => {
+    setChecklistItems((prev) => {
+      const idx = prev.findIndex((i) => i.id === item.id)
+      if (idx >= 0) {
+        const copy = [...prev]
+        copy[idx] = item
+        return copy
+      }
+      return [...prev, item]
+    })
+    setHasUnsavedChanges(true)
+  }
+
+  // Delete Item
+  const handleDeleteItem = (id: string) => {
+    setChecklistItems((prev) => prev.filter((i) => i.id !== id))
+    setHasUnsavedChanges(true)
+  }
+
+  // Move Item Up
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return
+    setChecklistItems((prev) => {
+      const copy = [...prev]
+      const temp = copy[index - 1]
+      copy[index - 1] = copy[index]
+      copy[index] = temp
+      return copy
+    })
+    setHasUnsavedChanges(true)
+  }
+
+  // Move Item Down
+  const handleMoveDown = (index: number) => {
+    if (index === checklistItems.length - 1) return
+    setChecklistItems((prev) => {
+      const copy = [...prev]
+      const temp = copy[index + 1]
+      copy[index + 1] = copy[index]
+      copy[index] = temp
+      return copy
+    })
+    setHasUnsavedChanges(true)
+  }
+
+  // Export checklist as JSON
+  const handleExportJson = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(checklistItems, null, 2))
+    const downloadAnchor = document.createElement("a")
+    downloadAnchor.setAttribute("href", dataStr)
+    const siteSlug = selectedSite ? selectedSite.name.toLowerCase().replace(/[^a-z0-9]/g, "_") : "global"
+    downloadAnchor.setAttribute("download", `checklist_${siteSlug}.json`)
+    document.body.appendChild(downloadAnchor)
+    downloadAnchor.click()
+    downloadAnchor.remove()
+  }
 
   return (
     <div className="space-y-6">
+      {/* Modals */}
+      <ChecklistImportModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onImport={handleImport}
+        currentSiteName={selectedSite ? selectedSite.name : "Global Default Template"}
+      />
+      <ChecklistItemEditModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        item={editingItem}
+        onSave={handleSaveItem}
+      />
+
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <ClipboardCheck className="size-6 text-primary" />
-            Daily Safety Audits & Field Inspections
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Mandatory pre-pour & start-of-shift OSHA hazard audits submitted daily by field foremen
-          </p>
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+              <ClipboardCheck className="size-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">
+                Daily Checklist & Field Inspection Management
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Site-wise custom checklist builder with universal file importer & live mobile synchronization
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* View Switcher Tabs */}
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-lg border border-border bg-muted p-1 text-xs">
             <button
+              onClick={() => setActiveTab("checklist_manager")}
+              className={`px-3 py-1.5 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                activeTab === "checklist_manager"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Layers className="size-3.5 text-primary" />
+              Checklist Manager ({checklistItems.length} Items)
+            </button>
+            <button
               onClick={() => setActiveTab("audits")}
-              className={`px-3 py-1 rounded-md font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
                 activeTab === "audits"
                   ? "bg-card text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Submitted Audits ({checklistSubmissions.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("checklist_template")}
-              className={`px-3 py-1 rounded-md font-medium transition-colors ${
-                activeTab === "checklist_template"
-                  ? "bg-card text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Inspection Standard ({MOCK_DAILY_CHECKLIST_ITEMS.length} Items)
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              Submitted Field Audits ({checklistSubmissions.length})
             </button>
           </div>
         </div>
       </div>
 
-      {/* KPI Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Pre-Pour Audits Logged</CardDescription>
-            <CardTitle className="text-2xl font-bold">148 Completed</CardTitle>
-          </CardHeader>
-          <CardFooter className="text-xs text-emerald-600 font-medium">
-            100% daily compliance on active sites
-          </CardFooter>
-        </Card>
+      {/* Site-Wise Selector Banner */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-background to-muted/20">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/15 text-primary">
+                {selectedSiteId === "global" ? (
+                  <Globe className="size-5" />
+                ) : (
+                  <Building2 className="size-5" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                    Active Inspection Scope
+                  </span>
+                  {selectedSiteId === "global" ? (
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                      Universal Global Default
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                      Site-Specific Custom Checklist
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {selectedSiteId === "global"
+                    ? "Applies automatically to all jobsites unless customized."
+                    : `${selectedSite?.address || ""} • Superintendent: ${selectedSite?.superintendent || "Assigned Foreman"}`}
+                </div>
+              </div>
+            </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Deficiencies Identified & Corrected</CardDescription>
-            <CardTitle className="text-2xl font-bold text-amber-600">3 Corrected</CardTitle>
-          </CardHeader>
-          <CardFooter className="text-xs text-muted-foreground">
-            Zero unresolved hazards at start of pour
-          </CardFooter>
-        </Card>
+            {/* Selector Dropdown */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="site-select" className="text-xs font-semibold text-foreground whitespace-nowrap">
+                Select Jobsite:
+              </label>
+              <select
+                id="site-select"
+                value={selectedSiteId}
+                onChange={(e) => setSelectedSiteId(e.target.value)}
+                className="text-xs rounded-lg border border-border bg-card px-3 py-2 text-foreground font-medium shadow-xs focus:ring-2 focus:ring-primary focus:outline-hidden min-w-[260px]"
+              >
+                <option value="global">🌐 All Sites (Global Default Template)</option>
+                {jobsites.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    🏗️ {site.name} ({site.jobNumber})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Digital Signatures Verified</CardDescription>
-            <CardTitle className="text-2xl font-bold text-emerald-600">100% Verified</CardTitle>
-          </CardHeader>
-          <CardFooter className="text-xs text-muted-foreground">
-            Timestamped & geo-tagged for Cal/OSHA audit trail
-          </CardFooter>
-        </Card>
-      </div>
+      {/* Save Success Alert */}
+      {saveSuccessMessage && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium flex items-center justify-between animate-in fade-in duration-300">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 shrink-0" />
+            <span>{saveSuccessMessage}</span>
+          </div>
+          <span className="text-[10px] uppercase font-mono tracking-wider">Synced to Supabase</span>
+        </div>
+      )}
 
-      {activeTab === "audits" ? (
+      {activeTab === "checklist_manager" ? (
+        <div className="space-y-4">
+          {/* Action Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border/60">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                onClick={handleAddItem}
+                className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs"
+              >
+                <Plus className="size-3.5" />
+                Add Inspection Item
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setImportModalOpen(true)}
+                className="h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+              >
+                <UploadCloud className="size-3.5" />
+                Import (Excel, CSV, JSON, TXT)
+              </Button>
+
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleExportJson}
+                className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              >
+                <Download className="size-3.5" />
+                Export JSON
+              </Button>
+
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleResetToStandard}
+                className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="size-3.5" />
+                Reset Default
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {hasUnsavedChanges && (
+                <Badge variant="outline" className="text-[11px] text-amber-600 border-amber-500/30 bg-amber-500/10 animate-pulse">
+                  ● Unsaved Changes
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                onClick={handleSaveChecklist}
+                disabled={isSaving || !hasUnsavedChanges}
+                className={`h-8 text-xs gap-1.5 font-bold shadow-xs ${
+                  hasUnsavedChanges
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <Save className="size-3.5" />
+                {isSaving ? "Saving..." : "Save & Publish to Cloud"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Category Filter Chips */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+              <Filter className="size-3.5" /> Categories:
+            </span>
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                selectedCategory === "all"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All Items ({checklistItems.length})
+            </button>
+            {Object.keys(categoryCounts).map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-2.5 py-1 rounded-lg text-xs capitalize transition-colors ${
+                  selectedCategory === cat
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {cat.replace("_", " ")} ({categoryCounts[cat]})
+              </button>
+            ))}
+          </div>
+
+          {/* Interactive Checklist Items Table */}
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-muted/60 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold w-16">Item #</th>
+                    <th className="px-4 py-3 font-semibold w-32">Category</th>
+                    <th className="px-4 py-3 font-semibold">Inspection Standard (English & Spanish)</th>
+                    <th className="px-4 py-3 font-semibold w-28">OSHA Code</th>
+                    <th className="px-4 py-3 font-semibold w-32 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {filteredChecklistItems.map((item, idx) => {
+                    const originalIndex = checklistItems.findIndex((i) => i.id === item.id)
+                    return (
+                      <tr key={item.id} className="hover:bg-muted/30 transition-colors group">
+                        <td className="px-4 py-3 font-mono font-bold text-muted-foreground">
+                          #{idx + 1}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="text-[10px] uppercase font-semibold">
+                            {item.category.replace("_", " ")}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 space-y-0.5">
+                          <div className="font-semibold text-foreground text-xs leading-relaxed">
+                            {item.labelEn}
+                          </div>
+                          {item.labelEs && item.labelEs !== item.labelEn && (
+                            <div className="text-[11px] text-muted-foreground italic leading-relaxed">
+                              {item.labelEs}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
+                            {item.oshaRef || "OSHA 1926"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleMoveUp(originalIndex)}
+                              disabled={originalIndex === 0}
+                              title="Move Up"
+                              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"
+                            >
+                              <ArrowUp className="size-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleMoveDown(originalIndex)}
+                              disabled={originalIndex === checklistItems.length - 1}
+                              title="Move Down"
+                              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"
+                            >
+                              <ArrowDown className="size-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleEditItem(item)}
+                              title="Edit Item"
+                              className="p-1 rounded-md hover:bg-muted text-primary hover:text-primary/80"
+                            >
+                              <Edit2 className="size-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(item.id)}
+                              title="Delete Item"
+                              className="p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+
+                  {filteredChecklistItems.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-xs text-muted-foreground">
+                        No checklist items found in this category. Click &quot;Add Inspection Item&quot; or &quot;Import&quot; to add items.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        /* Submitted Audits Tab */
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             {checklistSubmissions.map((sub) => (
@@ -157,19 +588,19 @@ export function DailyChecklistsView({
                     <div>
                       <span className="text-muted-foreground block text-[11px]">Audit Results:</span>
                       <span className="font-semibold text-emerald-600 mt-0.5 block">
-                        {sub.data.passedCount} Passed • {sub.data.failedCount} Corrected On-Site
+                        {sub.data?.passedCount ?? 0} Passed • {sub.data?.failedCount ?? 0} Corrected On-Site
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[11px]">Photo Documentation:</span>
                       <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
                         <Camera className="size-3.5 text-primary" />
-                        {sub.data.photoCount} High-Res Evidence Photos
+                        {sub.data?.photoCount ?? 0} Evidence Photos
                       </span>
                     </div>
                   </div>
 
-                  {sub.data.deficiencies && sub.data.deficiencies.length > 0 && (
+                  {sub.data?.deficiencies && sub.data.deficiencies.length > 0 && (
                     <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs space-y-1">
                       <div className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                         <AlertTriangle className="size-3.5" />
@@ -186,7 +617,7 @@ export function DailyChecklistsView({
 
                 <CardFooter className="flex items-center justify-between border-t border-border/60 pt-3">
                   <div className="text-xs text-muted-foreground">
-                    Emailed to: {sub.recipients.join(", ")}
+                    Emailed to: {sub.recipients?.join(", ") || "Safety Director"}
                   </div>
                   <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
                     <Eye className="size-3" />
@@ -195,76 +626,13 @@ export function DailyChecklistsView({
                 </CardFooter>
               </Card>
             ))}
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-              <Filter className="size-3.5" /> Filter Category:
-            </span>
-            {["all", "ppe", "fall_protection", "ladders_scaffolds", "heavy_equipment", "fire_hazards"].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg text-xs capitalize transition-colors ${
-                  selectedCategory === cat
-                    ? "bg-primary text-primary-foreground font-semibold"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {cat.replace("_", " ")}
-              </button>
-            ))}
-          </div>
 
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Item #</th>
-                    <th className="px-4 py-3 font-semibold">Category</th>
-                    <th className="px-4 py-3 font-semibold">Inspection Standard (English & Spanish)</th>
-                    <th className="px-4 py-3 font-semibold">Standard Result</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {filteredChecklistItems.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3 font-mono text-muted-foreground">
-                        #{idx + 1}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className="text-[10px] uppercase">
-                          {item.category.replace("_", " ")}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-foreground">{item.labelEn}</div>
-                        <div className="text-[11px] text-muted-foreground italic mt-0.5">
-                          {item.labelEs}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {item.status === "pass" ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-[11px]">
-                            <CheckCircle2 className="size-3.5" />
-                            Pass Required
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-amber-600 font-semibold text-[11px]">
-                            <AlertTriangle className="size-3.5" />
-                            Deficiency Flag
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+            {checklistSubmissions.length === 0 && (
+              <div className="p-12 text-center text-xs text-muted-foreground rounded-2xl border border-dashed border-border">
+                No submitted field audits for this jobsite yet. Completed daily checklists submitted by foremen in the mobile app appear here automatically.
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
