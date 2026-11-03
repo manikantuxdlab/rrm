@@ -1,6 +1,7 @@
 import * as React from "react"
 import type { SubmissionRecord, ChecklistItem } from "@/types"
 import { submissionsService } from "@/services/submissionsService"
+import { generateSafetyAuditPdf } from "@/services/pdfReportService"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -247,8 +248,18 @@ export function SubmissionDetailModal({
     typeof signatureData === "string" &&
     (signatureData.startsWith("data:image") || signatureData.startsWith("http"))
 
-  const handleDownload = () => {
-    alert(`Downloading signed compliance PDF for "${submission.title}" (Ref: ${submission.id})`)
+  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false)
+
+  const handleDownload = async () => {
+    setIsGeneratingPdf(true)
+    try {
+      await generateSafetyAuditPdf(submission, visiblePhotos)
+    } catch (err) {
+      console.error("PDF generation failed:", err)
+      alert("Failed to generate PDF. Please try again.")
+    } finally {
+      setIsGeneratingPdf(false)
+    }
   }
 
   const handlePrint = () => {
@@ -860,10 +871,20 @@ export function SubmissionDetailModal({
               <Button
                 type="button"
                 onClick={handleDownload}
+                disabled={isGeneratingPdf}
                 className="h-9 px-5 text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
               >
-                <Download className="size-3.5" />
-                Download ACORD PDF
+                {isGeneratingPdf ? (
+                  <>
+                    <div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="size-3.5" />
+                    Download Official PDF
+                  </>
+                )}
               </Button>
             </div>
           </SheetFooter>
