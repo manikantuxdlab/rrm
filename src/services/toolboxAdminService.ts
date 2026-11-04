@@ -241,4 +241,75 @@ export const toolboxAdminService = {
       return []
     }
   },
+  /**
+   * Fetch company-wide weekly Toolbox Talk schedule & lock settings
+   */
+  async fetchScheduleConfig(): Promise<{
+    scheduleDay: string
+    enforceDayOfWeek: boolean
+    oneTalkPerWeek: boolean
+  }> {
+    const fallback = {
+      scheduleDay: "Friday",
+      enforceDayOfWeek: true,
+      oneTalkPerWeek: true,
+    }
+
+    if (!isSupabaseConfigured) return fallback
+
+    try {
+      const { data, error } = await supabase
+        .from("jobsites")
+        .select("emergency_hospital")
+        .eq("id", "global-toolbox-schedule")
+        .maybeSingle()
+
+      if (error || !data?.emergency_hospital) {
+        return fallback
+      }
+
+      const conf = data.emergency_hospital as any
+      return {
+        scheduleDay: conf.scheduleDay || "Friday",
+        enforceDayOfWeek: conf.enforceDayOfWeek !== false,
+        oneTalkPerWeek: conf.oneTalkPerWeek !== false,
+      }
+    } catch (err) {
+      console.error("[toolboxAdminService] Error fetching schedule config:", err)
+      return fallback
+    }
+  },
+
+  /**
+   * Update company-wide weekly Toolbox Talk schedule & lock settings
+   */
+  async saveScheduleConfig(config: {
+    scheduleDay: string
+    enforceDayOfWeek: boolean
+    oneTalkPerWeek: boolean
+  }): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
+
+    try {
+      const { error } = await supabase.from("jobsites").upsert({
+        id: "global-toolbox-schedule",
+        name: "Global Toolbox Schedule Settings",
+        job_number: "GLOBAL-TOOLBOX-CONFIG",
+        company_name: "Titan Concrete & Masonry Contractors LLC",
+        status: "active",
+        emergency_hospital: config,
+        urgent_care: {},
+        updated_at: new Date().toISOString(),
+      })
+
+      if (error) {
+        console.error("[toolboxAdminService] Error saving schedule config:", error.message)
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error("[toolboxAdminService] Exception saving schedule config:", err)
+      return false
+    }
+  },
 }

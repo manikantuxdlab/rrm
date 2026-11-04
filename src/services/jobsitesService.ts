@@ -49,7 +49,7 @@ export const jobsitesService = {
       throw error
     }
     return (data ?? [])
-      .filter((r: any) => r.id !== "global-checklist-template")
+      .filter((r: any) => r.id !== "global-checklist-template" && r.id !== "global-toolbox-schedule")
       .map(mapRow)
   },
 
