@@ -61,6 +61,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "OSHA 10/30, CPR credentials & 30-day advance expiration alerts",
   },
   {
+    key: "fleet",
+    title: "Equipment & Fleet",
+    url: "/fleet",
+    description: "Contractor machinery inventory, VIN endorsement & insurance review",
+  },
+  {
     key: "submissions",
     title: "Submissions",
     url: "/submissions",

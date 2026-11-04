@@ -141,7 +141,14 @@ export interface EquipmentFleetItem {
   estimatedValue: number
   dateAdded: string
   status: "active" | "in_repair" | "inspection_due"
-  insuranceStatus: "insured" | "pending_backoffice"
+  insuranceStatus: "insured" | "pending_backoffice" | "under_review" | "endorsed" | "declined"
+  jobSiteId?: string
+  jobSiteName?: string
+  ownership?: "owned" | "rented" | "sub"
+  disclaimerAcknowledged?: boolean
+  disclaimerTimestamp?: string
+  platePhotoUri?: string
+  deliveryPhotoUri?: string
   lastInspectionDate?: string
   photoUri?: string
 }

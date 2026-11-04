@@ -13,6 +13,7 @@ import {
   SupportTicketsView,
   ToolboxTalksView,
   SystemSettingsView,
+  FleetMachineryView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -49,7 +50,9 @@ export function AppRoutes({
                 navigate("/checklists")
               } else if (mod === "toolbox" || mod === "jha") {
                 navigate("/safety-config")
-              } else if (mod === "incidents" || mod === "coi" || mod === "fleet") {
+              } else if (mod === "fleet") {
+                navigate("/fleet")
+              } else if (mod === "incidents" || mod === "coi") {
                 navigate("/submissions")
               } else {
                 navigate(`/${mod}`)
@@ -92,6 +95,11 @@ export function AppRoutes({
 
       {/* 7. Certifications Tracker */}
       <Route path="/workforce" element={<WorkforceBadgesView />} />
+      <Route
+        path="/fleet"
+        element={<FleetMachineryView onOpenAddEquipment={_onOpenAddEquipment} />}
+      />
+      <Route path="/equipment" element={<Navigate to="/fleet" replace />} />
 
       {/* 8. Field Submissions & Logs */}
       <Route

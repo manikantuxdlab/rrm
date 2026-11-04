@@ -25,6 +25,7 @@ import {
   HelpCircle,
   LifeBuoy,
   Settings,
+  Truck,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -46,6 +47,7 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   "safety-config": <ClipboardCheckIcon className="size-4" />,
   jobsites: <Building2Icon className="size-4" />,
   workforce: <AwardIcon className="size-4" />,
+  fleet: <Truck className="size-4" />,
   submissions: <FileTextIcon className="size-4" />,
   faqs: <HelpCircle className="size-4" />,
   tickets: <LifeBuoy className="size-4" />,

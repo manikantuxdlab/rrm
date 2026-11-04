@@ -44,8 +44,7 @@ export function NavMain({
     if (
       item.key === "submissions" &&
       (location.pathname === "/incidents" ||
-        location.pathname === "/coi" ||
-        location.pathname === "/fleet")
+        location.pathname === "/coi")
     ) {
       return true
     }
