@@ -40,8 +40,28 @@ export function buildSafetyAuditPdfDoc(
 
   const signatureUri =
     submission.signatureUri ||
+    (submission as any).signature_uri ||
     submission.data?.signatureUri ||
-    submission.data?.signature
+    submission.data?.signature ||
+    ""
+
+  const foreman =
+    submission.foremanName ||
+    (submission as any).foreman_name ||
+    submission.data?.foremanName ||
+    "Rohan"
+
+  const timestampDisplay =
+    submission.timestamp ||
+    ((submission as any).created_at
+      ? new Date((submission as any).created_at).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : new Date().toLocaleString())
 
   const trade = submission.data?.trade || "General Construction"
   const inspectingArea = submission.data?.inspectingArea || "Main Structural Zone"
@@ -318,19 +338,19 @@ export function buildSafetyAuditPdfDoc(
       doc.setFont("times", "italic")
       doc.setFontSize(13)
       doc.setTextColor(15, 23, 42)
-      doc.text(submission.foremanName || "Carlos Vance", 52, sigY + 44)
+      doc.text(foreman, 52, sigY + 44)
     }
   } else {
     doc.setFont("times", "italic")
     doc.setFontSize(13)
     doc.setTextColor(15, 23, 42)
-    doc.text(submission.foremanName || "Carlos Vance", 52, sigY + 44)
+    doc.text(foreman, 52, sigY + 44)
   }
 
   doc.setFont("helvetica", "normal")
   doc.setFontSize(7)
   doc.setTextColor(100, 116, 139)
-  doc.text(`Certified Lead: ${submission.foremanName} • Timestamp: ${submission.timestamp}`, 44, sigY + 74)
+  doc.text(`Certified Lead: ${foreman} • Timestamp: ${timestampDisplay}`, 44, sigY + 74)
 
   // Right-side cryptographic attestation
   doc.setFont("helvetica", "bold")
