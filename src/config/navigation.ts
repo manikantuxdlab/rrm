@@ -55,6 +55,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "Destination emails & SMS contacts for claims, COIs & safety reports",
   },
   {
+    key: "coi-requests",
+    title: "Customer COI Queue",
+    url: "/coi-requests",
+    description: "Underwriter queue for ACORD 25 certificates, client endorsements & dispatch",
+  },
+  {
     key: "workforce",
     title: "Certifications",
     url: "/workforce",

@@ -26,6 +26,7 @@ import {
   LifeBuoy,
   Settings,
   Truck,
+  FileCheck2,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -46,6 +47,7 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   routing: <BellRingIcon className="size-4" />,
   "safety-config": <ClipboardCheckIcon className="size-4" />,
   jobsites: <Building2Icon className="size-4" />,
+  "coi-requests": <FileCheck2 className="size-4 text-primary" />,
   workforce: <AwardIcon className="size-4" />,
   fleet: <Truck className="size-4" />,
   submissions: <FileTextIcon className="size-4" />,

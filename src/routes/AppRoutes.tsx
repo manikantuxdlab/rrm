@@ -14,6 +14,7 @@ import {
   ToolboxTalksView,
   SystemSettingsView,
   FleetMachineryView,
+  COIRequestsQueueView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -92,6 +93,10 @@ export function AppRoutes({
       />
       <Route path="/toolbox" element={<Navigate to="/toolbox-talks" replace />} />
       <Route path="/jha" element={<Navigate to="/safety-config" replace />} />
+
+      {/* Customer COI Underwriter Queue */}
+      <Route path="/coi-requests" element={<COIRequestsQueueView />} />
+      <Route path="/certifications/coi-requests" element={<Navigate to="/coi-requests" replace />} />
 
       {/* 7. Certifications Tracker */}
       <Route path="/workforce" element={<WorkforceBadgesView />} />
