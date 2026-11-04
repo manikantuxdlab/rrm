@@ -79,6 +79,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "Track, review, and resolve field safety inquiries & requests",
   },
   {
+    key: "settings",
+    title: "Settings",
+    url: "/settings",
+    description: "Weekly briefing schedules, site locking rules and compliance policies",
+  },
+  {
     key: "attendance",
     title: "Attendance",
     url: "/attendance",

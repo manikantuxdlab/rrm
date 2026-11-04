@@ -12,6 +12,7 @@ import {
   FaqManagementView,
   SupportTicketsView,
   ToolboxTalksView,
+  SystemSettingsView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -73,6 +74,9 @@ export function AppRoutes({
         element={<ContractorAccountsView />}
       />
       <Route path="/users" element={<UserAccountsView />} />
+
+            {/* Settings & Weekly Schedule Policies */}
+      <Route path="/settings" element={<SystemSettingsView />} />
 
       {/* 5. Notification Routing */}
       <Route path="/routing" element={<RoutingSettingsView />} />

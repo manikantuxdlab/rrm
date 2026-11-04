@@ -54,9 +54,6 @@ import {
   Trash2,
   Save,
   MoreVertical,
-  Settings2,
-  Calendar,
-  Lock,
 } from "lucide-react"
 
 export function ToolboxTalksView({
@@ -101,17 +98,7 @@ export function ToolboxTalksView({
   const [formDiscussion, setFormDiscussion] = React.useState<string>("")
   const [formActions, setFormActions] = React.useState<string>("")
   // Schedule Config State
-  const [scheduleConfig, setScheduleConfig] = React.useState<{
-    scheduleDay: string
-    enforceDayOfWeek: boolean
-    oneTalkPerWeek: boolean
-  }>({
-    scheduleDay: "Friday",
-    enforceDayOfWeek: true,
-    oneTalkPerWeek: true,
-  })
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = React.useState(false)
-  const [isSavingSchedule, setIsSavingSchedule] = React.useState(false)
+  
 
 
   // Load topics and real submissions on mount
@@ -136,19 +123,7 @@ export function ToolboxTalksView({
   }, [loadData])
 
 
-  const handleSaveSchedule = async () => {
-    setIsSavingSchedule(true)
-    try {
-      const ok = await toolboxAdminService.saveScheduleConfig(scheduleConfig)
-      if (ok) {
-        setIsScheduleModalOpen(false)
-      } else {
-        alert("Failed to save schedule settings")
-      }
-    } finally {
-      setIsSavingSchedule(false)
-    }
-  }
+
 
   // Toggle Active / Inactive Status
   const handleToggleStatus = async (topicId: string, currentStatus?: string, e?: React.MouseEvent) => {
@@ -352,19 +327,7 @@ export function ToolboxTalksView({
           </div>
 
           
-          {/* Schedule Settings Button */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsScheduleModalOpen(true)}
-            className="text-xs h-8.5 rounded-xl gap-1.5 border-border/80 font-bold cursor-pointer hover:border-primary/50 shadow-2xs"
-          >
-            <Settings2 className="size-3.5 text-primary" />
-            Schedule & Lock Rules
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
-              {scheduleConfig.scheduleDay}
-            </span>
-          </Button>
+
 
           {activeTab === "library" && (
             <Button
@@ -1252,131 +1215,7 @@ export function ToolboxTalksView({
       {/* 3. ADD TOPIC SHEET (Right Slide-Over Drawer)                               */}
       {/* ========================================================================= */}
       
-      {/* Schedule & Weekly Lock Configuration Sheet */}
-      <Sheet open={isScheduleModalOpen} onOpenChange={setIsScheduleModalOpen}>
-        <SheetContent side="right" className="sm:max-w-md w-full p-0 flex flex-col bg-card border-border/80 shadow-2xl">
-          <SheetHeader className="p-5 border-b border-border/60 bg-muted/20">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <Calendar className="size-4" />
-              </div>
-              <SheetTitle className="text-base font-bold text-foreground">
-                Weekly Schedule & Site Lock Rules
-              </SheetTitle>
-            </div>
-            <SheetDescription className="text-xs text-muted-foreground">
-              Configure which day weekly safety briefings occur and enforce a 1-talk-per-week lock for jobsites.
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="flex-1 overflow-y-auto p-5 space-y-6 text-xs">
-            {/* 1. Schedule Day Selection */}
-            <div className="space-y-2">
-              <label className="font-bold text-foreground block">
-                Designated Briefing Day:
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {["Friday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday", "Any"].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setScheduleConfig((prev) => ({ ...prev, scheduleDay: d }))}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-semibold text-center transition-all cursor-pointer ${
-                      scheduleConfig.scheduleDay === d
-                        ? "border-primary bg-primary/10 text-primary shadow-2xs"
-                        : "border-border/70 bg-card hover:bg-muted/40 text-foreground"
-                    }`}
-                  >
-                    {d === "Any" ? "Any Day of Week" : `Every ${d}`}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">
-                Standard Cal/OSHA best-practice is scheduling talks on <b>Fridays</b> before weekly closeout.
-              </p>
-            </div>
-
-            {/* 2. Strict Day Enforcement Toggle */}
-            <div className="rounded-2xl border border-border/80 p-4 space-y-3 bg-muted/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-foreground">Enforce Scheduled Day Lock</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    Prevent attendance recording on days other than {scheduleConfig.scheduleDay}.
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={scheduleConfig.enforceDayOfWeek}
-                  onChange={(e) =>
-                    setScheduleConfig((prev) => ({
-                      ...prev,
-                      enforceDayOfWeek: e.target.checked,
-                    }))
-                  }
-                  className="size-4 accent-primary cursor-pointer"
-                />
-              </div>
-            </div>
-
-            {/* 3. One Talk per Week per Site Lock Toggle */}
-            <div className="rounded-2xl border border-border/80 p-4 space-y-3 bg-muted/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-foreground">1 Talk Per Week per Site Lock</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    Once a foreman records attendance for a site, lock the module until next week.
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={scheduleConfig.oneTalkPerWeek}
-                  onChange={(e) =>
-                    setScheduleConfig((prev) => ({
-                      ...prev,
-                      oneTalkPerWeek: e.target.checked,
-                    }))
-                  }
-                  className="size-4 accent-primary cursor-pointer"
-                />
-              </div>
-            </div>
-
-            {/* Summary preview */}
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-1.5">
-              <div className="font-bold text-primary flex items-center gap-1.5">
-                <Lock className="size-3.5" />
-                Live Rule Summary for Mobile Field App:
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                • Briefings scheduled for: <b>{scheduleConfig.scheduleDay}</b><br/>
-                • Strict Day Only: <b>{scheduleConfig.enforceDayOfWeek ? "Active (Locked on other days)" : "Flexible"}</b><br/>
-                • One-per-week Lock: <b>{scheduleConfig.oneTalkPerWeek ? "Enabled (Locks on submit)" : "Disabled"}</b>
-              </p>
-            </div>
-          </div>
-
-          <SheetFooter className="p-4 border-t border-border/60 flex sm:flex-row items-center justify-end gap-2 bg-muted/20">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsScheduleModalOpen(false)}
-              className="text-xs rounded-xl h-9 px-4 cursor-pointer"
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSaveSchedule}
-              disabled={isSavingSchedule}
-              className="text-xs bg-primary text-white font-bold gap-1.5 rounded-xl shadow-xs h-9 px-4 cursor-pointer"
-            >
-              {isSavingSchedule ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-              Save Rules
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+      
 
       <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
         <SheetContent side="right" className="sm:max-w-xl md:max-w-2xl w-full flex flex-col p-0">
