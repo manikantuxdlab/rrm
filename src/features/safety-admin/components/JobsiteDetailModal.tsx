@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Building2,
+  HardHat,
   MapPin,
   Phone,
   Hospital,
@@ -72,15 +72,15 @@ export function JobsiteDetailModal({ jobsite, open, onClose, onEdit, onDelete }:
         </SheetHeader>
 
         <div className="p-5 space-y-4 text-xs overflow-y-auto flex-1">
-          {/* Company Assignment Card */}
+          {/* Project Scope & Crew Card */}
           <div className="p-3.5 rounded-xl bg-card border border-border flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                <Building2 className="size-5" />
+                <HardHat className="size-5" />
               </div>
               <div>
-                <div className="text-[10px] uppercase font-semibold text-muted-foreground">Assigned Company</div>
-                <div className="text-sm font-bold text-foreground">{jobsite.companyName || "Unassigned"}</div>
+                <div className="text-[10px] uppercase font-semibold text-muted-foreground">Trade / Scope</div>
+                <div className="text-sm font-bold text-foreground">{jobsite.trade || "General Construction"}</div>
               </div>
             </div>
             <div className="text-right">

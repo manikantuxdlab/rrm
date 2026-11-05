@@ -96,6 +96,8 @@ export type ModuleType =
   | "jha"
   | "equipment_inspection"
 
+export type AuditApprovalStatus = "pending_approval" | "approved" | "revision_requested" | "rejected"
+
 export interface SubmissionRecord {
   id: string
   moduleType: ModuleType
@@ -113,6 +115,10 @@ export interface SubmissionRecord {
   pdfGenerated?: boolean
   severity?: "low" | "medium" | "high" | "critical"
   isArchived?: boolean
+  approvalStatus?: AuditApprovalStatus
+  approvedBy?: string
+  approvedAt?: string
+  approvalNotes?: string
 }
 
 export interface CertificationRecord {

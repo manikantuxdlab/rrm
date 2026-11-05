@@ -1,5 +1,7 @@
 import * as React from "react"
 import { useLocation } from "react-router-dom"
+import { toast } from "sonner"
+import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/context"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AppLayout } from "@/components/layout"
@@ -44,8 +46,11 @@ function AppContent() {
           isOpen={isDispatchOpen}
           onClose={() => setIsDispatchOpen(false)}
           onSubmit={(data) => {
-            alert(
-              `🚨 Safety Alert Dispatched to field mobile apps:\n\nTitle: ${data.title}\nTrade: ${data.trade}\nPriority: ${data.priority.toUpperCase()}`
+            toast.error(
+              `🚨 Safety Alert Dispatched: ${data.title}`,
+              {
+                description: `Trade: ${data.trade} | Priority: ${data.priority.toUpperCase()} • Broadcast to mobile devices.`,
+              }
             )
           }}
         />
@@ -54,8 +59,11 @@ function AppContent() {
           isOpen={isAddEquipmentOpen}
           onClose={() => setIsAddEquipmentOpen(false)}
           onAdd={(data) => {
-            alert(
-              `✅ Equipment Unit "${data.unitNumber}" (${data.make} ${data.model}) added to insurance schedule!`
+            toast.success(
+              `Equipment Unit "${data.unitNumber}" Added`,
+              {
+                description: `${data.make} ${data.model} has been recorded into the insurance schedule.`,
+              }
             )
           }}
         />
@@ -64,8 +72,11 @@ function AppContent() {
           isOpen={isIssueCoiOpen}
           onClose={() => setIsIssueCoiOpen(false)}
           onIssue={(data) => {
-            alert(
-              `✅ ACORD 25 Certificate generated and dispatched to ${data.email} for "${data.holder}"!`
+            toast.success(
+              `ACORD 25 Certificate Dispatched`,
+              {
+                description: `Official COI dispatched to ${data.email} for "${data.holder}".`,
+              }
             )
           }}
         />
@@ -78,6 +89,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <Toaster position="top-right" richColors closeButton />
     </AuthProvider>
   )
 }

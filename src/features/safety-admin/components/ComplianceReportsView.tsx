@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import * as React from "react"
 import {
   Card,
@@ -28,7 +29,7 @@ export function ComplianceReportsView() {
   }
 
   const handleExport = () => {
-    alert("Exporting Executive Compliance & Audit Scorecard Pack (PDF)...")
+    toast.info("Exporting Executive Compliance & Audit Scorecard Pack (PDF)...")
   }
 
   const contractorPerformances = [

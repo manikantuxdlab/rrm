@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import * as React from "react"
 import {
   Card,
@@ -29,7 +30,7 @@ export function Osha300LogView() {
   }
 
   const handleExport = (type: string) => {
-    alert(`Exporting official OSHA 300 / 300A logs in ${type} format for Year ${selectedYear}...`)
+    toast.info(`Exporting official OSHA 300 / 300A logs in ${type} format for Year ${selectedYear}...`)
   }
 
   const entries = [

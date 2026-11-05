@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import * as React from "react"
 import {
   Card,
@@ -54,8 +55,7 @@ import {
   HardHat,
   Search,
   KeyRound,
-  CheckCircle2,
-  X,
+    X,
   Phone,
   Globe,
   MoreVertical,
@@ -72,10 +72,14 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Loader2,
+  Copy,
+  Check,
+  CheckCircle2,
 } from "lucide-react"
-import { MOCK_COMPANIES, MOCK_JOBSITES } from "@/data/safetyMockData"
+import { MOCK_JOBSITES } from "@/data/safetyMockData"
 import type { AppUser, UserRole, LanguagePreference } from "@/types"
 import { userService } from "@/services"
+import { jobsitesService } from "@/services/jobsitesService"
 
 export function UserAccountsView() {
   const [users, setUsers] = React.useState<AppUser[]>([])
@@ -83,7 +87,7 @@ export function UserAccountsView() {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [selectedUserIds, setSelectedUserIds] = React.useState<string[]>([])
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [selectedCompanyFilter, setSelectedCompanyFilter] = React.useState<string>("all")
+  // selectedCompanyFilter removed
   const [selectedRoleFilter, setSelectedRoleFilter] = React.useState<string>("all")
   const [selectedStatusFilter, setSelectedStatusFilter] = React.useState<"all" | "active" | "deactivated">("all")
   const [viewMode, setViewMode] = React.useState<"table" | "grid">("table")
@@ -93,6 +97,33 @@ export function UserAccountsView() {
   const [currentPage, setCurrentPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState(20)
 
+  // One-time Invitation View data state
+  const [oneTimeInvite, setOneTimeInvite] = React.useState<{
+    fullName: string
+    email: string
+    phone: string
+    role: string
+    assignedJobsite: string
+    temporaryPassword: string
+    loginUrl: string
+    sentAt: string
+  } | null>(null)
+  const [copiedCredentials, setCopiedCredentials] = React.useState(false)
+
+  const handleCopyCredentials = (inv: {
+    fullName: string
+    email: string
+    role: string
+    assignedJobsite: string
+    temporaryPassword: string
+    loginUrl: string
+  }) => {
+    const text = `Welcome to RRM Safety!\n\nYou have been invited to RRM Global Safety.\nRole: ${inv.role}\nJobsite: ${inv.assignedJobsite}\n\nLogin Portal: ${inv.loginUrl}\nUsername / Email: ${inv.email}\nTemporary Password: ${inv.temporaryPassword}\n\n(Note: You will be prompted to set a permanent password upon first sign-in.)`
+    navigator.clipboard.writeText(text)
+    setCopiedCredentials(true)
+    setTimeout(() => setCopiedCredentials(false), 3000)
+  }
+
   // State for View, Edit and Delete modals
   const [viewingUser, setViewingUser] = React.useState<AppUser | null>(null)
   const [editingUser, setEditingUser] = React.useState<AppUser | null>(null)
@@ -100,16 +131,38 @@ export function UserAccountsView() {
   const [isDeleting, setIsDeleting] = React.useState(false)
 
   // Dynamic Companies & Jobsites lists
-  const [companies, setCompanies] = React.useState<Array<{ id: string; name: string }>>(() =>
-    MOCK_COMPANIES.map((c) => ({ id: c.id, name: c.name }))
-  )
-  const [jobsites, setJobsites] = React.useState<Array<{ id: string; name: string }>>(() =>
-    MOCK_JOBSITES.map((j) => ({ id: j.id, name: j.name }))
-  )
+  // companies state removed
+  const [jobsites, setJobsites] = React.useState<Array<{ id: string; name: string }>>([])
+
+  // Map of jobsiteId -> active Boss user (1 Boss per site rule)
+  const jobsiteBossMap = React.useMemo(() => {
+    const map = new Map<string, AppUser>()
+    users.forEach((u) => {
+      if (u.role === "boss" && u.status !== "deactivated") {
+        (u.assignedJobsiteIds || []).forEach((jid) => {
+          if (!map.has(jid)) {
+            map.set(jid, u)
+          }
+        })
+      }
+    })
+    return map
+  }, [users])
+
+  React.useEffect(() => {
+    async function loadJobsitesList() {
+      try {
+        const list = await jobsitesService.fetchAll()
+        setJobsites(list.map((j) => ({ id: j.id, name: j.name })))
+      } catch (err) {
+        console.warn("Could not load jobsites:", err)
+      }
+    }
+    loadJobsitesList()
+  }, [])
 
   // Edit user custom company / jobsite toggle state
-  const [isEditCustomCompany, setIsEditCustomCompany] = React.useState(false)
-  const [customEditCompanyName, setCustomEditCompanyName] = React.useState("")
+  // edit company state removed
   const [isEditCustomJobsite, setIsEditCustomJobsite] = React.useState(false)
   const [customEditJobsiteName, setCustomEditJobsiteName] = React.useState("")
 
@@ -117,15 +170,14 @@ export function UserAccountsView() {
   const [editFullName, setEditFullName] = React.useState("")
   const [editEmail, setEditEmail] = React.useState("")
   const [editPhone, setEditPhone] = React.useState("")
-  const [editCompanyId, setEditCompanyId] = React.useState("")
+
   const [editRole, setEditRole] = React.useState<AppUser["role"]>("foreman")
   const [editLanguage, setEditLanguage] = React.useState<"en" | "es">("en")
   const [editJobsiteId, setEditJobsiteId] = React.useState("")
   const [editStatus, setEditStatus] = React.useState<"active" | "deactivated">("active")
 
   // New user custom company / jobsite toggle state
-  const [isCustomCompany, setIsCustomCompany] = React.useState(false)
-  const [customCompanyName, setCustomCompanyName] = React.useState("")
+  // new company state removed
   const [isCustomJobsite, setIsCustomJobsite] = React.useState(false)
   const [customJobsiteName, setCustomJobsiteName] = React.useState("")
 
@@ -133,12 +185,12 @@ export function UserAccountsView() {
   const [newFullName, setNewFullName] = React.useState("")
   const [newEmail, setNewEmail] = React.useState("")
   const [newPhone, setNewPhone] = React.useState("")
-  const [newCompanyId, setNewCompanyId] = React.useState(MOCK_COMPANIES[0]?.id || "")
+
   const [newRole, setNewRole] = React.useState<AppUser["role"]>("foreman")
   const [newLanguage, setNewLanguage] = React.useState<"en" | "es">("en")
   const [newJobsiteId, setNewJobsiteId] = React.useState(MOCK_JOBSITES[0]?.id || "")
   const [newStatus, setNewStatus] = React.useState<"active" | "deactivated">("active")
-  const [successToast, setSuccessToast] = React.useState<string | null>(null)
+  // successToast replaced with sonner toast
 
   // Load users from Supabase or Fallback
   const loadUsers = React.useCallback(async () => {
@@ -147,23 +199,9 @@ export function UserAccountsView() {
       const { data } = await userService.getUsers()
 
       if (data && data.length > 0) {
-        // Collect any custom companies or jobsites present on users
-        setCompanies((prev) => {
-          const names = new Set(prev.map((c) => c.name.toLowerCase()))
-          const extras: Array<{ id: string; name: string }> = []
-          data.forEach((u) => {
-            if (u.companyName && !names.has(u.companyName.toLowerCase())) {
-              names.add(u.companyName.toLowerCase())
-              extras.push({ id: u.companyId || `comp-${u.id}`, name: u.companyName })
-            }
-          })
-          return extras.length > 0 ? [...prev, ...extras] : prev
-        })
+        // company extraction removed
 
         const mapped: AppUser[] = data.map((u) => {
-          const matchedCompany = MOCK_COMPANIES.find(
-            (c) => c.id === u.companyId || c.name.toLowerCase() === u.companyName.toLowerCase()
-          )
           const jobs = (u.assignedJobsites || []).map((jid) => {
             return MOCK_JOBSITES.find((j) => j.id === jid)?.name || jid || "Assigned Project"
           })
@@ -173,7 +211,7 @@ export function UserAccountsView() {
             fullName: u.fullName,
             email: u.email,
             phone: u.phone,
-            companyId: matchedCompany ? matchedCompany.id : (u.companyId || "comp-01"),
+            companyId: u.companyId || "comp-01",
             companyName: u.companyName,
             role: (u.role as AppUser["role"]) || "foreman",
             assignedJobsiteIds: u.assignedJobsites || [],
@@ -215,21 +253,19 @@ export function UserAccountsView() {
         u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.phone.includes(searchQuery)
-      const matchesCompany =
-        selectedCompanyFilter === "all" || u.companyId === selectedCompanyFilter
       const matchesRole =
         selectedRoleFilter === "all" || u.role === selectedRoleFilter
       const matchesStatus =
         selectedStatusFilter === "all" || u.status === selectedStatusFilter
-      return matchesSearch && matchesCompany && matchesRole && matchesStatus
+      return matchesSearch && matchesRole && matchesStatus
     })
-  }, [users, searchQuery, selectedCompanyFilter, selectedRoleFilter, selectedStatusFilter])
+  }, [users, searchQuery, selectedRoleFilter, selectedStatusFilter])
 
   // Reset to page 1 on filter or search or page size change
   React.useEffect(() => {
     setCurrentPage(1)
     setSelectedUserIds([])
-  }, [searchQuery, selectedCompanyFilter, selectedRoleFilter, selectedStatusFilter, pageSize])
+  }, [searchQuery, selectedRoleFilter, selectedStatusFilter, pageSize])
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -271,13 +307,10 @@ export function UserAccountsView() {
     setEditFullName(u.fullName)
     setEditEmail(u.email)
     setEditPhone(u.phone)
-    setEditCompanyId(u.companyId)
     setEditRole(u.role)
     setEditLanguage(u.languagePreference)
     setEditJobsiteId(u.assignedJobsiteIds[0] || jobsites[0]?.id || "")
     setEditStatus(u.status === "deactivated" ? "deactivated" : "active")
-    setIsEditCustomCompany(false)
-    setCustomEditCompanyName("")
     setIsEditCustomJobsite(false)
     setCustomEditJobsiteName("")
   }
@@ -288,12 +321,8 @@ export function UserAccountsView() {
     if (!editingUser) return
 
     setIsSubmitting(true)
-    const finalCompanyName = isEditCustomCompany && customEditCompanyName.trim()
-      ? customEditCompanyName.trim()
-      : (companies.find((c) => c.id === editCompanyId)?.name || editingUser.companyName)
-    const finalCompanyId = isEditCustomCompany && customEditCompanyName.trim()
-      ? `comp-${Date.now().toString().slice(-6)}`
-      : editCompanyId
+    const finalCompanyName = "Titan Construction & Safety"
+    const finalCompanyId = "comp-default"
 
     const finalJobsiteName = isEditCustomJobsite && customEditJobsiteName.trim()
       ? customEditJobsiteName.trim()
@@ -302,15 +331,10 @@ export function UserAccountsView() {
       ? `job-${Date.now().toString().slice(-6)}`
       : editJobsiteId
 
-    if (isEditCustomCompany && customEditCompanyName.trim()) {
-      setCompanies((prev) => {
-        if (prev.some((c) => c.name.toLowerCase() === customEditCompanyName.trim().toLowerCase())) return prev
-        return [...prev, { id: finalCompanyId, name: customEditCompanyName.trim() }]
-      })
-    }
+
     // if (isEditCustomJobsite && customEditJobsiteName.trim()) {
     //   setJobsites((prev) => {
-        if (editRole === "foreman" && isEditCustomJobsite && customEditJobsiteName.trim()) {
+        if (isEditCustomJobsite && customEditJobsiteName.trim()) {
       setJobsites((prev) => {
         if (prev.some((j) => j.name.toLowerCase() === customEditJobsiteName.trim().toLowerCase())) return prev
         return [...prev, { id: finalJobsiteId, name: customEditJobsiteName.trim() }]
@@ -360,8 +384,8 @@ export function UserAccountsView() {
           //   }
           // }
           // return u
-                        assignedJobsiteIds: editRole === "foreman" ? [finalJobsiteId] : [],
-              assignedJobsiteNames: editRole === "foreman" ? [finalJobsiteName] : ["—"],
+                        assignedJobsiteIds: finalJobsiteId ? [finalJobsiteId] : [],
+              assignedJobsiteNames: finalJobsiteName ? [finalJobsiteName] : ["—"],
             }
           }
           return u
@@ -369,11 +393,9 @@ export function UserAccountsView() {
       )
 
       setEditingUser(null)
-      setIsEditCustomCompany(false)
-      setCustomEditCompanyName("")
       setIsEditCustomJobsite(false)
-      setSuccessToast(`✅ User "${editFullName}" updated & synced with Supabase!`)
-      setTimeout(() => setSuccessToast(null), 4000)
+      toast.success(`User "${editFullName}" updated & synced with Supabase!`)
+      
     } finally {
       setIsSubmitting(false)
     }
@@ -395,8 +417,8 @@ export function UserAccountsView() {
       }
       setUsers((prev) => prev.filter((item) => item.id !== userToDelete.id))
       setSelectedUserIds((prev) => prev.filter((id) => id !== userToDelete.id))
-      setSuccessToast(`🗑️ User "${userToDelete.fullName}" was removed from the database.`)
-      setTimeout(() => setSuccessToast(null), 4000)
+      toast.success(`User "${userToDelete.fullName}" removed from database.`)
+      
       setUserToDelete(null)
     } catch (err) {
       console.error("[UserAccountsView] Delete exception:", err)
@@ -410,25 +432,19 @@ export function UserAccountsView() {
   const handleSendReset = async (u: AppUser) => {
     const { error } = await userService.sendPasswordReset(u.email)
     if (error) {
-      setSuccessToast(`⚠️ Reset notice for ${u.email}: ${error.message}`)
+      toast.error(`Reset notice for ${u.email}: ${error.message}`)
     } else {
-      setSuccessToast(
-        `🔑 Supabase password reset link dispatched to ${u.email} (SMS to ${u.phone})`
-      )
+      toast.success(`Password reset link dispatched to ${u.email}`, { description: `SMS sent to ${u.phone}` })
     }
-    setTimeout(() => setSuccessToast(null), 4000)
+    
   }
 
   // Onboard new user
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    const finalCompanyName = isCustomCompany && customCompanyName.trim()
-      ? customCompanyName.trim()
-      : (companies.find((c) => c.id === newCompanyId)?.name || "Subcontractor Partner")
-    const finalCompanyId = isCustomCompany && customCompanyName.trim()
-      ? `comp-${Date.now().toString().slice(-6)}`
-      : newCompanyId
+    const finalCompanyName = "Titan Construction & Safety"
+    const finalCompanyId = "comp-default"
 
     const finalJobsiteName = isCustomJobsite && customJobsiteName.trim()
       ? customJobsiteName.trim()
@@ -437,16 +453,10 @@ export function UserAccountsView() {
       ? `job-${Date.now().toString().slice(-6)}`
       : newJobsiteId
 
-    // Register new company & jobsite into local state lists
-    if (isCustomCompany && customCompanyName.trim()) {
-      setCompanies((prev) => {
-        if (prev.some((c) => c.name.toLowerCase() === customCompanyName.trim().toLowerCase())) return prev
-        return [...prev, { id: finalCompanyId, name: customCompanyName.trim() }]
-      })
-    }
+
     // if (isCustomJobsite && customJobsiteName.trim()) {
     //   setJobsites((prev) => {
-        if (newRole === "foreman" && isCustomJobsite && customJobsiteName.trim()) {
+        if (isCustomJobsite && customJobsiteName.trim()) {
       setJobsites((prev) => {
         if (prev.some((j) => j.name.toLowerCase() === customJobsiteName.trim().toLowerCase())) return prev
         return [...prev, { id: finalJobsiteId, name: customJobsiteName.trim() }]
@@ -466,7 +476,7 @@ export function UserAccountsView() {
       //   assignedJobsites: [finalJobsiteId],
       // })
               languagePreference: newLanguage,
-        assignedJobsites: newRole === "foreman" ? [finalJobsiteId] : [],
+        assignedJobsites: finalJobsiteId ? [finalJobsiteId] : [],
       })
 
       const created: AppUser = {
@@ -480,8 +490,8 @@ export function UserAccountsView() {
         // assignedJobsiteIds: [finalJobsiteId],
         // assignedJobsiteNames: [finalJobsiteName],
         // languagePreference: newLanguage,
-                assignedJobsiteIds: newRole === "foreman" ? [finalJobsiteId] : [],
-        assignedJobsiteNames: newRole === "foreman" ? [finalJobsiteName] : ["—"],
+                assignedJobsiteIds: finalJobsiteId ? [finalJobsiteId] : [],
+        assignedJobsiteNames: finalJobsiteName ? [finalJobsiteName] : ["—"],
         languagePreference: newLanguage,
         status: newStatus,
         lastActive: newStatus === "deactivated" ? "Access Revoked" : "Just invited",
@@ -490,19 +500,34 @@ export function UserAccountsView() {
 
       setUsers([created, ...users])
       setIsInviteModalOpen(false)
-      const toastMsg = error
-        ? `⚠️ User created. Note: ${error.message}`
-        : `✅ User "${newFullName}" successfully created! Login credentials have been emailed to ${newEmail}.`
-      setSuccessToast(toastMsg)
-      setTimeout(() => setSuccessToast(null), 5000)
+      const tempPass =
+        ((data as unknown as Record<string, unknown>)?.temporaryPassword as string) ||
+        `RRM@${Math.floor(100000 + Math.random() * 900000)}!`
+
+      setOneTimeInvite({
+        fullName: newFullName,
+        email: newEmail,
+        phone: newPhone,
+        role: newRole === "foreman" ? "Field Foreman (Daily Checks & Talks)" : "Company Boss / Lead",
+        assignedJobsite: finalJobsiteName || "All Active Jobsites",
+        temporaryPassword: tempPass,
+        loginUrl: `${window.location.origin.replace(":5173", ":5174")}/login`,
+        sentAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      })
+
+      if (error) {
+        toast.warning(`User created with notice: ${error.message}`)
+      } else {
+        toast.success(`User "${newFullName}" successfully created!`, {
+          description: `Login credentials emailed to ${newEmail}.`,
+        })
+      }
 
       // Reset form
       setNewFullName("")
       setNewEmail("")
       setNewPhone("")
       setNewStatus("active")
-      setIsCustomCompany(false)
-      setCustomCompanyName("")
       setIsCustomJobsite(false)
       setCustomJobsiteName("")
     } finally {
@@ -532,29 +557,13 @@ export function UserAccountsView() {
         </div>
       </div>
 
-      {/* Success Notification */}
-      {successToast && (
-        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between animate-in fade-in duration-200">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 shrink-0" />
-            <span>{successToast}</span>
-          </div>
-          <button
-            onClick={() => setSuccessToast(null)}
-            className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 cursor-pointer"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
-      )}
-
       {/* KPI Stats Strip (Compact & Slim) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="border-border py-2.5 px-3.5 flex flex-col justify-between">
           <div className="text-[11px] font-medium text-muted-foreground">Total App Accounts</div>
           <div className="text-lg font-bold text-foreground mt-0.5">{users.length} Logins</div>
           <div className="text-[10px] text-muted-foreground mt-0.5">
-            Across {new Set(users.map((u) => u.companyName)).size || 1} Customer Companies
+            Across {jobsites.length} Active Jobsites
           </div>
         </Card>
 
@@ -632,23 +641,7 @@ export function UserAccountsView() {
             </SelectContent>
           </Select>
 
-          {/* Companies Dropdown */}
-          <Select
-            value={selectedCompanyFilter}
-            onValueChange={(val) => setSelectedCompanyFilter(val)}
-          >
-            <SelectTrigger className="h-8.5 min-w-[145px] text-xs bg-background rounded-lg border-border">
-              <SelectValue placeholder="All Companies" />
-            </SelectTrigger>
-            <SelectContent className="text-xs">
-              <SelectItem value="all">All Companies</SelectItem>
-              {companies.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name.length > 22 ? c.name.substring(0, 22) + "..." : c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
 
           {/* Roles Dropdown */}
           <Select
@@ -901,9 +894,7 @@ export function UserAccountsView() {
                   <TableHead className="min-w-[130px] px-3 py-2 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider border-r border-border/60">
                     Phone Number
                   </TableHead>
-                  <TableHead className="min-w-[170px] px-3 py-2 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider border-r border-border/60">
-                    Company
-                  </TableHead>
+
                   <TableHead className="min-w-[110px] px-3 py-2 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider border-r border-border/60 text-center">
                     Role
                   </TableHead>
@@ -925,7 +916,7 @@ export function UserAccountsView() {
               <TableBody className="divide-y divide-border/60">
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-xs">
+                    <TableCell colSpan={10} className="px-4 py-12 text-center text-muted-foreground text-xs">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Loader2 className="size-5 animate-spin text-primary" />
                         <span className="font-medium text-foreground">Loading user profiles from Supabase...</span>
@@ -934,7 +925,7 @@ export function UserAccountsView() {
                   </TableRow>
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="px-4 py-8 text-center text-muted-foreground text-xs">
+                    <TableCell colSpan={10} className="px-4 py-8 text-center text-muted-foreground text-xs">
                       No users found matching your filters.
                     </TableCell>
                   </TableRow>
@@ -1000,16 +991,7 @@ export function UserAccountsView() {
                           </span>
                         </TableCell>
 
-                        {/* 6. Company */}
-                        <TableCell className="min-w-[170px] px-3 py-1.5 border-r border-border/50">
-                          <div
-                            className="flex items-center gap-1.5 text-foreground truncate max-w-[180px]"
-                            title={u.companyName}
-                          >
-                            <Building2 className="size-3 text-primary shrink-0 opacity-70" />
-                            <span className="truncate font-medium">{u.companyName}</span>
-                          </div>
-                        </TableCell>
+                        
 
                         {/* 7. Role */}
                         <TableCell className="min-w-[110px] px-3 py-1.5 border-r border-border/50 text-center whitespace-nowrap">
@@ -1260,7 +1242,7 @@ export function UserAccountsView() {
                       )}
                     </SheetTitle>
                     <SheetDescription className="text-xs text-muted-foreground mt-0.5">
-                      {viewingUser.companyName} • {viewingUser.role.replace("_", " ")}
+                      {viewingUser.assignedJobsiteNames.join(", ") || "Active Site"} • {viewingUser.role.replace("_", " ")}
                     </SheetDescription>
                   </div>
                 </div>
@@ -1483,75 +1465,36 @@ export function UserAccountsView() {
                 </div>
               </div>
 
-              {/* Section 2: Company & Jobsite Permissions */}
+              {/* Section 2: Role & Jobsite Access */}
               <div className="space-y-4 pt-1">
                 <div className="flex items-center gap-2 pb-0.5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Organization & Permissions
+                    Role & Jobsite Access
                   </span>
                   <div className="h-px bg-border/60 flex-1"></div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="font-semibold text-foreground text-xs">
-                        Customer Company <span className="text-destructive">*</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditCustomCompany(!isEditCustomCompany)
-                          if (!isEditCustomCompany) setCustomEditCompanyName("")
-                        }}
-                        className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        {isEditCustomCompany ? "Select Existing" : "+ Add New Company"}
-                      </button>
-                    </div>
-                    {isEditCustomCompany ? (
-                      <Input
-                        required
-                        placeholder="Enter company name..."
-                        value={customEditCompanyName}
-                        onChange={(e) => setCustomEditCompanyName(e.target.value)}
-                        className="h-10 text-xs rounded-lg bg-background"
-                      />
-                    ) : (
-                      <Select
-                        value={editCompanyId}
-                        onValueChange={(val) => {
-                          if (val === "__add_new__") {
-                            setIsEditCustomCompany(true)
-                            setCustomEditCompanyName("")
-                          } else {
-                            setEditCompanyId(val)
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 w-full text-xs bg-background rounded-lg border-border">
-                          <SelectValue placeholder="Select company" />
-                        </SelectTrigger>
-                        <SelectContent className="text-xs">
-                          {companies.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="__add_new__" className="text-primary font-medium border-t border-border/50 mt-1 pt-1.5">
-                            + Add New Company...
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
                     <label className="font-semibold text-foreground text-xs">
                       Role / Permission <span className="text-destructive">*</span>
                     </label>
                     <Select
                       value={editRole}
-                      onValueChange={(val) => setEditRole(val as AppUser["role"])}
+                      onValueChange={(val) => {
+                        const r = val as AppUser["role"]
+                        setEditRole(r)
+                        if (r === "boss" && !isEditCustomJobsite) {
+                          const existingBoss = jobsiteBossMap.get(editJobsiteId)
+                          if (existingBoss && existingBoss.id !== editingUser?.id) {
+                            const available = jobsites.find((j) => {
+                              const b = jobsiteBossMap.get(j.id)
+                              return !b || b.id === editingUser?.id
+                            })
+                            if (available) setEditJobsiteId(available.id)
+                          }
+                        }
+                      }}
                     >
                       <SelectTrigger className="h-10 w-full text-xs bg-background rounded-lg border-border">
                         <SelectValue placeholder="Select role" />
@@ -1562,10 +1505,7 @@ export function UserAccountsView() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                           {editRole === "foreman" && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="font-semibold text-foreground text-xs">
@@ -1606,19 +1546,40 @@ export function UserAccountsView() {
                           <SelectValue placeholder="Select jobsite" />
                         </SelectTrigger>
                         <SelectContent className="text-xs">
-                          {jobsites.map((j) => (
-                            <SelectItem key={j.id} value={j.id}>
-                              {j.name}
-                            </SelectItem>
-                          ))}
+                          {jobsites.map((j) => {
+                            const existingBoss = jobsiteBossMap.get(j.id)
+                            const isFull =
+                              editRole === "boss" &&
+                              !!existingBoss &&
+                              existingBoss.id !== editingUser?.id
+                            return (
+                              <SelectItem
+                                key={j.id}
+                                value={j.id}
+                                disabled={isFull}
+                                className={isFull ? "opacity-50 cursor-not-allowed" : ""}
+                              >
+                                <span className="flex items-center justify-between w-full gap-2">
+                                  <span>{j.name}</span>
+                                  {isFull && (
+                                    <span className="text-[10px] text-destructive font-mono font-medium">
+                                      (Boss: {existingBoss?.fullName})
+                                    </span>
+                                  )}
+                                </span>
+                              </SelectItem>
+                            )
+                          })}
                           <SelectItem value="__add_new__" className="text-primary font-medium border-t border-border/50 mt-1 pt-1.5">
                             + Add New Jobsite...
                           </SelectItem>
                         </SelectContent>
-                                </Select>
+                      </Select>
                     )}
                   </div>
-                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground text-xs">
                       App Language Preference
@@ -1636,6 +1597,7 @@ export function UserAccountsView() {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground text-xs">
                       Account Status <span className="text-destructive">*</span>
@@ -1667,7 +1629,6 @@ export function UserAccountsView() {
               </div>
             </div>
 
-            {/* Footer */}
             <SheetFooter className="px-8 py-4.5 border-t border-border/80 bg-muted/20 shrink-0 flex flex-row items-center justify-end gap-3 mt-auto">
               <Button
                 type="button"
@@ -1770,75 +1731,33 @@ export function UserAccountsView() {
                 </div>
               </div>
 
-              {/* Section 2: Company & Jobsite Permissions */}
+              {/* Section 2: Role & Jobsite Access */}
               <div className="space-y-4 pt-1">
                 <div className="flex items-center gap-2 pb-0.5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Company & Jobsite Access
+                    Role & Jobsite Access
                   </span>
                   <div className="h-px bg-border/60 flex-1"></div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="font-semibold text-foreground text-xs">
-                        Customer Company <span className="text-destructive">*</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomCompany(!isCustomCompany)
-                          if (!isCustomCompany) setCustomCompanyName("")
-                        }}
-                        className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        {isCustomCompany ? "Select Existing" : "+ Add New Company"}
-                      </button>
-                    </div>
-                    {isCustomCompany ? (
-                      <Input
-                        required
-                        placeholder="Enter company name..."
-                        value={customCompanyName}
-                        onChange={(e) => setCustomCompanyName(e.target.value)}
-                        className="h-10 text-xs rounded-lg bg-background"
-                      />
-                    ) : (
-                      <Select
-                        value={newCompanyId}
-                        onValueChange={(val) => {
-                          if (val === "__add_new__") {
-                            setIsCustomCompany(true)
-                            setCustomCompanyName("")
-                          } else {
-                            setNewCompanyId(val)
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 w-full text-xs bg-background rounded-lg border-border">
-                          <SelectValue placeholder="Select company" />
-                        </SelectTrigger>
-                        <SelectContent className="text-xs">
-                          {companies.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="__add_new__" className="text-primary font-medium border-t border-border/50 mt-1 pt-1.5">
-                            + Add New Company...
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
                     <label className="font-semibold text-foreground text-xs">
                       Role / Permission <span className="text-destructive">*</span>
                     </label>
                     <Select
                       value={newRole}
-                      onValueChange={(val) => setNewRole(val as AppUser["role"])}
+                      onValueChange={(val) => {
+                        const r = val as AppUser["role"]
+                        setNewRole(r)
+                        if (r === "boss" && !isCustomJobsite) {
+                          const existingBoss = jobsiteBossMap.get(newJobsiteId)
+                          if (existingBoss) {
+                            const available = jobsites.find((j) => !jobsiteBossMap.has(j.id))
+                            if (available) setNewJobsiteId(available.id)
+                          }
+                        }
+                      }}
                     >
                       <SelectTrigger className="h-10 w-full text-xs bg-background rounded-lg border-border">
                         <SelectValue placeholder="Select role" />
@@ -1849,10 +1768,7 @@ export function UserAccountsView() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                            {newRole === "foreman" && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="font-semibold text-foreground text-xs">
@@ -1893,19 +1809,37 @@ export function UserAccountsView() {
                           <SelectValue placeholder="Select jobsite" />
                         </SelectTrigger>
                         <SelectContent className="text-xs">
-                          {jobsites.map((j) => (
-                            <SelectItem key={j.id} value={j.id}>
-                              {j.name}
-                            </SelectItem>
-                          ))}
+                          {jobsites.map((j) => {
+                            const existingBoss = jobsiteBossMap.get(j.id)
+                            const isFull = newRole === "boss" && !!existingBoss
+                            return (
+                              <SelectItem
+                                key={j.id}
+                                value={j.id}
+                                disabled={isFull}
+                                className={isFull ? "opacity-50 cursor-not-allowed" : ""}
+                              >
+                                <span className="flex items-center justify-between w-full gap-2">
+                                  <span>{j.name}</span>
+                                  {isFull && (
+                                    <span className="text-[10px] text-destructive font-mono font-medium">
+                                      (Boss: {existingBoss?.fullName})
+                                    </span>
+                                  )}
+                                </span>
+                              </SelectItem>
+                            )
+                          })}
                           <SelectItem value="__add_new__" className="text-primary font-medium border-t border-border/50 mt-1 pt-1.5">
                             + Add New Jobsite...
                           </SelectItem>
                         </SelectContent>
-                              </Select>
+                      </Select>
                     )}
                   </div>
-                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground text-xs">
                       App Language Preference
@@ -1923,6 +1857,7 @@ export function UserAccountsView() {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground text-xs">
                       Account Status <span className="text-destructive">*</span>
@@ -2029,7 +1964,7 @@ export function UserAccountsView() {
                         {userToDelete.role.replace("_", " ")}
                       </Badge>
                       <span>•</span>
-                      <span className="truncate">{userToDelete.companyName}</span>
+                      <span className="truncate">{userToDelete.assignedJobsiteNames.join(", ") || "Assigned Site"}</span>
                     </div>
                   </div>
                 </div>
@@ -2074,6 +2009,107 @@ export function UserAccountsView() {
                       <span>Delete User</span>
                     </>
                   )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* 5. Minimal One-Time Credentials Modal */}
+      <Dialog
+        open={!!oneTimeInvite}
+        onOpenChange={(open) => {
+          if (!open) setOneTimeInvite(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md p-6 bg-card border-border shadow-xl rounded-xl">
+          {oneTimeInvite && (
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="size-4" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-sm font-bold text-foreground">
+                      Invitation Sent
+                    </DialogTitle>
+                    <DialogDescription className="text-[11px] text-muted-foreground">
+                      Sent to <span className="font-medium text-foreground">{oneTimeInvite.email}</span>
+                    </DialogDescription>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-[9px] font-mono uppercase bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                  View Once
+                </Badge>
+              </div>
+
+              {/* Minimal Credentials Box */}
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Credentials</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCredentials(oneTimeInvite)}
+                    className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedCredentials ? (
+                      <>
+                        <Check className="size-3 text-emerald-600" />
+                        <span className="text-emerald-600 font-semibold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="space-y-1.5 font-mono text-[11px]">
+                  <div className="flex items-center justify-between py-1 border-b border-border/40">
+                    <span className="text-muted-foreground font-sans text-xs">Email</span>
+                    <span className="font-semibold text-foreground select-all">{oneTimeInvite.email}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 border-b border-border/40">
+                    <span className="text-muted-foreground font-sans text-xs">Temporary Password</span>
+                    <span className="font-bold text-primary select-all tracking-wide">{oneTimeInvite.temporaryPassword}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-muted-foreground font-sans text-xs">Role & Site</span>
+                    <span className="font-sans text-[11px] text-foreground font-medium truncate max-w-[200px]">
+                      {oneTimeInvite.role} · {oneTimeInvite.assignedJobsite}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Minimal Security Notice */}
+              <p className="text-[11px] text-muted-foreground leading-normal">
+                Credentials are shown once for security. The user will be asked to set a permanent password upon first login.
+              </p>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyCredentials(oneTimeInvite)}
+                  className="h-8 text-xs px-3 gap-1.5 cursor-pointer"
+                >
+                  <Copy className="size-3" />
+                  <span>Copy</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setOneTimeInvite(null)}
+                  className="h-8 text-xs px-4 bg-primary text-primary-foreground font-semibold cursor-pointer"
+                >
+                  Done
                 </Button>
               </div>
             </div>

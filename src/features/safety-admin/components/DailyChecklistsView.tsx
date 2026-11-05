@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import * as React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,6 +8,7 @@ import { jobsitesService } from "@/services/jobsitesService"
 import { submissionsService } from "@/services/submissionsService"
 import { ChecklistImportModal } from "./ChecklistImportModal"
 import { ChecklistItemEditModal } from "./ChecklistItemEditModal"
+import { DeleteSubmissionDialog } from "./DeleteSubmissionDialog"
 import { useAppDispatch, useAppSelector } from "@/store"
 import {
   setSelectedSiteId,
@@ -41,6 +43,9 @@ import {
   ArchiveRestore,
   Search,
   User,
+  Clock,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react"
 
 export function DailyChecklistsView({
@@ -55,13 +60,12 @@ export function DailyChecklistsView({
     saving: isSaving,
     hasUnsavedChanges,
     realtimeConnected,
-    lastSyncedAt,
-  } = useAppSelector((state) => state.checklist)
+      } = useAppSelector((state) => state.checklist)
 
   const [activeTab, setActiveTab] = React.useState<"checklist_manager" | "audits">("checklist_manager")
   const [jobsites, setJobsites] = React.useState<JobSite[]>([])
   const [selectedCategory, setSelectedCategory] = React.useState<string>("all")
-  const [saveSuccessMessage, setSaveSuccessMessage] = React.useState<string | null>(null)
+  // saveSuccessMessage replaced by sonner toast
 
   // Modals
   const [importModalOpen, setImportModalOpen] = React.useState(false)
@@ -111,7 +115,7 @@ export function DailyChecklistsView({
   }, [selectedSiteId])
 
 
-  const [auditFilter, setAuditFilter] = React.useState<"active" | "archived" | "all">("active")
+  const [auditFilter, setAuditFilter] = React.useState<"active" | "pending_approval" | "approved" | "revision_requested" | "archived" | "all">("active")
   const [auditSearch, setAuditSearch] = React.useState("")
   const [archivingId, setArchivingId] = React.useState<string | null>(null)
 
@@ -121,6 +125,7 @@ export function DailyChecklistsView({
     try {
       const ok = await submissionsService.toggleArchive(sub.id, Boolean(sub.isArchived))
       if (ok) {
+        
         setSubmissions((prev) =>
           prev.map((s) =>
             s.id === sub.id
@@ -132,8 +137,10 @@ export function DailyChecklistsView({
               : s
           )
         )
+      
+        toast.success(sub.isArchived ? "Submission restored from archive." : "Submission moved to archive.")
       } else {
-        alert("Failed to update archive status.")
+        toast.error("Failed to update archive status.")
       }
     } catch (err) {
       console.error("Error toggling archive:", err)
@@ -142,16 +149,30 @@ export function DailyChecklistsView({
     }
   }
 
-  const handleDeleteSubmission = async (e: React.MouseEvent, sub: SubmissionRecord) => {
+  const [deletingSubmission, setDeletingSubmission] = React.useState<SubmissionRecord | null>(null)
+  const [isDeletingSubmission, setIsDeletingSubmission] = React.useState(false)
+
+  const handleDeleteSubmission = (e: React.MouseEvent, sub: SubmissionRecord) => {
     e.stopPropagation()
-    if (!confirm(`Are you sure you want to permanently delete submission "${sub.title}" (${sub.id})?`)) {
-      return
-    }
-    const success = await submissionsService.deleteSubmission(sub.id)
-    if (success) {
-      setSubmissions((prev) => prev.filter((s) => s.id !== sub.id))
-    } else {
-      alert("Failed to delete submission.")
+    setDeletingSubmission(sub)
+  }
+
+  const handleConfirmDeleteSubmission = async () => {
+    if (!deletingSubmission) return
+    setIsDeletingSubmission(true)
+    try {
+      const success = await submissionsService.deleteSubmission(deletingSubmission.id)
+      if (success) {
+        setSubmissions((prev) => prev.filter((s) => s.id !== deletingSubmission.id))
+        toast.success(`Submission "${deletingSubmission.jobSiteName || deletingSubmission.id}" deleted.`)
+        setDeletingSubmission(null)
+      } else {
+        toast.error("Failed to delete submission.")
+      }
+    } catch (err) {
+      console.error("Delete error:", err)
+    } finally {
+      setIsDeletingSubmission(false)
     }
   }
 
@@ -163,11 +184,26 @@ export function DailyChecklistsView({
     () => submissions.filter((s) => s.isArchived).length,
     [submissions]
   )
+  const pendingApprovalCount = React.useMemo(
+    () => submissions.filter((s) => !s.isArchived && (!s.approvalStatus || s.approvalStatus === "pending_approval")).length,
+    [submissions]
+  )
+  const approvedAuditsCount = React.useMemo(
+    () => submissions.filter((s) => !s.isArchived && s.approvalStatus === "approved").length,
+    [submissions]
+  )
+  const revisionAuditsCount = React.useMemo(
+    () => submissions.filter((s) => !s.isArchived && s.approvalStatus === "revision_requested").length,
+    [submissions]
+  )
 
   const filteredAudits = React.useMemo(() => {
     return submissions.filter((sub) => {
       if (auditFilter === "active" && sub.isArchived) return false
       if (auditFilter === "archived" && !sub.isArchived) return false
+      if (auditFilter === "pending_approval" && (sub.isArchived || (sub.approvalStatus && sub.approvalStatus !== "pending_approval"))) return false
+      if (auditFilter === "approved" && (sub.isArchived || sub.approvalStatus !== "approved")) return false
+      if (auditFilter === "revision_requested" && (sub.isArchived || sub.approvalStatus !== "revision_requested")) return false
 
       if (auditSearch.trim()) {
         const q = auditSearch.toLowerCase()
@@ -213,18 +249,16 @@ export function DailyChecklistsView({
 
   // Save checklist via Redux action
   const handleSaveChecklist = async () => {
-    setSaveSuccessMessage(null)
     const resultAction = await dispatch(
       publishChecklist({ siteId: selectedSiteId, items: checklistItems })
     )
     if (publishChecklist.fulfilled.match(resultAction)) {
       const siteLabel = selectedSite ? selectedSite.name : "Global Default Template"
-      setSaveSuccessMessage(
-        `Successfully published ${checklistItems.length} items for ${siteLabel}! Live in mobile app.`
-      )
-      setTimeout(() => setSaveSuccessMessage(null), 4000)
+      toast.success(`Published ${checklistItems.length} items for ${siteLabel}!`, {
+        description: "Safety checks are live in the mobile app."
+      })
     } else {
-      alert("Failed to save checklist: " + (resultAction.payload || "Unknown error"))
+      toast.error("Failed to save checklist: " + (resultAction.payload || "Unknown error"))
     }
   }
 
@@ -464,18 +498,7 @@ export function DailyChecklistsView({
         </div>
       </div>
 
-      {/* Save Success Alert */}
-      {saveSuccessMessage && (
-        <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium flex items-center justify-between animate-in fade-in duration-300">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-3.5 shrink-0" />
-            <span>{saveSuccessMessage}</span>
-          </div>
-          <span className="text-[10px] uppercase font-mono tracking-wider">
-            {lastSyncedAt ? new Date(lastSyncedAt).toLocaleTimeString() : "Synced"}
-          </span>
-        </div>
-      )}
+      
 
       {activeTab === "checklist_manager" ? (
         <div className="space-y-3">
@@ -605,38 +628,60 @@ export function DailyChecklistsView({
         <div className="space-y-3">
           {/* Sub-bar: Filter buttons (Active, Archived, All) and Search */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="inline-flex rounded-lg border border-border bg-muted p-1 text-xs">
-              <button
-                onClick={() => setAuditFilter("active")}
-                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
-                  auditFilter === "active"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <CheckCircle2 className="size-3.5 text-emerald-600" />
-                Active ({activeAuditsCount})
-              </button>
-              <button
-                onClick={() => setAuditFilter("archived")}
-                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
-                  auditFilter === "archived"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Archive className="size-3.5 text-amber-600" />
-                Archived ({archivedAuditsCount})
-              </button>
+            <div className="inline-flex flex-wrap items-center rounded-xl border border-border bg-muted p-1 text-xs gap-1">
               <button
                 onClick={() => setAuditFilter("all")}
-                className={`px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
                   auditFilter === "all"
                     ? "bg-card text-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                All Records ({submissions.length})
+                All ({submissions.length})
+              </button>
+              <button
+                onClick={() => setAuditFilter("pending_approval")}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  auditFilter === "pending_approval"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Clock className="size-3 text-sky-600" />
+                Pending ({pendingApprovalCount})
+              </button>
+              <button
+                onClick={() => setAuditFilter("approved")}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  auditFilter === "approved"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <CheckCircle2 className="size-3 text-emerald-600" />
+                Approved ({approvedAuditsCount})
+              </button>
+              <button
+                onClick={() => setAuditFilter("revision_requested")}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  auditFilter === "revision_requested"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <AlertTriangle className="size-3 text-amber-600" />
+                Revisions ({revisionAuditsCount})
+              </button>
+              <button
+                onClick={() => setAuditFilter("archived")}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  auditFilter === "archived"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Archive className="size-3 text-muted-foreground" />
+                Archived ({archivedAuditsCount})
               </button>
             </div>
 
@@ -663,7 +708,7 @@ export function DailyChecklistsView({
                     <th className="px-4 py-3 font-semibold">Jobsite Location</th>
                     <th className="px-4 py-3 font-semibold">Foreman</th>
                     <th className="px-4 py-3 font-semibold">Audit Results</th>
-                    <th className="px-4 py-3 font-semibold text-center">Status</th>
+                    <th className="px-4 py-3 font-semibold text-center">Approval Status</th>
                     <th className="px-4 py-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
@@ -764,14 +809,34 @@ export function DailyChecklistsView({
                         </td>
 
                         <td className="px-5 py-5 align-middle text-center whitespace-nowrap">
-                          {sub.isArchived ? (
-                            <Badge variant="outline" className="text-xs h-6 px-2.5 bg-muted text-muted-foreground border-border font-medium">
-                              Archived
+                          {sub.approvalStatus === "approved" && (
+                            <Badge className="text-xs h-6 px-2.5 bg-emerald-500/15 text-emerald-700 border-emerald-500/30 font-bold gap-1 shadow-2xs">
+                              <CheckCircle2 className="size-3 text-emerald-600" />
+                              Approved
                             </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs h-6 px-2.5 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
-                              Active
+                          )}
+                          {sub.approvalStatus === "revision_requested" && (
+                            <Badge className="text-xs h-6 px-2.5 bg-amber-500/15 text-amber-700 border-amber-500/30 font-bold gap-1 shadow-2xs">
+                              <AlertTriangle className="size-3 text-amber-600" />
+                              Revision Needed
                             </Badge>
+                          )}
+                          {sub.approvalStatus === "rejected" && (
+                            <Badge className="text-xs h-6 px-2.5 bg-rose-500/15 text-rose-700 border-rose-500/30 font-bold gap-1 shadow-2xs">
+                              <XCircle className="size-3 text-rose-600" />
+                              Rejected
+                            </Badge>
+                          )}
+                          {(!sub.approvalStatus || sub.approvalStatus === "pending_approval") && (
+                            <Badge variant="outline" className="text-xs h-6 px-2.5 bg-sky-500/10 text-sky-700 border-sky-500/25 font-semibold gap-1">
+                              <Clock className="size-3 text-sky-600" />
+                              Pending Review
+                            </Badge>
+                          )}
+                          {sub.isArchived && (
+                            <span className="block text-[10px] text-muted-foreground mt-0.5">
+                              (Archived)
+                            </span>
                           )}
                         </td>
 
@@ -834,6 +899,15 @@ export function DailyChecklistsView({
           </Card>
         </div>
       )}
+
+      {/* Delete Submission Custom Modal Dialog */}
+      <DeleteSubmissionDialog
+        submission={deletingSubmission}
+        open={Boolean(deletingSubmission)}
+        isDeleting={isDeletingSubmission}
+        onClose={() => setDeletingSubmission(null)}
+        onConfirm={handleConfirmDeleteSubmission}
+      />
     </div>
   )
 }

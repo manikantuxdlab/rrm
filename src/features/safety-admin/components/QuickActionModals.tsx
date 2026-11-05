@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,7 +30,7 @@ export function DispatchAlertModal({
 
   const handleSend = () => {
     if (!title || !message) {
-      alert("Please enter title and message content.")
+      toast.warning("Please enter title and message content.")
       return
     }
     onSubmit({ title, trade, priority, message })
@@ -169,7 +170,7 @@ export function AddCompanyModal({
 
   const handleSave = () => {
     if (!name || !routingEmail) {
-      alert("Please provide Company Name and Routing Email.")
+      toast.warning("Please provide Company Name and Routing Email.")
       return
     }
     onAdd({
@@ -328,7 +329,7 @@ export function AddEquipmentModal({
 
   const handleSave = () => {
     if (!unitNumber || !make || !model) {
-      alert("Please fill in Unit #, Make, and Model.")
+      toast.warning("Please fill in Unit #, Make, and Model.")
       return
     }
     onAdd({
@@ -504,7 +505,7 @@ export function IssueCoiModal({
 
   const handleIssue = () => {
     if (!holder || !email) {
-      alert("Please specify Certificate Holder Name and Recipient Email.")
+      toast.warning("Please specify Certificate Holder Name and Recipient Email.")
       return
     }
     onIssue({ holder, email, project, limits })

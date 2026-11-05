@@ -40,13 +40,7 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     key: "users",
     title: "Users",
     url: "/users",
-    description: "Onboard foremen, grant mobile access & manage logins per company",
-  },
-  {
-    key: "companies",
-    title: "Companies",
-    url: "/companies",
-    description: "Onboard customer companies, policy schedules & multi-tenancy",
+    description: "Onboard foremen, grant mobile access & manage logins per jobsite",
   },
   {
     key: "routing",

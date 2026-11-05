@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import * as React from "react"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
@@ -48,8 +49,7 @@ import {
   Building2,
   Plus,
   Search,
-  CheckCircle2,
-  Settings2,
+    Settings2,
   X,
   MoreVertical,
   Eye,
@@ -90,7 +90,7 @@ export function ContractorAccountsView() {
     try {
       setCompanies(await fetchCompanies())
     } catch (err: any) {
-      setSuccessToast(`❌ ${err.message}`)
+      toast.error(`Error: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -105,7 +105,7 @@ export function ContractorAccountsView() {
   const [viewingCompany, setViewingCompany] = React.useState<ClientCompany | null>(null)
   const [editingCompany, setEditingCompany] = React.useState<ClientCompany | null>(null)
   const [isCreating, setIsCreating] = React.useState(false)
-  const [successToast, setSuccessToast] = React.useState<string | null>(null)
+  // successToast replaced with sonner toast
 
   // Pagination state
   const [currentPage, setCurrentPage] = React.useState(1)
@@ -186,8 +186,8 @@ export function ContractorAccountsView() {
   //   )
 
   //   setEditingCompany(null)
-  //   setSuccessToast(`✅ Company "${editName}" details updated successfully!`)
-  //   setTimeout(() => setSuccessToast(null), 4000)
+  //   toast.success(`Company "${editName}" details updated successfully!`)
+  //   
   // }
 
   const handleOpenCreate = () => {
@@ -223,19 +223,19 @@ export function ContractorAccountsView() {
         const created = await createCompany(payload)
         setCompanies((prev) => [created, ...prev])
         setIsCreating(false)
-        setSuccessToast(`✅ Company "${editName}" created successfully!`)
+        toast.success(`Company "${editName}" created successfully!`)
       } else if (editingCompany) {
         const updated = await updateCompany(editingCompany.id, payload)
         setCompanies((prev) =>
           prev.map((company) => (company.id === updated.id ? { ...company, ...updated } : company))
         )
         setEditingCompany(null)
-        setSuccessToast(`✅ Company "${editName}" details updated successfully!`)
+        toast.success(`Company "${editName}" details updated successfully!`)
       }
     } catch (err: any) {
-      setSuccessToast(`❌ ${err.message}`)
+      toast.error(`Error: ${err.message}`)
     }
-    setTimeout(() => setSuccessToast(null), 4000)
+    
   }
 
 // Delete Company
@@ -246,8 +246,8 @@ export function ContractorAccountsView() {
 //     )
 //   ) {
 //     setCompanies((prev) => prev.filter((item) => item.id !== comp.id))
-//     setSuccessToast(`🗑️ Contractor entity "${comp.name}" was removed from the system.`)
-//     setTimeout(() => setSuccessToast(null), 4000)
+//     toast.success(`Contractor entity "${comp.name}" removed from system.`)
+//     
 //   }
 // }
 
@@ -256,11 +256,11 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
   try {
     await deleteCompany(comp.id)
     setCompanies((prev) => prev.filter((item) => item.id !== comp.id))
-    setSuccessToast(`🗑️ Contractor entity "${comp.name}" was removed from the system.`)
+    toast.success(`Contractor entity "${comp.name}" removed from system.`)
   } catch (err: any) {
-    setSuccessToast(`❌ ${err.message}`)
+    toast.error(`Error: ${err.message}`)
   }
-  setTimeout(() => setSuccessToast(null), 4000)
+  
 }
 
   return (
@@ -287,21 +287,7 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
       </div>
     </div>
 
-    {/* Success Notification */}
-    {successToast && (
-      <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between animate-in fade-in duration-200">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="size-4 shrink-0" />
-          <span>{successToast}</span>
-        </div>
-        <button
-          onClick={() => setSuccessToast(null)}
-          className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 cursor-pointer"
-        >
-          <X className="size-3.5" />
-        </button>
-      </div>
-    )}
+    
 
     {/* KPI Cards (Slim & Compact) */}
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1033,10 +1019,7 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
       isOpen={!!selectedCompanyForRouting}
       onClose={() => setSelectedCompanyForRouting(null)}
       onSave={() => {
-        setSuccessToast(
-          `✅ Custom routing destinations updated for ${selectedCompanyForRouting?.name}!`
-        )
-        setTimeout(() => setSuccessToast(null), 4000)
+        toast.success(`Custom routing destinations updated for ${selectedCompanyForRouting?.name}!`)
       }}
     />
   </div>

@@ -56,10 +56,67 @@ export const submissionsService = {
         data: row.data || {},
         signatureUri: row.signature_uri || row.data?.signatureUri,
         pdfGenerated: true,
+        approvalStatus: (row.data?.approvalStatus as any) || "pending_approval",
+        approvedBy: row.data?.approvedBy || "",
+        approvedAt: row.data?.approvedAt || "",
+        approvalNotes: row.data?.approvalNotes || "",
       }))
     } catch (err) {
       console.error("[submissionsService] Unexpected fetch error:", err)
       return []
+    }
+  },
+
+  /**
+   * Update Super Admin approval status for a submission
+   */
+  async updateApprovalStatus(
+    id: string,
+    approvalStatus: "pending_approval" | "approved" | "revision_requested" | "rejected",
+    reviewerInfo?: {
+      reviewerName?: string
+      reviewerEmail?: string
+      notes?: string
+    }
+  ): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
+    try {
+      const { data: row, error: fetchErr } = await supabase
+        .from("submissions")
+        .select("data")
+        .eq("id", id)
+        .single()
+
+      if (fetchErr || !row) {
+        console.error("[submissionsService] Error fetching submission for approval update:", fetchErr?.message)
+        return false
+      }
+
+      const updatedData = {
+        ...(row.data || {}),
+        approvalStatus,
+        approvedBy: reviewerInfo?.reviewerName || "Super Admin",
+        approvedByEmail: reviewerInfo?.reviewerEmail || "admin@safety.internal",
+        approvedAt: new Date().toISOString(),
+        approvalNotes: reviewerInfo?.notes !== undefined ? reviewerInfo.notes : (row.data?.approvalNotes || ""),
+      }
+
+      const { error: updateErr } = await supabase
+        .from("submissions")
+        .update({
+          data: updatedData,
+        })
+        .eq("id", id)
+
+      if (updateErr) {
+        console.error("[submissionsService] Error updating approval status:", updateErr.message)
+        return false
+      }
+
+      return true
+    } catch (err) {
+      console.error("[submissionsService] Unexpected error updating approval status:", err)
+      return false
     }
   },
 

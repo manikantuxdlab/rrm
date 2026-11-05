@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import * as React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -37,7 +38,7 @@ export function DocumentViewerModal({
   }
 
   const handleDownload = () => {
-    alert(`Downloading official certified copy of "${documentName}" (PDF / Excel Format)...`)
+    toast.success(`Downloading certified copy of "${documentName}"`)
   }
 
   return (

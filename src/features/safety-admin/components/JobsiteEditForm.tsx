@@ -26,17 +26,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const selectCls =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
 
-export function JobsiteEditForm({ draft, isNew, companies, saving, error, onChange, onSave, onCancel }: Props) {
+export function JobsiteEditForm({ draft, isNew, companies: _companies, saving, error, onChange, onSave, onCancel }: Props) {
   const set = (patch: Partial<JobSite>) => onChange({ ...draft, ...patch })
   const setHosp = (p: Partial<JobSite["emergencyHospital"]>) =>
     set({ emergencyHospital: { ...draft.emergencyHospital, ...p } })
   const setCare = (p: Partial<JobSite["urgentCare"]>) =>
     set({ urgentCare: { ...draft.urgentCare, ...p } })
 
-  const companyOptions =
-    draft.companyName && !companies.includes(draft.companyName)
-      ? [draft.companyName, ...companies]
-      : companies
 
   const inp = "h-9 text-xs"
 
@@ -47,18 +43,6 @@ export function JobsiteEditForm({ draft, isNew, companies, saving, error, onChan
       </h3>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Company *">
-          <select
-            className={selectCls}
-            value={draft.companyName || ""}
-            onChange={(e) => set({ companyName: e.target.value })}
-          >
-            <option value="">Select company...</option>
-            {companyOptions.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </Field>
         <Field label="Status">
           <select
             className={selectCls}

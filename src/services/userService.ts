@@ -54,6 +54,7 @@ export const userService = {
       let query = supabase
         .from("profiles")
         .select("*")
+        .neq("role", "super_admin")
         .order("created_at", { ascending: false })
 
       if (filters?.role && filters.role !== "all") {
@@ -80,7 +81,7 @@ export const userService = {
         return { data: [], error: null }
       }
 
-      let users = (data as DBUserProfile[]).map(mapDBProfileToUserRecord)
+      let users = (data as DBUserProfile[]).filter((r) => r.role !== "super_admin").map(mapDBProfileToUserRecord)
 
       // Optional client-side search across fields
       if (filters?.search && filters.search.trim()) {

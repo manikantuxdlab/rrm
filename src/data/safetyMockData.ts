@@ -102,39 +102,7 @@ export const MOCK_COMPANIES: ClientCompany[] = [
   },
 ]
 
-export const MOCK_JOBSITES: JobSite[] = [
-  {
-    id: "job-test-alpha-001",
-    name: "Test Jobsite Alpha - Client Demonstration Project",
-    jobNumber: "TST-2026-TEST",
-    companyName: "Test Contractor Company LLC",
-    address: "123 Test Safety Boulevard",
-    cityStateZip: "Test City, CA 90001",
-    superintendent: "Test Site Superintendent",
-    superPhone: "(555) 000-TEST",
-    gcCompany: "Test Prime GC Construction Group",
-    gcContact: "Test GC Safety Director",
-    gcPhone: "(555) 111-TEST",
-    gcEmail: "safety@testcontractorgroup.com",
-    trade: "Test Commercial Safety & Structure",
-    status: "active",
-    emergencyHospital: {
-      name: "Test Regional Trauma Center & Hospital",
-      phone: "(555) 911-TEST",
-      address: "500 Test Emergency Hospital Way, Test City, CA 90001",
-      distanceMiles: 1.5,
-    },
-    urgentCare: {
-      name: "Test Occupational Health & Urgent Care",
-      phone: "(555) 888-TEST",
-      address: "200 Test Medical Center Blvd, Test City, CA 90001",
-    },
-    musterPoint: "Test Primary Emergency Muster Zone A (North Parking)",
-    utilityEmergency: "Test 811 Utility Emergency Hotline: 1-800-TEST-811",
-    activeCrewCount: 0,
-    accessGateInstructions: "Test Main Gate 1 (Opposite Test Safety Trailer)",
-  },
-]
+export const MOCK_JOBSITES: JobSite[] = []
 
 export const MOCK_CREW: Worker[] = [
   {

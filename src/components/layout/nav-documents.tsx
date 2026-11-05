@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 "use client"
 
 import * as React from "react"
@@ -79,7 +80,7 @@ export function NavDocuments({
                   <DropdownMenuItem
                     onClick={() => {
                       navigator.clipboard?.writeText(window.location.origin + item.url)
-                      alert(`Shareable link for ${item.name} copied to clipboard!`)
+                      toast.success(`Shareable link for ${item.name} copied to clipboard!`)
                     }}
                     className="cursor-pointer text-xs"
                   >

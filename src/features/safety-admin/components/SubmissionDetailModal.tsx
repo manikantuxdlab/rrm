@@ -1,8 +1,10 @@
+import { toast } from "sonner"
 import * as React from "react"
 import type { SubmissionRecord, ChecklistItem } from "@/types"
 import { submissionsService } from "@/services/submissionsService"
 import { generateSafetyAuditPdf } from "@/services/pdfReportService"
 import { sendBrandedAuditEmail } from "@/services/brandedEmailService"
+import { DeleteSubmissionDialog } from "./DeleteSubmissionDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,6 +24,11 @@ import {
   FileText,
   ClipboardList,
   Trash2,
+  Check,
+  XCircle,
+  Clock,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react"
 import {
   Sheet,
@@ -130,6 +137,58 @@ export function SubmissionDetailModal({
   // Selected photo for fullscreen lightbox
   const [previewPhoto, setPreviewPhoto] = React.useState<{ uri: string; label: string } | null>(null)
 
+  // Super Admin Approval State
+  const [approvalStatus, setApprovalStatus] = React.useState<"pending_approval" | "approved" | "revision_requested" | "rejected">(
+    (submission?.approvalStatus as any) || (submission?.data?.approvalStatus as any) || "pending_approval"
+  )
+  const [approvalNotes, setApprovalNotes] = React.useState<string>(
+    submission?.approvalNotes || submission?.data?.approvalNotes || ""
+  )
+  const [approvedBy, setApprovedBy] = React.useState<string>(
+    submission?.approvedBy || submission?.data?.approvedBy || ""
+  )
+  const [approvedAt, setApprovedAt] = React.useState<string>(
+    submission?.approvedAt || submission?.data?.approvedAt || ""
+  )
+  const [isUpdatingApproval, setIsUpdatingApproval] = React.useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
+  const [approvalFeedbackMessage, setApprovalFeedbackMessage] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (submission) {
+      setApprovalStatus((submission.approvalStatus as any) || (submission.data?.approvalStatus as any) || "pending_approval")
+      setApprovalNotes(submission.approvalNotes || submission.data?.approvalNotes || "")
+      setApprovedBy(submission.approvedBy || submission.data?.approvedBy || "")
+      setApprovedAt(submission.approvedAt || submission.data?.approvedAt || "")
+      setApprovalFeedbackMessage(null)
+    }
+  }, [submission?.id, submission?.approvalStatus, submission?.data?.approvalStatus])
+
+  const handleUpdateApproval = async (newStatus: "pending_approval" | "approved" | "revision_requested" | "rejected") => {
+    if (!submission?.id) return
+    setIsUpdatingApproval(true)
+    setApprovalFeedbackMessage(null)
+    try {
+      const ok = await submissionsService.updateApprovalStatus(submission.id, newStatus, {
+        reviewerName: "Safety Director / Super Admin",
+        reviewerEmail: "safety.admin@titanconcrete.com",
+        notes: approvalNotes.trim(),
+      })
+      if (ok) {
+        setApprovalStatus(newStatus)
+        setApprovedBy("Safety Director / Super Admin")
+        setApprovedAt(new Date().toISOString())
+        toast.success(`Status updated: ${newStatus.replace("_", " ").toUpperCase()}`)
+      } else {
+        toast.error("Failed to update approval status. Please verify your connection.")
+      }
+    } catch (err) {
+      console.error("Error updating approval:", err)
+    } finally {
+      setIsUpdatingApproval(false)
+    }
+  }
+
   // Computed counts
   const passedCount = React.useMemo(
     () => checklistItems.filter((i) => i.status === "pass").length,
@@ -231,8 +290,9 @@ export function SubmissionDetailModal({
         if (previewPhoto?.uri === photo.uri) {
           setPreviewPhoto(null)
         }
+        toast.success("Photo removed from checklist.")
       } else {
-        alert("Failed to delete photo. Please try again.")
+        toast.error("Failed to delete photo. Please try again.")
       }
     } catch (err) {
       console.error("Delete photo error:", err)
@@ -241,17 +301,20 @@ export function SubmissionDetailModal({
     }
   }
 
-  const handleDeleteSubmission = async () => {
-    if (!confirm(`Are you sure you want to permanently delete this audit submission?\n"${submission.title}" (${submission.id})\n\nThis action cannot be undone.`)) {
-      return
-    }
+  const handleDeleteSubmission = () => {
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!submission?.id) return
     setIsDeleting(true)
     try {
       const ok = await submissionsService.deleteSubmission(submission.id)
       if (ok) {
+        setIsDeleteDialogOpen(false)
         onClose()
       } else {
-        alert("Failed to delete submission.")
+        toast.error("Failed to delete submission.")
       }
     } catch (err) {
       console.error("Delete submission error:", err)
@@ -272,13 +335,13 @@ export function SubmissionDetailModal({
     try {
       const ok = await sendBrandedAuditEmail(submission)
       if (ok) {
-        alert("Branded Cal/OSHA compliance email with attached PDF was dispatched successfully!")
+        toast.success("Branded Cal/OSHA compliance email with attached PDF was dispatched!")
       } else {
-        alert("Email dispatch completed. Please verify SMTP delivery logs.")
+        toast.info("Email dispatch completed. Please verify SMTP delivery logs.")
       }
     } catch (err) {
       console.error("Email send failed:", err)
-      alert("Failed to send email. Check network or server configuration.")
+      toast.error("Failed to send email. Check network or server configuration.")
     } finally {
       setIsSendingEmail(false)
     }
@@ -288,9 +351,10 @@ export function SubmissionDetailModal({
     setIsGeneratingPdf(true)
     try {
       await generateSafetyAuditPdf(submission, visiblePhotos)
+      toast.success("Safety Audit PDF downloaded successfully!")
     } catch (err) {
       console.error("PDF generation failed:", err)
-      alert("Failed to generate PDF. Please try again.")
+      toast.error("Failed to generate PDF. Please try again.")
     } finally {
       setIsGeneratingPdf(false)
     }
@@ -336,6 +400,32 @@ export function SubmissionDetailModal({
               {submission.syncStatus === "failed" && (
                 <span className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
                   ⚠️ Sync Failed
+                </span>
+              )}
+
+              {/* Super Admin Approval Status Badge */}
+              {approvalStatus === "approved" && (
+                <span className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                  <ShieldCheck className="size-3" />
+                  Approved & Certified
+                </span>
+              )}
+              {approvalStatus === "revision_requested" && (
+                <span className="flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 font-bold bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                  <AlertTriangle className="size-3" />
+                  Revision Requested
+                </span>
+              )}
+              {approvalStatus === "rejected" && (
+                <span className="flex items-center gap-1 text-[11px] text-rose-700 dark:text-rose-400 font-bold bg-rose-500/15 px-2.5 py-0.5 rounded-full border border-rose-500/30">
+                  <XCircle className="size-3" />
+                  Rejected
+                </span>
+              )}
+              {approvalStatus === "pending_approval" && (
+                <span className="flex items-center gap-1 text-[11px] text-sky-700 dark:text-sky-400 font-bold bg-sky-500/15 px-2.5 py-0.5 rounded-full border border-sky-500/30">
+                  <Clock className="size-3" />
+                  Pending Admin Approval
                 </span>
               )}
             </div>
@@ -399,6 +489,134 @@ export function SubmissionDetailModal({
 
           {/* Scrollable Body */}
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-xs">
+            {/* SUPER ADMIN APPROVAL CONSOLE */}
+            <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card p-4 space-y-3.5 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-xs">
+                    <ShieldCheck className="size-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-foreground flex items-center gap-2">
+                      Super Admin Audit Approval & Compliance Sign-Off
+                      {approvalStatus === "approved" && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 border border-emerald-500/30">
+                          CERTIFIED COMPLIANT
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Review checkpoints and authorize this field submission for OSHA recordkeeping
+                    </p>
+                  </div>
+                </div>
+
+                {approvedAt && (
+                  <div className="text-[10.5px] font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-lg border border-border/60">
+                    Reviewed: {new Date(approvedAt).toLocaleDateString()} by {approvedBy || "Super Admin"}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isUpdatingApproval}
+                  onClick={() => handleUpdateApproval("approved")}
+                  className={`h-8 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer gap-1.5 ${
+                    approvalStatus === "approved"
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs ring-2 ring-emerald-500/30"
+                      : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 border border-emerald-500/30"
+                  }`}
+                >
+                  <Check className="size-3.5" />
+                  {approvalStatus === "approved" ? "Audit Certified & Approved" : "Approve & Certify"}
+                </Button>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isUpdatingApproval}
+                  onClick={() => handleUpdateApproval("revision_requested")}
+                  className={`h-8 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer gap-1.5 ${
+                    approvalStatus === "revision_requested"
+                      ? "bg-amber-600 hover:bg-amber-700 text-white shadow-xs ring-2 ring-amber-500/30"
+                      : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30"
+                  }`}
+                >
+                  <AlertTriangle className="size-3.5" />
+                  {approvalStatus === "revision_requested" ? "Revision Required" : "Request Revision"}
+                </Button>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isUpdatingApproval}
+                  onClick={() => handleUpdateApproval("rejected")}
+                  className={`h-8 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer gap-1.5 ${
+                    approvalStatus === "rejected"
+                      ? "bg-rose-600 hover:bg-rose-700 text-white shadow-xs ring-2 ring-rose-500/30"
+                      : "bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 border border-rose-500/30"
+                  }`}
+                >
+                  <XCircle className="size-3.5" />
+                  {approvalStatus === "rejected" ? "Audit Rejected" : "Reject Audit"}
+                </Button>
+
+                {approvalStatus !== "pending_approval" && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={isUpdatingApproval}
+                    onClick={() => handleUpdateApproval("pending_approval")}
+                    className="h-8 px-2.5 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    Reset to Pending
+                  </Button>
+                )}
+
+                {isUpdatingApproval && (
+                  <div className="flex items-center gap-1.5 text-xs text-primary font-semibold animate-pulse ml-2">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>Saving Decision...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Reviewer Directives / Notes Input */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
+                  <span>Reviewer Notes & Compliance Directives (Sent to Foreman & Boss):</span>
+                  {approvalFeedbackMessage && (
+                    <span className="text-emerald-600 font-bold animate-in fade-in">
+                      {approvalFeedbackMessage}
+                    </span>
+                  )}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={approvalNotes}
+                    onChange={(e) => setApprovalNotes(e.target.value)}
+                    placeholder="e.g. Scaffolding guardrail deficiency requires photo remediation within 24h before clearance..."
+                    className="flex-1 h-8 px-3 text-xs rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isUpdatingApproval}
+                    onClick={() => handleUpdateApproval(approvalStatus)}
+                    className="h-8 px-3 text-xs font-semibold rounded-xl border-border/80 hover:bg-muted cursor-pointer shrink-0"
+                  >
+                    Save Notes
+                  </Button>
+                </div>
+              </div>
+            </div>
             {/* TAB 1: CHECKLIST MARKINGS SCREEN */}
             {activeTab === "markings" && hasItems && (
               <div className="space-y-4">
@@ -922,7 +1140,15 @@ export function SubmissionDetailModal({
                   <>
                     <div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Generating PDF...
-                  </>
+                    {/* Delete Submission Custom Modal Dialog */}
+      <DeleteSubmissionDialog
+        submission={submission}
+        open={isDeleteDialogOpen}
+        isDeleting={isDeleting}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
+    </>
                 ) : (
                   <>
                     <Download className="size-3.5" />

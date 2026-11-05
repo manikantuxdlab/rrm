@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import * as React from "react"
 import {
   Card,
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   Building2,
+  HardHat,
   MapPin,
   Hospital,
   Search,
@@ -38,8 +40,7 @@ import {
   Trash2,
   Eye,
   MoreVertical,
-  CheckCircle2,
-  X,
+    X,
   LayoutGrid,
   List,
   ChevronLeft,
@@ -58,11 +59,9 @@ export function ActiveJobsitesView() {
   const [sites, setSites] = React.useState<JobSite[]>([])
   const [loading, setLoading] = React.useState(true)
   const [loadError, setLoadError] = React.useState("")
-  const [companies, setCompanies] = React.useState<string[]>([])
   const [searchQuery, setSearchQuery] = React.useState("")
   const [selectedStatusFilter, setSelectedStatusFilter] = React.useState<string>("all")
-  const [selectedCompanyFilter, setSelectedCompanyFilter] = React.useState<string>("all")
-  const [viewMode, setViewMode] = React.useState<"grid" | "table">("grid")
+  const [viewMode, setViewMode] = React.useState<"grid" | "table">("table")
 
   // Pagination
   const [currentPage, setCurrentPage] = React.useState(1)
@@ -76,12 +75,7 @@ export function ActiveJobsitesView() {
   const [saving, setSaving] = React.useState(false)
   const [siteToDelete, setSiteToDelete] = React.useState<JobSite | null>(null)
   const [isDeleting, setIsDeleting] = React.useState(false)
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null)
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 4000)
-  }
+  // toastMessage replaced with sonner toast
 
   // Fetch jobsites & companies
   const loadSites = React.useCallback(async () => {
@@ -99,22 +93,8 @@ export function ActiveJobsitesView() {
 
   React.useEffect(() => {
     loadSites()
-    jobsitesService
-      .fetchCompanyNames()
-      .then((comps) => {
-        setCompanies(comps)
-      })
-      .catch(() => {})
   }, [loadSites])
 
-  // Extract unique companies from fetched sites as well
-  const allAvailableCompanies = React.useMemo(() => {
-    const set = new Set(companies)
-    sites.forEach((s) => {
-      if (s.companyName) set.add(s.companyName)
-    })
-    return Array.from(set).sort()
-  }, [companies, sites])
 
   // KPI Calculations
   const totalSites = sites.length
@@ -132,18 +112,14 @@ export function ActiveJobsitesView() {
         site.jobNumber.toLowerCase().includes(q) ||
         site.address.toLowerCase().includes(q) ||
         site.gcCompany.toLowerCase().includes(q) ||
-        site.superintendent.toLowerCase().includes(q) ||
-        (site.companyName && site.companyName.toLowerCase().includes(q))
+        site.superintendent.toLowerCase().includes(q)
 
       const matchesStatus =
         selectedStatusFilter === "all" || site.status === selectedStatusFilter
 
-      const matchesCompany =
-        selectedCompanyFilter === "all" || site.companyName === selectedCompanyFilter
-
-      return matchesSearch && matchesStatus && matchesCompany
+      return matchesSearch && matchesStatus
     })
-  }, [sites, searchQuery, selectedStatusFilter, selectedCompanyFilter])
+  }, [sites, searchQuery, selectedStatusFilter])
 
   // Pagination calculation
   const totalPages = Math.ceil(filteredSites.length / pageSize) || 1
@@ -171,10 +147,10 @@ export function ActiveJobsitesView() {
       setSaving(true)
       const res = await jobsitesService.upsert(site)
       if (!res.ok) {
-        showToast(`⚠️ Error: ${res.error || "Save failed"}`)
+        toast.error(res.error || "Save failed")
         return false
       }
-      showToast(isNew ? `✅ Jobsite "${site.name}" created successfully!` : `✅ Jobsite "${site.name}" updated!`)
+      toast.success(isNew ? `Jobsite "${site.name}" created successfully!` : `Jobsite "${site.name}" updated!`)
       await loadSites()
       // If we were viewing this site, update view modal
       if (viewingSite?.id === site.id) {
@@ -182,7 +158,7 @@ export function ActiveJobsitesView() {
       }
       return true
     } catch (err: any) {
-      showToast(`⚠️ Exception: ${err.message}`)
+      toast.error(`Save error: ${err.message}`)
       return false
     } finally {
       setSaving(false)
@@ -195,17 +171,17 @@ export function ActiveJobsitesView() {
       setIsDeleting(true)
       const ok = await jobsitesService.remove(siteToDelete.id)
       if (!ok) {
-        showToast("⚠️ Delete failed. Please check permissions.")
+        toast.error("Delete failed. Please check permissions.")
         return
       }
-      showToast(`🗑️ Jobsite "${siteToDelete.name}" deleted.`)
+      toast.success(`Jobsite "${siteToDelete.name}" deleted successfully.`)
       setSiteToDelete(null)
       if (viewingSite?.id === siteToDelete.id) {
         setViewingSite(null)
       }
       await loadSites()
     } catch (err: any) {
-      showToast(`⚠️ Delete error: ${err.message}`)
+      toast.error(`Delete error: ${err.message}`)
     } finally {
       setIsDeleting(false)
     }
@@ -236,21 +212,7 @@ export function ActiveJobsitesView() {
         </div>
       </div>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between animate-in fade-in duration-200">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 shrink-0" />
-            <span>{toastMessage}</span>
-          </div>
-          <button
-            onClick={() => setToastMessage(null)}
-            className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 cursor-pointer"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
-      )}
+      
 
       {/* KPI Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -258,7 +220,7 @@ export function ActiveJobsitesView() {
           <div className="text-[11px] font-medium text-muted-foreground">Total Jobsites</div>
           <div className="text-lg font-bold text-foreground mt-0.5">{totalSites} Sites</div>
           <div className="text-[10px] text-muted-foreground mt-0.5">
-            Across {allAvailableCompanies.length} Subcontractors
+            Active project portfolio
           </div>
         </Card>
 
@@ -326,27 +288,6 @@ export function ActiveJobsitesView() {
             </SelectContent>
           </Select>
 
-          {/* Company Select */}
-          <Select
-            value={selectedCompanyFilter}
-            onValueChange={(val) => {
-              setSelectedCompanyFilter(val)
-              setCurrentPage(1)
-            }}
-          >
-            <SelectTrigger className="h-8.5 min-w-[150px] text-xs bg-background rounded-lg border-border">
-              <SelectValue placeholder="All Companies" />
-            </SelectTrigger>
-            <SelectContent className="text-xs">
-              <SelectItem value="all">All Companies ({allAvailableCompanies.length})</SelectItem>
-              {allAvailableCompanies.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           {/* View Toggle: Grid vs Table */}
           <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
             <button
@@ -395,7 +336,7 @@ export function ActiveJobsitesView() {
           <Building2 className="size-10 text-muted-foreground/60 mx-auto" />
           <div className="text-sm font-semibold text-foreground">No jobsites found</div>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            {searchQuery || selectedCompanyFilter !== "all" || selectedStatusFilter !== "all"
+            {searchQuery || selectedStatusFilter !== "all"
               ? "No job sites match the selected filters. Try resetting search or filter criteria."
               : "No jobsites registered yet. Click 'Add Jobsite' to create your first safety profile."}
           </p>
@@ -474,13 +415,12 @@ export function ActiveJobsitesView() {
                   >
                     {site.name}
                   </h3>
-                  <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Building2 className="size-3 text-muted-foreground shrink-0" />
-                    <span className="font-medium text-foreground/80 truncate">
-                      {site.companyName || "Subcontractor"}
-                    </span>
-                    {site.trade && <span className="text-muted-foreground">· {site.trade}</span>}
-                  </div>
+                  {site.trade && (
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <HardHat className="size-3 text-primary shrink-0" />
+                      <span className="font-medium text-foreground/80 truncate">{site.trade}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Location */}
@@ -576,9 +516,6 @@ export function ActiveJobsitesView() {
                   <TableHead className="min-w-[200px] px-3 py-2 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider border-r border-border/60">
                     Jobsite Name
                   </TableHead>
-                  <TableHead className="min-w-[160px] px-3 py-2 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider border-r border-border/60">
-                    Company
-                  </TableHead>
                   <TableHead className="min-w-[170px] px-3 py-2 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider border-r border-border/60">
                     Location
                   </TableHead>
@@ -618,12 +555,6 @@ export function ActiveJobsitesView() {
                         <div className="flex flex-col">
                           <span className="hover:text-primary transition-colors">{site.name}</span>
                           {site.trade && <span className="text-[10px] text-muted-foreground font-normal">{site.trade}</span>}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-3 py-1.5 text-muted-foreground border-r border-border/50">
-                        <div className="flex items-center gap-1.5 font-medium text-foreground">
-                          <Building2 className="size-3 text-primary shrink-0" />
-                          <span className="truncate">{site.companyName || "—"}</span>
                         </div>
                       </TableCell>
                       <TableCell className="px-3 py-1.5 text-muted-foreground border-r border-border/50 truncate max-w-[200px]">
@@ -788,7 +719,7 @@ export function ActiveJobsitesView() {
         open={isFormOpen}
         isNew={isNew}
         initialData={editingSite}
-        companies={allAvailableCompanies}
+        companies={[]}
         saving={saving}
         onClose={() => setIsFormOpen(false)}
         onSave={handleSaveJobsite}

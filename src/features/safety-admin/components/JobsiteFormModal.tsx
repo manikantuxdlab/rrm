@@ -62,9 +62,6 @@ export function JobsiteFormModal({
 }: Props) {
   const [name, setName] = React.useState("")
   const [jobNumber, setJobNumber] = React.useState("")
-  const [companyName, setCompanyName] = React.useState("")
-  const [isCustomCompany, setIsCustomCompany] = React.useState(false)
-  const [customCompanyName, setCustomCompanyName] = React.useState("")
   const [status, setStatus] = React.useState<JobSite["status"]>("active")
   const [trade, setTrade] = React.useState("")
   const [activeCrewCount, setActiveCrewCount] = React.useState(0)
@@ -106,15 +103,6 @@ export function JobsiteFormModal({
     if (initialData && !isNew) {
       setName(initialData.name || "")
       setJobNumber(initialData.jobNumber || "")
-      const comp = initialData.companyName || ""
-      setCompanyName(comp)
-      if (comp && !companies.includes(comp)) {
-        setIsCustomCompany(true)
-        setCustomCompanyName(comp)
-      } else {
-        setIsCustomCompany(false)
-        setCustomCompanyName("")
-      }
       setStatus(initialData.status || "active")
       setTrade(initialData.trade || "")
       setActiveCrewCount(initialData.activeCrewCount || 0)
@@ -140,9 +128,6 @@ export function JobsiteFormModal({
       // Default new
       setName("")
       setJobNumber(`TST-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`)
-      setCompanyName(companies[0] || "")
-      setIsCustomCompany(false)
-      setCustomCompanyName("")
       setStatus("active")
       setTrade("")
       setActiveCrewCount(0)
@@ -196,7 +181,6 @@ export function JobsiteFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const selectedCompany = isCustomCompany ? customCompanyName.trim() : companyName.trim()
 
     if (!name.trim()) {
       setErrorMsg("Jobsite Name is required.")
@@ -206,16 +190,12 @@ export function JobsiteFormModal({
       setErrorMsg("Job Number is required.")
       return
     }
-    if (!selectedCompany) {
-      setErrorMsg("Please select or specify a Company.")
-      return
-    }
 
     const payload: JobSite = {
       id: initialData?.id || `job-${Date.now()}`,
       name: name.trim(),
       jobNumber: jobNumber.trim(),
-      companyName: selectedCompany,
+      companyName: initialData?.companyName || "Titan Construction & Safety",
       status,
       trade: trade.trim(),
       activeCrewCount: Number(activeCrewCount) || 0,
@@ -280,60 +260,21 @@ export function JobsiteFormModal({
               </div>
             )}
 
-            {/* 1. Basic Site Info & Company Assignment */}
+            {/* 1. Basic Site Info */}
             <div className="space-y-3">
-              <SectionHeading title="1. Project Profile & Company Assignment" icon={Building2} />
+              <SectionHeading title="1. Project Profile & Operational Scope" icon={Building2} />
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormField label="Assigned Company" required>
-                  {!isCustomCompany ? (
-                    <div className="space-y-1.5">
-                      <select
-                        className={selectCls}
-                        value={companyName}
-                        onChange={(e) => {
-                          if (e.target.value === "__custom__") {
-                            setIsCustomCompany(true)
-                            setCustomCompanyName("")
-                          } else {
-                            setCompanyName(e.target.value)
-                          }
-                        }}
-                      >
-                        <option value="">Select Company...</option>
-                        {companies.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                        <option value="__custom__">+ Enter Custom Company...</option>
-                      </select>
-                    </div>
-                  ) : (
-                    <div className="flex gap-1.5 items-center">
-                      <Input
-                        className={inputCls}
-                        placeholder="Enter company name..."
-                        value={customCompanyName}
-                        onChange={(e) => setCustomCompanyName(e.target.value)}
-                        autoFocus
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setIsCustomCompany(false)
-                          setCompanyName(companies[0] || "")
-                        }}
-                        className="h-8.5 text-[11px] px-2 text-muted-foreground hover:text-foreground shrink-0"
-                      >
-                        Choose Existing
-                      </Button>
-                    </div>
-                  )}
-                </FormField>
-
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <FormField label="Jobsite Name" required>
+                    <Input
+                      className={inputCls}
+                      placeholder="e.g. Test Site Alpha - Downtown Tower"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </FormField>
+                </div>
                 <FormField label="Status">
                   <select
                     className={selectCls}
@@ -348,34 +289,27 @@ export function JobsiteFormModal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <FormField label="Jobsite Name" required>
+                <div className="sm:col-span-1">
+                  <FormField label="Job Number" required>
                     <Input
                       className={inputCls}
-                      placeholder="e.g. Test Site Alpha - Downtown Tower"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. TST-2026-001"
+                      value={jobNumber}
+                      onChange={(e) => setJobNumber(e.target.value)}
                     />
                   </FormField>
                 </div>
-                <FormField label="Job Number" required>
-                  <Input
-                    className={inputCls}
-                    placeholder="e.g. TST-2026-001"
-                    value={jobNumber}
-                    onChange={(e) => setJobNumber(e.target.value)}
-                  />
-                </FormField>
+                <div className="sm:col-span-2">
+                  <FormField label="Trade / Scope">
+                    <Input
+                      className={inputCls}
+                      placeholder="e.g. Concrete & Masonry, Framing"
+                      value={trade}
+                      onChange={(e) => setTrade(e.target.value)}
+                    />
+                  </FormField>
+                </div>
               </div>
-
-              <FormField label="Trade / Scope">
-                  <Input
-                    className={inputCls}
-                    placeholder="e.g. Concrete & Masonry, Framing"
-                    value={trade}
-                    onChange={(e) => setTrade(e.target.value)}
-                  />
-                </FormField>
             </div>
 
             {/* 2. Physical Location / Address */}
