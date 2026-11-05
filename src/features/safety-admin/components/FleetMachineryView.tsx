@@ -523,19 +523,35 @@ export function FleetMachineryView({
                   Field Delivery & VIN Evidence Attachments
                 </span>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 rounded-2xl bg-muted/30 border border-border text-center space-y-1">
+                  <div className="p-3 rounded-2xl bg-muted/30 border border-border text-center space-y-1.5 overflow-hidden">
                     <div className="text-[11px] font-bold text-foreground">VIN / Data Plate Stamping</div>
-                    <Badge variant="outline" className="text-[9.5px] text-emerald-700 bg-emerald-500/10">
-                      OCR 99.4% Verified
-                    </Badge>
-                    <p className="text-[10px] text-muted-foreground font-mono pt-1">photo_plate_cat289.jpg</p>
+                    {inspectingItem.platePhotoUri && (inspectingItem.platePhotoUri.startsWith("data:") || inspectingItem.platePhotoUri.startsWith("http")) ? (
+                      <div className="h-28 w-full rounded-xl overflow-hidden border border-border bg-black/10">
+                        <img src={inspectingItem.platePhotoUri} alt="Plate" className="size-full object-cover" />
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="text-[9.5px] text-emerald-700 bg-emerald-500/10">
+                        Physical Plate Documented
+                      </Badge>
+                    )}
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">
+                      {inspectingItem.platePhotoUri?.startsWith("data:") ? "Uploaded Evidence Photo" : (inspectingItem.platePhotoUri || "Plate Photo Attached")}
+                    </p>
                   </div>
-                  <div className="p-3 rounded-2xl bg-muted/30 border border-border text-center space-y-1">
+                  <div className="p-3 rounded-2xl bg-muted/30 border border-border text-center space-y-1.5 overflow-hidden">
                     <div className="text-[11px] font-bold text-foreground">Gate Delivery Condition</div>
-                    <Badge variant="outline" className="text-[9.5px] text-emerald-700 bg-emerald-500/10">
-                      Zero Mechanical Damage
-                    </Badge>
-                    <p className="text-[10px] text-muted-foreground font-mono pt-1">Delivery_Condition_CAT289.jpg</p>
+                    {inspectingItem.deliveryPhotoUri && (inspectingItem.deliveryPhotoUri.startsWith("data:") || inspectingItem.deliveryPhotoUri.startsWith("http")) ? (
+                      <div className="h-28 w-full rounded-xl overflow-hidden border border-border bg-black/10">
+                        <img src={inspectingItem.deliveryPhotoUri} alt="Delivery" className="size-full object-cover" />
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="text-[9.5px] text-emerald-700 bg-emerald-500/10">
+                        Gate Delivery Proof
+                      </Badge>
+                    )}
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">
+                      {inspectingItem.deliveryPhotoUri?.startsWith("data:") ? "Uploaded Gate Photo" : (inspectingItem.deliveryPhotoUri || "Delivery Condition Photo")}
+                    </p>
                   </div>
                 </div>
               </div>
