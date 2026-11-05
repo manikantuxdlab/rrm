@@ -247,10 +247,27 @@ export function SubmissionDetailModal({
       "failedCount",
       "naCount",
       "totalItems",
+      "documentUrl",
+      "document_url",
+      "html",
+      "reportHtml",
     ])
     return Object.entries(submission.data).filter(([key, val]) => {
       if (excludedKeys.has(key)) return false
       if (val === null || val === undefined) return false
+
+      // Filter out raw base64 data URIs or raw HTML text strings
+      if (typeof val === "string") {
+        if (
+          val.startsWith("data:text/html") ||
+          val.startsWith("data:image/") ||
+          val.startsWith("data:application/") ||
+          val.includes("<!DOCTYPE html>") ||
+          val.length > 500
+        ) {
+          return false
+        }
+      }
       if (typeof val === "object") {
         if (Array.isArray(val)) {
           // If array contains any objects, skip it

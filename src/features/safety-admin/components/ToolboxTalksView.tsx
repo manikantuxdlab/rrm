@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { toolboxAdminService } from "@/services"
 import type { SubmissionRecord, ToolboxTopic } from "@/types"
@@ -72,6 +73,10 @@ export function ToolboxTalksView({
   // View Mode: Table (default) vs Grid Cards (Independent for Library & Rosters)
   const [libraryViewMode, setLibraryViewMode] = React.useState<"table" | "grid">("table")
   const [rostersViewMode, setRostersViewMode] = React.useState<"table" | "grid">("table")
+
+  // Checkbox selections for Library & Rosters
+  const [selectedTopicIds, setSelectedTopicIds] = React.useState<string[]>([])
+  const [selectedRosterIds, setSelectedRosterIds] = React.useState<string[]>([])
 
   // Topic View Drawer (Row click sheet open)
   const [viewingTopic, setViewingTopic] = React.useState<ToolboxTopic | null>(null)
@@ -413,6 +418,25 @@ export function ToolboxTalksView({
               <Table>
                 <TableHeader className="bg-muted/40">
                   <TableRow>
+                    <TableHead className="w-9 px-2 py-2 text-center">
+                      <Checkbox
+                        checked={
+                          filteredTopics.length > 0 &&
+                          filteredTopics.every((t) => selectedTopicIds.includes(t.id))
+                        }
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            const currentIds = filteredTopics.map((t) => t.id)
+                            setSelectedTopicIds(Array.from(new Set([...selectedTopicIds, ...currentIds])))
+                          } else {
+                            const currentIds = new Set(filteredTopics.map((t) => t.id))
+                            setSelectedTopicIds(selectedTopicIds.filter((id) => !currentIds.has(id)))
+                          }
+                        }}
+                        aria-label="Select all topics"
+                        className="size-3.5 mx-auto"
+                      />
+                    </TableHead>
                     <TableHead className="w-[85px] font-bold">Topic #</TableHead>
                     <TableHead className="font-bold">Topic Title (EN / ES)</TableHead>
                     <TableHead className="font-bold">OSHA Standard</TableHead>
@@ -427,8 +451,29 @@ export function ToolboxTalksView({
                     <TableRow
                       key={topic.id}
                       onClick={() => handleOpenView(topic)}
-                      className="hover:bg-muted/30 transition-colors cursor-pointer group"
+                      className={`hover:bg-muted/30 transition-colors cursor-pointer group ${
+                        selectedTopicIds.includes(topic.id) ? "bg-primary/5" : ""
+                      }`}
                     >
+                      {/* Checkbox */}
+                      <TableCell
+                        className="w-9 px-2 py-2 text-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={selectedTopicIds.includes(topic.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedTopicIds([...selectedTopicIds, topic.id])
+                            } else {
+                              setSelectedTopicIds(selectedTopicIds.filter((id) => id !== topic.id))
+                            }
+                          }}
+                          aria-label={`Select topic ${topic.titleEn}`}
+                          className="size-3.5 mx-auto"
+                        />
+                      </TableCell>
+
                       {/* Topic Number */}
                       <TableCell>
                         <span className="inline-flex size-7 rounded-lg bg-primary/10 text-primary font-mono font-bold text-xs items-center justify-center">
@@ -711,6 +756,25 @@ export function ToolboxTalksView({
               <Table>
                 <TableHeader className="bg-muted/40">
                   <TableRow>
+                    <TableHead className="w-9 px-2 py-2 text-center">
+                      <Checkbox
+                        checked={
+                          filteredSubmissions.length > 0 &&
+                          filteredSubmissions.every((s) => selectedRosterIds.includes(s.id))
+                        }
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            const currentIds = filteredSubmissions.map((s) => s.id)
+                            setSelectedRosterIds(Array.from(new Set([...selectedRosterIds, ...currentIds])))
+                          } else {
+                            const currentIds = new Set(filteredSubmissions.map((s) => s.id))
+                            setSelectedRosterIds(selectedRosterIds.filter((id) => !currentIds.has(id)))
+                          }
+                        }}
+                        aria-label="Select all rosters"
+                        className="size-3.5 mx-auto"
+                      />
+                    </TableHead>
                     <TableHead className="w-[100px] font-bold">Topic #</TableHead>
                     <TableHead className="font-bold">Topic & Module Title</TableHead>
                     <TableHead className="font-bold">Jobsite & Project</TableHead>
@@ -729,7 +793,30 @@ export function ToolboxTalksView({
                     const documentUrl = sub.data?.documentUrl
 
                     return (
-                      <TableRow key={sub.id} className="hover:bg-muted/30 transition-colors">
+                      <TableRow
+                        key={sub.id}
+                        className={`hover:bg-muted/30 transition-colors ${
+                          selectedRosterIds.includes(sub.id) ? "bg-primary/5" : ""
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <TableCell
+                          className="w-9 px-2 py-2 text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox
+                            checked={selectedRosterIds.includes(sub.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedRosterIds([...selectedRosterIds, sub.id])
+                              } else {
+                                setSelectedRosterIds(selectedRosterIds.filter((id) => id !== sub.id))
+                              }
+                            }}
+                            aria-label={`Select roster ${sub.title}`}
+                            className="size-3.5 mx-auto"
+                          />
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"

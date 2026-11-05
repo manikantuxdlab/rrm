@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -66,6 +67,9 @@ export function ActiveJobsitesView() {
   // Pagination
   const [currentPage, setCurrentPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState(12)
+
+  // Selection state
+  const [selectedSiteIds, setSelectedSiteIds] = React.useState<string[]>([])
 
   // Modals state
   const [viewingSite, setViewingSite] = React.useState<JobSite | null>(null)
@@ -507,6 +511,25 @@ export function ActiveJobsitesView() {
             <Table className="w-full border-collapse text-xs">
               <TableHeader className="bg-muted/60 border-b border-border/80 sticky top-0 z-10">
                 <TableRow className="h-8.5 hover:bg-transparent">
+                  <TableHead className="w-9 px-2 py-2 text-center border-r border-border/60">
+                    <Checkbox
+                      checked={
+                        paginatedSites.length > 0 &&
+                        paginatedSites.every((s) => selectedSiteIds.includes(s.id))
+                      }
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          const currentIds = paginatedSites.map((s) => s.id)
+                          setSelectedSiteIds(Array.from(new Set([...selectedSiteIds, ...currentIds])))
+                        } else {
+                          const currentIds = new Set(paginatedSites.map((s) => s.id))
+                          setSelectedSiteIds(selectedSiteIds.filter((id) => !currentIds.has(id)))
+                        }
+                      }}
+                      aria-label="Select all jobsites"
+                      className="size-3.5 mx-auto"
+                    />
+                  </TableHead>
                   <TableHead className="w-11 px-2.5 py-2 font-semibold text-muted-foreground text-[11px] text-center uppercase tracking-wider border-r border-border/60">
                     #
                   </TableHead>
@@ -541,8 +564,27 @@ export function ActiveJobsitesView() {
                     <TableRow
                       key={site.id}
                       onClick={() => setViewingSite(site)}
-                      className="h-9 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.08] transition-colors cursor-pointer group even:bg-muted/[0.12]"
+                      className={`h-9 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.08] transition-colors cursor-pointer group even:bg-muted/[0.12] ${
+                        selectedSiteIds.includes(site.id) ? "bg-primary/5" : ""
+                      }`}
                     >
+                      <TableCell
+                        className="w-9 px-2 py-1.5 text-center border-r border-border/50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={selectedSiteIds.includes(site.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedSiteIds([...selectedSiteIds, site.id])
+                            } else {
+                              setSelectedSiteIds(selectedSiteIds.filter((id) => id !== site.id))
+                            }
+                          }}
+                          aria-label={`Select jobsite ${site.name}`}
+                          className="size-3.5 mx-auto"
+                        />
+                      </TableCell>
                       <TableCell className="w-11 px-2.5 py-1.5 text-center font-mono text-[10px] text-muted-foreground border-r border-border/50">
                         {rowNumber}
                       </TableCell>

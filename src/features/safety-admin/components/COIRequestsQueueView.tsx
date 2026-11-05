@@ -22,6 +22,7 @@ import {
   MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -56,6 +57,9 @@ export function COIRequestsQueueView() {
   // Selected request for view/inspect sheet (issued or preview)
   const [viewingRequest, setViewingRequest] = useState<CoiRequestRecord | null>(null)
   const [pdfDataUri, setPdfDataUri] = useState<string | null>(null)
+
+  // Selection state
+  const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([])
 
   useEffect(() => {
     loadRequests()
@@ -278,6 +282,25 @@ export function COIRequestsQueueView() {
           <table className="w-full text-xs text-left">
             <thead className="bg-muted/50 text-muted-foreground font-semibold border-b border-border">
               <tr>
+                <th className="py-2.5 px-3 w-9 text-center">
+                  <Checkbox
+                    checked={
+                      filtered.length > 0 &&
+                      filtered.every((r) => selectedRequestIds.includes(r.id))
+                    }
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        const currentIds = filtered.map((r) => r.id)
+                        setSelectedRequestIds(Array.from(new Set([...selectedRequestIds, ...currentIds])))
+                      } else {
+                        const currentIds = new Set(filtered.map((r) => r.id))
+                        setSelectedRequestIds(selectedRequestIds.filter((id) => !currentIds.has(id)))
+                      }
+                    }}
+                    aria-label="Select all requests"
+                    className="size-3.5 mx-auto"
+                  />
+                </th>
                 <th className="py-2.5 px-3">CERTIFICATE HOLDER</th>
                 <th className="py-2.5 px-3">JOBSITE / PROJECT</th>
                 <th className="py-2.5 px-3">REQUESTED BY</th>
@@ -292,8 +315,27 @@ export function COIRequestsQueueView() {
                 <tr
                   key={req.id}
                   onClick={() => handleViewRequest(req)}
-                  className="hover:bg-muted/40 transition-colors cursor-pointer group"
+                  className={`hover:bg-muted/40 transition-colors cursor-pointer group ${
+                    selectedRequestIds.includes(req.id) ? "bg-primary/5" : ""
+                  }`}
                 >
+                  <td
+                    className="py-2.5 px-3 w-9 text-center align-top"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedRequestIds.includes(req.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedRequestIds([...selectedRequestIds, req.id])
+                        } else {
+                          setSelectedRequestIds(selectedRequestIds.filter((id) => id !== req.id))
+                        }
+                      }}
+                      aria-label={`Select request ${req.holderName}`}
+                      className="size-3.5 mx-auto mt-0.5"
+                    />
+                  </td>
                   <td className="py-2.5 px-3 align-top">
                     <div className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
                       <span>{req.holderName}</span>
