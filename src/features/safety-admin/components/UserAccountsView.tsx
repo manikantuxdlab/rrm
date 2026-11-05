@@ -353,7 +353,7 @@ export function UserAccountsView() {
       //   assignedJobsites: [finalJobsiteId],
       // })
               languagePreference: editLanguage,
-        assignedJobsites: editRole === "foreman" ? [finalJobsiteId] : [],
+        assignedJobsites: finalJobsiteId ? [finalJobsiteId] : [],
       })
 
       if (error) {
