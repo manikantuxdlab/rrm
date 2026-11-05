@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { coiService } from "@/services/coiService"
-import { downloadAcord25Pdf } from "@/lib/acord25Generator"
+import { downloadAcord25Pdf, getAcord25PdfDataUri } from "@/lib/acord25Generator"
 import type { CoiRequestRecord } from "@/types"
 import {
   FileCheck2,
@@ -17,11 +17,21 @@ import {
   Building2,
   User,
   Calendar,
+  Eye,
+  ExternalLink,
+  MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Sheet,
   SheetContent,
@@ -43,6 +53,10 @@ export function COIRequestsQueueView() {
   const [underwriterNotes, setUnderwriterNotes] = useState("")
   const [customSigner, setCustomSigner] = useState("David A. Rosenthal, Certified Underwriter")
 
+  // Selected request for view/inspect sheet (issued or preview)
+  const [viewingRequest, setViewingRequest] = useState<CoiRequestRecord | null>(null)
+  const [pdfDataUri, setPdfDataUri] = useState<string | null>(null)
+
   useEffect(() => {
     loadRequests()
   }, [])
@@ -52,6 +66,17 @@ export function COIRequestsQueueView() {
     const data = await coiService.fetchRequests()
     setRequests(data)
     setIsLoading(false)
+  }
+
+  const handleViewRequest = (req: CoiRequestRecord) => {
+    setViewingRequest(req)
+    try {
+      const uri = getAcord25PdfDataUri(req)
+      setPdfDataUri(uri)
+    } catch (e) {
+      console.error("Error generating PDF preview data URI:", e)
+      setPdfDataUri(null)
+    }
   }
 
   const handleApproveAndIssue = async () => {
@@ -264,9 +289,15 @@ export function COIRequestsQueueView() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((req) => (
-                <tr key={req.id} className="hover:bg-muted/30 transition-colors">
+                <tr
+                  key={req.id}
+                  onClick={() => handleViewRequest(req)}
+                  className="hover:bg-muted/40 transition-colors cursor-pointer group"
+                >
                   <td className="py-2.5 px-3 align-top">
-                    <div className="font-semibold text-foreground">{req.holderName}</div>
+                    <div className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                      <span>{req.holderName}</span>
+                    </div>
                     <div className="text-[11px] text-muted-foreground line-clamp-1 max-w-[220px]">
                       {req.holderAddress}
                     </div>
@@ -343,27 +374,54 @@ export function COIRequestsQueueView() {
                     )}
                   </td>
 
-                  <td className="py-2.5 px-3 align-top text-right">
-                    {req.status === "issued" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => downloadAcord25Pdf(req)}
-                        className="h-8 text-xs gap-1 font-semibold text-primary border-primary/30"
-                      >
-                        <Download className="size-3" />
-                        Download ACORD 25
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => setSelectedRequest(req)}
-                        className="h-8 text-xs gap-1 font-bold bg-primary text-primary-foreground shadow-xs"
-                      >
-                        <ShieldCheck className="size-3.5" />
-                        Process &amp; Issue
-                      </Button>
-                    )}
+                  <td
+                    className="py-2.5 px-3 align-top text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
+                            <MoreVertical className="size-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem
+                            onClick={() => handleViewRequest(req)}
+                            className="cursor-pointer gap-2 text-xs"
+                          >
+                            <Eye className="size-3.5 text-muted-foreground" />
+                            <span>View Details Sheet</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={() => downloadAcord25Pdf(req)}
+                            className="cursor-pointer gap-2 text-xs font-medium text-primary"
+                          >
+                            <Download className="size-3.5" />
+                            <span>Download ACORD 25</span>
+                          </DropdownMenuItem>
+
+                          {req.status !== "issued" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setSelectedRequest(req)}
+                                className="cursor-pointer gap-2 text-xs font-semibold text-emerald-600 focus:text-emerald-700 dark:text-emerald-400"
+                              >
+                                <ShieldCheck className="size-3.5" />
+                                <span>Process &amp; Issue</span>
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -527,6 +585,224 @@ export function COIRequestsQueueView() {
                 </>
               )}
             </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* View & Inspect COI Record Sheet (Row Click / Preview Sheet) */}
+      <Sheet open={!!viewingRequest} onOpenChange={(open) => !open && setViewingRequest(null)}>
+        <SheetContent side="right" className="sm:max-w-2xl md:max-w-3xl w-full flex flex-col p-0 gap-0 shadow-2xl bg-card">
+          <SheetHeader className="p-5 pb-4 border-b border-border bg-muted/20">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                  COI RECORD AUDIT
+                </span>
+                {viewingRequest?.status === "issued" ? (
+                  <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/30 bg-emerald-500/10 font-mono">
+                    <CheckCircle2 className="size-3 mr-1" /> ACORD 25 Issued
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-500/30 bg-amber-500/10 font-mono">
+                    <Clock className="size-3 mr-1" /> Pending Underwriter
+                  </Badge>
+                )}
+              </div>
+              {viewingRequest?.urgency === "crew_stopped" && (
+                <span className="text-[10px] font-bold text-red-600 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <AlertTriangle className="size-3" /> Priority SLA
+                </span>
+              )}
+            </div>
+            <SheetTitle className="text-base font-bold text-foreground tracking-tight mt-1">
+              {viewingRequest?.holderName}
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
+              Official ACORD 25 Certificate Details &amp; Live Underwriter Record
+            </SheetDescription>
+          </SheetHeader>
+
+          {viewingRequest && (
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+              {/* Holder & Jobsite Context */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="size-3.5 text-primary" /> Certificate Holder Information
+                  </span>
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    Job #{viewingRequest.jobNumber || "TST-2026"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block font-medium">Certificate Holder</span>
+                    <span className="font-semibold text-foreground text-sm">{viewingRequest.holderName}</span>
+                    <span className="text-muted-foreground block text-[11px] mt-0.5">{viewingRequest.holderAddress}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block font-medium">Attention &amp; Delivery Email</span>
+                    <span className="font-mono text-primary text-[11px] block">{viewingRequest.holderEmail}</span>
+                    <div className="text-[11px] text-muted-foreground mt-1">
+                      Project: <span className="font-medium text-foreground">{viewingRequest.jobSiteName}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border flex flex-wrap items-center justify-between text-[11px] gap-2">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <User className="size-3.5 text-primary" />
+                    <span>Requested by: <strong className="text-foreground">{viewingRequest.requestedByName}</strong> ({viewingRequest.requestedByRole})</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground font-mono text-[10px]">
+                    <Calendar className="size-3 text-muted-foreground" />
+                    <span>{new Date(viewingRequest.createdAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coverages & Limits Breakdown */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-2.5">
+                <span className="font-bold text-xs flex items-center gap-1.5 text-foreground">
+                  <ShieldCheck className="size-4 text-primary" /> Required Coverage Schedule
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <div className="p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                    <span className="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-400 block">General Liability</span>
+                    <span className="text-xs font-bold text-foreground font-mono">$1M / $2M</span>
+                    <span className="text-[9.5px] text-muted-foreground block mt-0.5">Travelers Prop &amp; Cas</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
+                    <span className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-400 block">Automobile Liab</span>
+                    <span className="text-xs font-bold text-foreground font-mono">$1M CSL</span>
+                    <span className="text-[9.5px] text-muted-foreground block mt-0.5">Liberty Mutual Fire</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-purple-500/5 border border-purple-500/20">
+                    <span className="text-[10px] uppercase font-bold text-purple-700 dark:text-purple-400 block">Excess / Umbrella</span>
+                    <span className="text-xs font-bold text-foreground font-mono">$5M Occur</span>
+                    <span className="text-[9.5px] text-muted-foreground block mt-0.5">Berkshire Hathaway Spec</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 block">Workers' Comp</span>
+                    <span className="text-xs font-bold text-foreground font-mono">$1M Statutory</span>
+                    <span className="text-[9.5px] text-muted-foreground block mt-0.5">State Comp Fund</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Endorsements & Legal Clauses */}
+              <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-1.5">
+                <span className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                  <FileText className="size-3.5 text-muted-foreground" /> Policy Endorsements &amp; Clauses
+                </span>
+                <div className="space-y-1 text-muted-foreground text-[11px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span>Additional Insured: Certificate Holder added on Primary &amp; Non-Contributory basis (CG 20 10 04 13 &amp; CG 20 37 04 13)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span>Waiver of Transfer of Rights of Recovery against Others applies per policy terms</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span>30-Day Notice of Cancellation provided in accordance with policy conditions</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Underwriter Status Info (If Issued) */}
+              {viewingRequest.status === "issued" && (
+                <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                      <CheckCircle2 className="size-4" /> Certificate Issued &amp; Dispatched
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {viewingRequest.issuedAt ? new Date(viewingRequest.issuedAt).toLocaleString() : "Recently"}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-foreground font-medium">
+                    Authorized Signer: <span className="font-semibold">{viewingRequest.issuedByName || "David A. Rosenthal, Certified Underwriter"}</span>
+                  </div>
+                  {viewingRequest.underwriterNotes && (
+                    <div className="text-[11px] text-muted-foreground italic">
+                      "{viewingRequest.underwriterNotes}"
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ACORD 25 Document Preview Frame */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs flex items-center gap-1.5 text-foreground">
+                    <FileCheck2 className="size-3.5 text-primary" /> ACORD 25 Document Preview
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => downloadAcord25Pdf(viewingRequest)}
+                    className="h-7 text-xs gap-1 text-primary hover:text-primary/80"
+                  >
+                    <ExternalLink className="size-3" />
+                    Open PDF in New Window
+                  </Button>
+                </div>
+                <div className="rounded-xl border border-border overflow-hidden bg-muted/40 h-[380px]">
+                  {pdfDataUri ? (
+                    <iframe
+                      src={pdfDataUri}
+                      title="ACORD 25 PDF Preview"
+                      className="w-full h-full border-0"
+                    />
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-xs">
+                      Loading PDF preview...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <SheetFooter className="p-4 border-t border-border bg-muted/20 flex flex-row items-center justify-between gap-2 mt-auto">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setViewingRequest(null)}
+              className="text-xs h-9 px-4"
+            >
+              Close
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => viewingRequest && downloadAcord25Pdf(viewingRequest)}
+                className="text-xs font-semibold gap-1.5 h-9 px-4 text-primary border-primary/30"
+              >
+                <Download className="size-3.5" />
+                Download ACORD 25
+              </Button>
+              {viewingRequest?.status !== "issued" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    const req = viewingRequest
+                    setViewingRequest(null)
+                    setSelectedRequest(req)
+                  }}
+                  className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-sm h-9 px-4"
+                >
+                  <ShieldCheck className="size-3.5" />
+                  Process &amp; Issue
+                </Button>
+              )}
+            </div>
           </SheetFooter>
         </SheetContent>
       </Sheet>

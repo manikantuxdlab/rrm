@@ -375,6 +375,14 @@ export function buildAcord25PdfDoc(request: CoiRequestRecord): jsPDF {
 }
 
 /**
+ * Generates an ACORD 25 PDF Data URL for iframe preview
+ */
+export function getAcord25PdfDataUri(request: CoiRequestRecord): string {
+  const doc = buildAcord25PdfDoc(request)
+  return doc.output("datauristring")
+}
+
+/**
  * Downloads ACORD 25 PDF directly and opens in native tab viewer
  */
 export function downloadAcord25Pdf(request: CoiRequestRecord): void {

@@ -27,8 +27,7 @@ export const coiService = {
               if (payload.type === "STATUS_UPDATE") {
                 list = list.map((item) => {
                   const isMatch =
-                    payload.id === "ALL" ||
-                    item.id === payload.id ||
+                    (payload.id && payload.id !== "ALL" && item.id === payload.id) ||
                     (payload.holderName && item.holderName?.toLowerCase().trim() === payload.holderName?.toLowerCase().trim())
 
                   if (isMatch) {
