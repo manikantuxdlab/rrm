@@ -24,13 +24,15 @@ export function AppLayout({ children, onDispatchAlert }: AppLayoutProps) {
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "13.5rem",
+          "--sidebar-width": "16.5rem",
+          "--sidebar-width-icon": "3.5rem",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
     >
       <AppSidebar
         variant="inset"
+        collapsible="icon"
         onQuickCreate={onDispatchAlert}
       />
       <SidebarInset>

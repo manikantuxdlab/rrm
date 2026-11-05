@@ -62,7 +62,7 @@ export function NavMain({
                   className={`cursor-pointer transition-colors text-sm ${
                     isActive
                       ? "bg-primary! text-primary-foreground! font-semibold shadow-xs hover:bg-primary! hover:text-primary-foreground! [&_svg]:text-primary-foreground!"
-                      : "hover:bg-muted/70 text-sidebar-foreground"
+                      : "hover:bg-muted/70 text-sidebar-foreground [&_svg]:text-primary"
                   }`}
                 >
                   {item.icon}

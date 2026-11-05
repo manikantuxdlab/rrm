@@ -56,24 +56,24 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground px-2"
             >
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
+              <Avatar className="h-8 w-8 rounded-lg grayscale shrink-0">
                 <AvatarImage src={user.avatar} alt={displayName} />
-                <AvatarFallback className="rounded-lg">SA</AvatarFallback>
+                <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-xs">SA</AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <div className="flex items-center gap-1.5">
-                  <span className="truncate font-medium">{displayName}</span>
-                  <span className="text-[10px] bg-[#ff4e00]/15 text-[#ff4e00] font-semibold px-1 rounded">
+              <div className="flex flex-col flex-1 min-w-0 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="truncate font-semibold text-xs text-foreground">{displayName}</span>
+                  <span className="text-[9px] bg-primary/15 text-primary font-bold px-1.5 py-0.5 rounded shrink-0">
                     {displayRole}
                   </span>
                 </div>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="truncate text-[11px] text-muted-foreground mt-0.5">
                   {displayEmail}
                 </span>
               </div>
-              <EllipsisVerticalIcon className="ml-auto size-4" />
+              <EllipsisVerticalIcon className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

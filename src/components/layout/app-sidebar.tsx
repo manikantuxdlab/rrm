@@ -39,16 +39,16 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 const moduleIconMap: Record<string, React.ReactNode> = {
-  dashboard: <LayoutDashboardIcon className="size-4" />,
-  users: <UsersIcon className="size-4" />,
-  jobsites: <Building2Icon className="size-4" />,
+  dashboard: <LayoutDashboardIcon className="size-4 text-primary" />,
+  users: <UsersIcon className="size-4 text-primary" />,
+  jobsites: <Building2Icon className="size-4 text-primary" />,
   checklists: <ClipboardCheckIcon className="size-4 text-primary" />,
-  "toolbox-talks": <ScrollText className="size-4" />,
-  fleet: <Truck className="size-4" />,
+  "toolbox-talks": <ScrollText className="size-4 text-primary" />,
+  fleet: <Truck className="size-4 text-primary" />,
   "coi-requests": <FileCheck2 className="size-4 text-primary" />,
-  workforce: <AwardIcon className="size-4" />,
-  faqs: <HelpCircle className="size-4" />,
-  tickets: <LifeBuoy className="size-4" />,
+  workforce: <AwardIcon className="size-4 text-primary" />,
+  faqs: <HelpCircle className="size-4 text-primary" />,
+  tickets: <LifeBuoy className="size-4 text-primary" />,
   settings: <Settings className="size-4 text-primary" />,
 }
 
@@ -81,7 +81,7 @@ export function AppSidebar({
   }, [])
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -90,7 +90,7 @@ export function AppSidebar({
               className="data-[slot=sidebar-menu-button]:p-1.5! cursor-pointer h-auto py-2"
               onClick={() => navigate("/dashboard")}
             >
-              <div className="flex items-center">
+              <div className="flex items-center group-data-[collapsible=icon]:justify-center">
                 <img
                   src="/logo.png"
                   alt={siteConfig.name}
