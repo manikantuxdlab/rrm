@@ -17,7 +17,7 @@ createRoot(document.getElementById("root")!).render(
     <Provider store={store}>
       <BrowserRouter>
         <ThemeProvider>
-          <TooltipProvider>
+          <TooltipProvider delayDuration={0} skipDelayDuration={0}>
             <App />
           </TooltipProvider>
         </ThemeProvider>

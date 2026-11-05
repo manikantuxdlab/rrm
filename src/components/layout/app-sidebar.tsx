@@ -39,17 +39,17 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 const moduleIconMap: Record<string, React.ReactNode> = {
-  dashboard: <LayoutDashboardIcon className="size-4 text-primary" />,
-  users: <UsersIcon className="size-4 text-primary" />,
-  jobsites: <Building2Icon className="size-4 text-primary" />,
-  checklists: <ClipboardCheckIcon className="size-4 text-primary" />,
-  "toolbox-talks": <ScrollText className="size-4 text-primary" />,
-  fleet: <Truck className="size-4 text-primary" />,
-  "coi-requests": <FileCheck2 className="size-4 text-primary" />,
-  workforce: <AwardIcon className="size-4 text-primary" />,
-  faqs: <HelpCircle className="size-4 text-primary" />,
-  tickets: <LifeBuoy className="size-4 text-primary" />,
-  settings: <Settings className="size-4 text-primary" />,
+  dashboard: <LayoutDashboardIcon className="size-5 shrink-0" />,
+  users: <UsersIcon className="size-5 shrink-0" />,
+  jobsites: <Building2Icon className="size-5 shrink-0" />,
+  checklists: <ClipboardCheckIcon className="size-5 shrink-0" />,
+  "toolbox-talks": <ScrollText className="size-5 shrink-0" />,
+  fleet: <Truck className="size-5 shrink-0" />,
+  "coi-requests": <FileCheck2 className="size-5 shrink-0" />,
+  workforce: <AwardIcon className="size-5 shrink-0" />,
+  faqs: <HelpCircle className="size-5 shrink-0" />,
+  tickets: <LifeBuoy className="size-5 shrink-0" />,
+  settings: <Settings className="size-5 shrink-0" />,
 }
 
 const documentIconMap: Record<string, React.ReactNode> = {

@@ -59,10 +59,10 @@ export function NavMain({
                   tooltip={item.title}
                   isActive={isActive}
                   onClick={() => navigate(targetPath)}
-                  className={`cursor-pointer transition-colors text-sm ${
+                  className={`cursor-pointer transition-colors text-sm h-9 rounded-lg ${
                     isActive
-                      ? "bg-primary! text-primary-foreground! font-semibold shadow-xs hover:bg-primary! hover:text-primary-foreground! [&_svg]:text-primary-foreground!"
-                      : "hover:bg-muted/70 text-sidebar-foreground [&_svg]:text-primary"
+                      ? "bg-primary! text-primary-foreground! font-semibold shadow-xs hover:bg-primary! hover:text-primary-foreground! [&_svg]:text-primary-foreground! [&_svg]:size-5"
+                      : "hover:bg-muted/70 text-sidebar-foreground [&_svg]:text-black dark:[&_svg]:text-white [&_svg]:size-5"
                   }`}
                 >
                   {item.icon}
