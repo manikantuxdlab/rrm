@@ -33,19 +33,13 @@ export function NavMain({
     if (item.key === "dashboard" && (location.pathname === "/" || location.pathname === "/dashboard")) {
       return true
     }
-    if (
-      item.key === "safety-config" &&
-      (location.pathname === "/checklists" ||
-        location.pathname === "/toolbox" ||
-        location.pathname === "/jha")
-    ) {
+    if (item.key === "toolbox-talks" && (location.pathname === "/toolbox-talks" || location.pathname === "/toolbox")) {
       return true
     }
-    if (
-      item.key === "submissions" &&
-      (location.pathname === "/incidents" ||
-        location.pathname === "/coi")
-    ) {
+    if (item.key === "fleet" && (location.pathname === "/fleet" || location.pathname === "/equipment")) {
+      return true
+    }
+    if (item.key === "coi-requests" && (location.pathname === "/coi-requests" || location.pathname === "/coi")) {
       return true
     }
     return false

@@ -24,7 +24,7 @@ export function AppLayout({ children, onDispatchAlert }: AppLayoutProps) {
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--sidebar-width": "13.5rem",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }

@@ -18,15 +18,14 @@ import {
   ClipboardCheckIcon,
   Building2Icon,
   AwardIcon,
-  BuildingIcon,
   UsersIcon,
-  BellRingIcon,
   FileTextIcon,
   HelpCircle,
   LifeBuoy,
   Settings,
   Truck,
   FileCheck2,
+  ScrollText,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -41,19 +40,15 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 const moduleIconMap: Record<string, React.ReactNode> = {
   dashboard: <LayoutDashboardIcon className="size-4" />,
-  checklists: <ClipboardCheckIcon className="size-4 text-primary" />,
-  companies: <BuildingIcon className="size-4" />,
   users: <UsersIcon className="size-4" />,
-  routing: <BellRingIcon className="size-4" />,
-  "safety-config": <ClipboardCheckIcon className="size-4" />,
   jobsites: <Building2Icon className="size-4" />,
+  checklists: <ClipboardCheckIcon className="size-4 text-primary" />,
+  "toolbox-talks": <ScrollText className="size-4" />,
+  fleet: <Truck className="size-4" />,
   "coi-requests": <FileCheck2 className="size-4 text-primary" />,
   workforce: <AwardIcon className="size-4" />,
-  fleet: <Truck className="size-4" />,
-  submissions: <FileTextIcon className="size-4" />,
   faqs: <HelpCircle className="size-4" />,
   tickets: <LifeBuoy className="size-4" />,
-  attendance: <FileTextIcon className="size-4" />,
   settings: <Settings className="size-4 text-primary" />,
 }
 
