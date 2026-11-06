@@ -28,6 +28,7 @@ import {
   Clock,
   ShieldCheck,
   HardHat,
+  Send,
 } from "lucide-react"
 import {
   Sheet,
@@ -151,6 +152,7 @@ export function SubmissionDetailModal({
   )
   const [isUpdatingApproval, setIsUpdatingApproval] = React.useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
+  const [showRevisionForm, setShowRevisionForm] = React.useState(false)
 
   React.useEffect(() => {
     if (submission) {
@@ -158,6 +160,7 @@ export function SubmissionDetailModal({
       setApprovalNotes(submission.approvalNotes || submission.data?.approvalNotes || "")
       setApprovedBy(submission.approvedBy || submission.data?.approvedBy || "")
       setApprovedAt(submission.approvedAt || submission.data?.approvedAt || "")
+      setShowRevisionForm(false)
     }
   }, [submission?.id, submission?.approvalStatus, submission?.data?.approvalStatus])
 
@@ -666,9 +669,9 @@ export function SubmissionDetailModal({
                   <button
                     type="button"
                     disabled={isUpdatingApproval}
-                    onClick={() => handleUpdateApproval("revision_requested")}
+                    onClick={() => setShowRevisionForm((prev) => !prev)}
                     className={`h-7 px-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 ${
-                      approvalStatus === "revision_requested"
+                      approvalStatus === "revision_requested" || showRevisionForm
                         ? "bg-amber-600 text-white shadow-2xs ring-2 ring-amber-500/30"
                         : "bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border border-amber-500/25"
                     }`}
@@ -693,25 +696,74 @@ export function SubmissionDetailModal({
                 </div>
               </div>
 
-              {/* Directives Note Input */}
-              <div className="flex items-center gap-2 pt-1.5 border-t border-border/50">
-                <input
-                  type="text"
-                  value={approvalNotes}
-                  onChange={(e) => setApprovalNotes(e.target.value)}
-                  placeholder="Compliance directives / reviewer notes (dispatched to Foreman & Boss)..."
-                  className="flex-1 h-8 px-3 text-xs rounded-xl border border-border/80 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={isUpdatingApproval}
-                  onClick={() => handleUpdateApproval(approvalStatus)}
-                  className="h-8 px-3 text-xs font-bold rounded-xl border-border/80 hover:bg-muted cursor-pointer shrink-0"
-                >
-                  Save Note
-                </Button>
-              </div>
+              {/* Revision Request Inline Drawer (Opened only when Request Revision button is clicked) */}
+              {showRevisionForm && (
+                <div className="pt-2.5 border-t border-amber-500/30 space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11.5px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                      <AlertTriangle className="size-3.5 text-amber-600 shrink-0" />
+                      Specify Revision Directives for Foreman & Boss:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowRevisionForm(false)}
+                      className="text-[11px] text-muted-foreground hover:text-foreground font-medium cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={approvalNotes}
+                    onChange={(e) => setApprovalNotes(e.target.value)}
+                    placeholder="e.g. Scaffolding guardrail deficiency requires photo remediation within 24h before clearance..."
+                    className="w-full p-2.5 text-xs rounded-xl border border-amber-500/35 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs resize-none"
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowRevisionForm(false)}
+                      className="h-7 px-2.5 text-xs cursor-pointer"
+                    >
+                      Dismiss
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={isUpdatingApproval || !approvalNotes.trim()}
+                      onClick={async () => {
+                        await handleUpdateApproval("revision_requested")
+                        setShowRevisionForm(false)
+                      }}
+                      className="h-7 px-3 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-2xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Send className="size-3" />
+                      Dispatch Revision Request
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Active Revision Directive Display (Compact notice when form is closed) */}
+              {!showRevisionForm && approvalStatus === "revision_requested" && approvalNotes && (
+                <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between gap-2 text-xs bg-amber-500/10 px-3 py-2 rounded-xl text-amber-900 dark:text-amber-200">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <AlertTriangle className="size-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <span className="truncate">
+                      <strong>Revision Directive:</strong> {approvalNotes}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowRevisionForm(true)}
+                    className="text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:underline shrink-0 cursor-pointer"
+                  >
+                    Edit Directive
+                  </button>
+                </div>
+              )}
 
               {(approvedBy || approvedAt) && (
                 <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 px-0.5 pt-0.5">
