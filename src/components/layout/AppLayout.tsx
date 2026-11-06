@@ -4,6 +4,7 @@ import { AppSidebar } from "./app-sidebar"
 import { SiteHeader } from "./site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { SAFETY_MODULES } from "@/config/navigation"
+import { GsapPageTransition } from "./GsapPageTransition"
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -42,12 +43,12 @@ export function AppLayout({ children, onDispatchAlert }: AppLayoutProps) {
           onDispatchAlert={onDispatchAlert}
         />
         <main className="flex flex-1 flex-col overflow-x-hidden">
-          <div
-            key={location.pathname + location.search}
-            className="@container/main flex flex-1 flex-col gap-4 p-4 lg:p-6 animate-page-in"
+          <GsapPageTransition
+            transitionKey={location.pathname + location.search}
+            className="@container/main flex flex-1 flex-col gap-4 p-4 lg:p-6"
           >
             {children}
-          </div>
+          </GsapPageTransition>
         </main>
       </SidebarInset>
     </SidebarProvider>

@@ -264,7 +264,7 @@ export function FaqManagementView() {
   }
 
   return (
-    <div className="space-y-4 animate-page-in">
+    <div className="space-y-4">
       {/* 1. Header Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div>

@@ -9,6 +9,7 @@ import { submissionsService } from "@/services/submissionsService"
 import { ChecklistImportModal } from "./ChecklistImportModal"
 import { ChecklistItemEditModal } from "./ChecklistItemEditModal"
 import { DeleteSubmissionDialog } from "./DeleteSubmissionDialog"
+import { GsapPageTransition } from "@/components/layout/GsapPageTransition"
 import { useAppDispatch, useAppSelector } from "@/store"
 import {
   setSelectedSiteId,
@@ -544,7 +545,7 @@ export function DailyChecklistsView({
       
 
       {activeTab === "checklist_manager" ? (
-        <div key="checklist_manager" className="space-y-3 animate-page-in">
+        <GsapPageTransition transitionKey="checklist_manager" className="space-y-3">
           {/* Category Filter Chips */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
@@ -660,10 +661,10 @@ export function DailyChecklistsView({
               </table>
             </CardContent>
           </Card>
-        </div>
+        </GsapPageTransition>
       ) : (
         /* Submitted Audits Tabular View */
-        <div key="audits" className="space-y-3 animate-page-in">
+        <GsapPageTransition transitionKey="audits" className="space-y-3">
           {/* Sub-bar: Filter buttons (Active, Archived, All) and Search */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="inline-flex flex-wrap items-center rounded-xl border border-border bg-muted p-1 text-xs gap-1">
@@ -936,7 +937,7 @@ export function DailyChecklistsView({
               </table>
             </CardContent>
           </Card>
-        </div>
+        </GsapPageTransition>
       )}
 
       {/* Delete Submission Custom Modal Dialog */}
