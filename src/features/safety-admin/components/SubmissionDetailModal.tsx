@@ -178,7 +178,23 @@ export function SubmissionDetailModal({
         setApprovalStatus(newStatus)
         setApprovedBy("Safety Director / Super Admin")
         setApprovedAt(new Date().toISOString())
-        toast.success(`Status updated: ${newStatus.replace("_", " ").toUpperCase()}`)
+        if (newStatus === "approved") {
+          toast.success("Audit Approved & Certified", {
+            description: "Compliance clearance authorized and synced.",
+          })
+        } else if (newStatus === "revision_requested") {
+          toast.warning("Revision Request Dispatched", {
+            description: "Directives dispatched to Foreman & Boss Console.",
+          })
+        } else if (newStatus === "rejected") {
+          toast.error("Audit Rejected", {
+            description: "Submission marked non-compliant for recordkeeping.",
+          })
+        } else {
+          toast.info("Status Updated", {
+            description: `Submission reset to ${newStatus.replace("_", " ")}.`,
+          })
+        }
       } else {
         toast.error("Failed to update approval status. Please verify your connection.")
       }

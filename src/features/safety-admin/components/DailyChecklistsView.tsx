@@ -48,6 +48,49 @@ import {
   XCircle,
 } from "lucide-react"
 
+// Helper to compute actual evidence photo count from all possible photo storage paths
+function getSubmissionPhotoCount(sub: SubmissionRecord): number {
+  const photoSet = new Set<string>()
+
+  // 1. Items in sub.data.items
+  if (Array.isArray(sub.data?.items)) {
+    sub.data.items.forEach((item: any) => {
+      if (item.photoUri && typeof item.photoUri === "string" && item.photoUri.trim()) {
+        photoSet.add(item.photoUri)
+      }
+      if (Array.isArray(item.photos)) {
+        item.photos.forEach((p: any) => {
+          if (p && typeof p === "string" && p.trim()) photoSet.add(p)
+        })
+      }
+    })
+  }
+
+  // 2. Photos array in sub.data.photos
+  if (Array.isArray(sub.data?.photos)) {
+    sub.data.photos.forEach((p: any) => {
+      if (p && typeof p === "string" && p.trim()) photoSet.add(p)
+    })
+  }
+
+  // 3. photoUrls array in sub.data.photoUrls
+  if (Array.isArray(sub.data?.photoUrls)) {
+    sub.data.photoUrls.forEach((p: any) => {
+      if (p && typeof p === "string" && p.trim()) photoSet.add(p)
+    })
+  }
+
+  // 4. Photos on top-level sub.photos
+  if (Array.isArray((sub as any).photos)) {
+    (sub as any).photos.forEach((p: any) => {
+      if (p && typeof p === "string" && p.trim()) photoSet.add(p)
+    })
+  }
+
+  if (photoSet.size > 0) return photoSet.size
+  return typeof sub.data?.photoCount === "number" ? sub.data.photoCount : 0
+}
+
 export function DailyChecklistsView({
   onSelectSubmission,
 }: {
@@ -501,7 +544,7 @@ export function DailyChecklistsView({
       
 
       {activeTab === "checklist_manager" ? (
-        <div className="space-y-3">
+        <div key="checklist_manager" className="space-y-3 animate-page-in">
           {/* Category Filter Chips */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
@@ -620,7 +663,7 @@ export function DailyChecklistsView({
         </div>
       ) : (
         /* Submitted Audits Tabular View */
-        <div className="space-y-3">
+        <div key="audits" className="space-y-3 animate-page-in">
           {/* Sub-bar: Filter buttons (Active, Archived, All) and Search */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="inline-flex flex-wrap items-center rounded-xl border border-border bg-muted p-1 text-xs gap-1">
@@ -698,8 +741,7 @@ export function DailyChecklistsView({
               <table className="w-full text-xs text-left">
                 <thead className="bg-muted/60 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Audit ID & Date</th>
-                    <th className="px-4 py-3 font-semibold">Inspection Scope</th>
+                    <th className="px-4 py-3 font-semibold">Date & Time</th>
                     <th className="px-4 py-3 font-semibold">Jobsite Location</th>
                     <th className="px-4 py-3 font-semibold">Foreman</th>
                     <th className="px-4 py-3 font-semibold">Audit Results</th>
@@ -710,14 +752,14 @@ export function DailyChecklistsView({
                 <tbody className="divide-y divide-border/60">
                   {isLoadingSubmissions ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-xs text-muted-foreground">
+                      <td colSpan={6} className="py-12 text-center text-xs text-muted-foreground">
                         <div className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent mb-2" />
                         <p>Loading field audits from Supabase cloud...</p>
                       </td>
                     </tr>
                   ) : filteredAudits.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-xs text-muted-foreground">
+                      <td colSpan={6} className="py-12 text-center text-xs text-muted-foreground">
                         <div className="size-10 rounded-full bg-muted mx-auto flex items-center justify-center text-muted-foreground mb-2">
                           <ClipboardCheck className="size-5 opacity-60" />
                         </div>
@@ -740,37 +782,34 @@ export function DailyChecklistsView({
                         onClick={() => onSelectSubmission(sub)}
                         className="hover:bg-muted/40 transition-colors cursor-pointer group"
                       >
-                        <td className="px-5 py-5 align-middle whitespace-nowrap">
-                          <div className="font-mono text-[11px] font-medium text-foreground tracking-tight">
-                            {sub.id}
+                        <td className="px-5 py-4 align-middle whitespace-nowrap">
+                          <div className="font-semibold text-xs text-foreground">
+                            {sub.timestamp ? sub.timestamp.split(",")[0] : new Date((sub as any).created_at || Date.now()).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
                           </div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5">
-                            {sub.timestamp}
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-5 align-middle max-w-sm">
-                          <div className="font-medium text-xs text-foreground group-hover:text-primary transition-colors leading-snug">
-                            {sub.title}
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <Badge variant="outline" className="text-[9px] h-4.5 px-1.5 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
-                              <CheckCircle2 className="size-2.5 mr-0.5" /> Cal/OSHA
-                            </Badge>
-                            {sub.recipients && sub.recipients.length > 0 && (
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={sub.recipients.join(", ")}>
-                                to: {sub.recipients[0]}
-                              </span>
+                          <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1.5 font-mono">
+                            <span>#{sub.id.replace("sub-", "").slice(0, 10)}</span>
+                            {sub.timestamp && sub.timestamp.includes(",") && (
+                              <span className="text-[10px] text-muted-foreground/80 font-sans">• {sub.timestamp.split(",")[1]?.trim()}</span>
                             )}
                           </div>
                         </td>
 
-                        <td className="px-5 py-5 align-middle">
-                          <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
+                        <td className="px-5 py-4 align-middle">
+                          <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground group-hover:text-primary transition-colors">
                             <Building2 className="size-3.5 text-primary shrink-0" />
-                            <span className="truncate max-w-[190px]" title={sub.jobSiteName}>
+                            <span className="truncate max-w-[260px]" title={sub.jobSiteName}>
                               {sub.jobSiteName}
                             </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {sub.data?.inspectingArea && (
+                              <span className="text-[11px] text-muted-foreground truncate max-w-[220px]" title={sub.data.inspectingArea}>
+                                Area: {sub.data.inspectingArea}
+                              </span>
+                            )}
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 font-medium">
+                              <CheckCircle2 className="size-2.5 mr-0.5" /> Cal/OSHA
+                            </Badge>
                           </div>
                         </td>
 
@@ -796,10 +835,15 @@ export function DailyChecklistsView({
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                              <Camera className="size-3 text-muted-foreground/70" />
-                              <span>{sub.data?.photoCount ?? 0} Evidence Photos</span>
-                            </div>
+                            {(() => {
+                              const photoCount = getSubmissionPhotoCount(sub)
+                              return (
+                                <div className={`text-[11px] flex items-center gap-1.5 ${photoCount > 0 ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                                  <Camera className={`size-3 ${photoCount > 0 ? "text-primary" : "text-muted-foreground/70"}`} />
+                                  <span>{photoCount} Evidence {photoCount === 1 ? "Photo" : "Photos"}</span>
+                                </div>
+                              )
+                            })()}
                           </div>
                         </td>
 

@@ -89,7 +89,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppContent />
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster position="top-center" closeButton />
     </AuthProvider>
   )
 }

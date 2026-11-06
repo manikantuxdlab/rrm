@@ -130,3 +130,26 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* Fast, smooth, clean hardware-accelerated page transitions */
+@keyframes pageIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-in {
+  animation: pageIn 175ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-in {
+    animation: none !important;
+  }
+}

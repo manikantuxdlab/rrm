@@ -232,6 +232,27 @@ export const ticketService = {
   },
 
   /**
+   * Update assignee/stage (e.g. escalated_to_admin vs company_level).
+   */
+  async updateTicketStage(id: string, stage: TicketStage): Promise<{ error: Error | null }> {
+    if (!isSupabaseConfigured) {
+      return { error: new Error("Supabase is not configured.") }
+    }
+
+    try {
+      const { error } = await supabase
+        .from("support_tickets")
+        .update({ stage, updated_at: new Date().toISOString() })
+        .eq("id", id)
+
+      if (error) return { error: new Error(error.message) }
+      return { error: null }
+    } catch (err: unknown) {
+      return { error: err instanceof Error ? err : new Error(String(err)) }
+    }
+  },
+
+  /**
    * Send a reply message to the ticket conversation.
    */
   async addTicketMessage(

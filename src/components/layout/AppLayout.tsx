@@ -41,8 +41,11 @@ export function AppLayout({ children, onDispatchAlert }: AppLayoutProps) {
           subtitle={currentModule.description}
           onDispatchAlert={onDispatchAlert}
         />
-        <main className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-4 p-4 lg:p-6">
+        <main className="flex flex-1 flex-col overflow-x-hidden">
+          <div
+            key={location.pathname + location.search}
+            className="@container/main flex flex-1 flex-col gap-4 p-4 lg:p-6 animate-page-in"
+          >
             {children}
           </div>
         </main>

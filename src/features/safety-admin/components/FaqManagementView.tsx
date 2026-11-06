@@ -28,14 +28,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -63,13 +55,13 @@ import { faqService } from "@/services"
 import { toast } from "sonner"
 import type { FAQItem, FAQCategory, FAQTargetAudience } from "@/types"
 
-const CATEGORY_LABELS: Record<FAQCategory, { label: string; color: string }> = {
-  general: { label: "General & Account", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  toolbox_talks: { label: "Toolbox Talks", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  coi_insurance: { label: "COI & Insurance", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-  incidents_claims: { label: "Incidents & Claims", color: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
-  mobile_app: { label: "Field Guidance", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  osha_compliance: { label: "OSHA Compliance", color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
+const CATEGORY_LABELS: Record<FAQCategory, { label: string; color: string; dotColor: string }> = {
+  general: { label: "General & Account", color: "bg-blue-500/10 text-blue-600 border-blue-500/20", dotColor: "bg-blue-500" },
+  toolbox_talks: { label: "Toolbox Talks", color: "bg-amber-500/10 text-amber-600 border-amber-500/20", dotColor: "bg-amber-500" },
+  coi_insurance: { label: "COI & Insurance", color: "bg-purple-500/10 text-purple-600 border-purple-500/20", dotColor: "bg-indigo-500" },
+  incidents_claims: { label: "Incidents & Claims", color: "bg-rose-500/10 text-rose-600 border-rose-500/20", dotColor: "bg-rose-500" },
+  mobile_app: { label: "Field Guidance", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", dotColor: "bg-emerald-500" },
+  osha_compliance: { label: "OSHA Compliance", color: "bg-orange-500/10 text-orange-600 border-orange-500/20", dotColor: "bg-orange-500" },
 }
 
 const AUDIENCE_LABELS: Record<FAQTargetAudience, { label: string; badge: string }> = {
@@ -93,9 +85,6 @@ export function FaqManagementView() {
   // Pagination state
   const [currentPage, setCurrentPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState(20)
-
-  // Selection state
-  const [selectedIds, setSelectedIds] = React.useState<(string | number)[]>([])
 
   // Modal / Sheet States
   const [isEditorOpen, setIsEditorOpen] = React.useState(false)
@@ -267,7 +256,6 @@ export function FaqManagementView() {
       toast.error(`Delete failed: ${error.message}`)
     } else {
       setFaqs((prev) => prev.filter((f) => f.id !== deletingFaq.id))
-      setSelectedIds((prev) => prev.filter((id) => id !== deletingFaq.id))
       toast.success("FAQ deleted from Supabase")
       setDeletingFaq(null)
     }
@@ -275,76 +263,146 @@ export function FaqManagementView() {
     setIsDeleting(false)
   }
 
-  const handleToggleSelectRow = (id: string | number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    )
-  }
-
-  const handleToggleSelectAll = () => {
-    const currentIds = paginatedFaqs.map((f) => f.id)
-    const isAllSelected = currentIds.every((id) => selectedIds.includes(id))
-    if (isAllSelected) {
-      setSelectedIds((prev) => prev.filter((id) => !currentIds.includes(String(id))))
-    } else {
-      setSelectedIds((prev) => Array.from(new Set([...prev, ...currentIds])))
-    }
-  }
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 animate-page-in">
       {/* 1. Header Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <HelpCircle className="size-5 text-primary" />
-              FAQ Management
-            </h1>
+            <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <HelpCircle className="size-4.5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">
+                FAQ & Knowledge Base
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Centralized answers, compliance procedures, and field instructions for foremen and contractors.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Centralized answers, compliance procedures & offline instructions accessible by Foremen, Bosses & Contractors.
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button
             onClick={handleOpenAdd}
-            className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold text-xs px-3.5 shadow-sm hover:bg-primary/90 cursor-pointer"
+            className="h-8.5 gap-1.5 bg-primary text-primary-foreground font-semibold text-xs px-3.5 shadow-2xs hover:bg-primary/90 cursor-pointer rounded-lg"
           >
-            <Plus className="size-4" />
+            <Plus className="size-3.5" />
             Add New FAQ
           </Button>
         </div>
       </div>
 
-      {/* 2. Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
-        {/* Left Side: Search Bar (Same width as User Management) */}
-        <div className="relative w-full sm:w-64 md:w-72 shrink-0">
-          <Search className="size-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
-          <Input
-            placeholder="Search FAQ question or answer..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value)
+      {/* 2. Unified Control Bar with Quick Tabs, Search & Dropdowns */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-2.5 rounded-xl bg-card border border-border/80 shadow-2xs">
+        {/* Quick Segment Filter Buttons */}
+        <div className="inline-flex rounded-lg border border-border bg-muted/60 p-1 text-xs gap-1 self-start lg:self-auto overflow-x-auto max-w-full">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedStatus("all")
+              setSelectedAudience("all")
               setCurrentPage(1)
             }}
-            className="pl-8 pr-7 text-xs h-8.5 bg-background rounded-lg border-border"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground cursor-pointer rounded-full p-0.5 hover:bg-muted"
-              title="Clear search"
-            >
-              <span className="text-xs font-semibold">✕</span>
-            </button>
-          )}
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              selectedStatus === "all" && selectedAudience === "all"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            All FAQs ({faqs.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedStatus("published")
+              setSelectedAudience("all")
+              setCurrentPage(1)
+            }}
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              selectedStatus === "published"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <CheckCircle2 className="size-3 text-emerald-600" />
+            Published ({faqs.filter((f) => f.status === "published").length})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedStatus("draft")
+              setSelectedAudience("all")
+              setCurrentPage(1)
+            }}
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              selectedStatus === "draft"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Clock className="size-3 text-amber-600" />
+            Drafts ({faqs.filter((f) => f.status === "draft").length})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedAudience("foreman")
+              setSelectedStatus("all")
+              setCurrentPage(1)
+            }}
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              selectedAudience === "foreman"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Foremen SOPs ({faqs.filter((f) => f.targetAudience === "foreman").length})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedAudience("boss")
+              setSelectedStatus("all")
+              setCurrentPage(1)
+            }}
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              selectedAudience === "boss"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Boss Guides ({faqs.filter((f) => f.targetAudience === "boss").length})
+          </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-start sm:justify-end">
+        {/* Right Search, Category & View Mode */}
+        <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
+          {/* Search Bar */}
+          <div className="relative flex-1 sm:w-64 md:w-72">
+            <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search question or answer..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="pl-8 pr-7 text-xs h-8.5 bg-background rounded-lg border-border/80 shadow-2xs"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer rounded-full p-0.5 hover:bg-muted"
+                title="Clear search"
+              >
+                <span className="text-xs font-semibold">✕</span>
+              </button>
+            )}
+          </div>
+
           {/* Category Filter */}
           <Select
             value={selectedCategory}
@@ -353,7 +411,7 @@ export function FaqManagementView() {
               setCurrentPage(1)
             }}
           >
-            <SelectTrigger className="h-9 w-[160px] text-xs bg-background">
+            <SelectTrigger className="h-8.5 w-[145px] text-xs bg-background rounded-lg border-border/80 shadow-2xs">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent className="text-xs">
@@ -367,266 +425,180 @@ export function FaqManagementView() {
             </SelectContent>
           </Select>
 
-          {/* Target Audience Filter */}
-          <Select
-            value={selectedAudience}
-            onValueChange={(val) => {
-              setSelectedAudience(val)
-              setCurrentPage(1)
-            }}
-          >
-            <SelectTrigger className="h-9 w-[140px] text-xs bg-background">
-              <SelectValue placeholder="Audience" />
-            </SelectTrigger>
-            <SelectContent className="text-xs">
-              <SelectItem value="all">All Audiences</SelectItem>
-              <SelectItem value="foreman">Field Foreman</SelectItem>
-              <SelectItem value="boss">Company Boss</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Status Filter */}
-          <Select
-            value={selectedStatus}
-            onValueChange={(val) => {
-              setSelectedStatus(val)
-              setCurrentPage(1)
-            }}
-          >
-            <SelectTrigger className="h-9 w-[130px] text-xs bg-background">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent className="text-xs">
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-
           {/* View Mode Toggle */}
-          <div className="flex items-center border border-border/80 rounded-lg p-0.5 bg-muted/30 shrink-0 h-9">
+          <div className="flex items-center border border-border/80 rounded-lg p-0.5 bg-muted/40 shrink-0 h-8.5">
             <button
               type="button"
               onClick={() => setViewMode("table")}
-              className={`p-1.5 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+              className={`p-1 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                 viewMode === "table"
-                  ? "bg-background text-foreground shadow-xs"
+                  ? "bg-background text-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
-              title="Table Grid View"
+              title="Table View"
             >
-              <List className="size-4" />
+              <List className="size-3.5" />
             </button>
             <button
               type="button"
               onClick={() => setViewMode("preview")}
-              className={`p-1.5 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+              className={`p-1 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                 viewMode === "preview"
-                  ? "bg-background text-foreground shadow-xs"
+                  ? "bg-background text-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
-              title="Card Preview Mode"
+              title="Card Preview"
             >
-              <LayoutGrid className="size-4" />
+              <LayoutGrid className="size-3.5" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* 3. Bulk Selection Indicator */}
-      {selectedIds.length > 0 && (
-        <div className="flex items-center justify-between px-3.5 py-2 rounded-lg bg-primary/10 border border-primary/20 text-xs">
-          <span className="font-semibold text-primary">
-            {selectedIds.length} FAQ{selectedIds.length > 1 ? "s" : ""} selected
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedIds([])}
-              className="h-7 text-xs px-2.5 bg-background hover:bg-muted border-border cursor-pointer"
-            >
-              Clear Selection
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* 4. Main Content: Table or Preview */}
       {viewMode === "table" ? (
-        <GlobalDataTable<FAQItem>
-          data={paginatedFaqs}
-          keyExtractor={(faq) => faq.id}
-          isLoading={isLoading}
-          loadingMessage="Loading FAQs from Supabase..."
-          selectable
-          selectedIds={selectedIds}
-          onToggleSelectRow={handleToggleSelectRow}
-          onToggleSelectAll={handleToggleSelectAll}
-          isAllSelected={
-            paginatedFaqs.length > 0 &&
-            paginatedFaqs.every((f) => selectedIds.includes(f.id))
-          }
-          showRowNumbers
-          startIndex={(currentPage - 1) * pageSize + 1}
-          emptyMessage="No FAQs found in Supabase matching your filters."
-          onRowClick={(faq) => setViewingFaq(faq)}
-          columns={[
-            {
-              key: "question",
-              header: "Question & Answer Snippet",
-              className: "min-w-[280px]",
-              cell: (faq) => (
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                    {faq.question}
+        <div className="rounded-xl border border-border/80 bg-card shadow-xs overflow-hidden">
+          <GlobalDataTable<FAQItem>
+            data={paginatedFaqs}
+            keyExtractor={(faq) => faq.id}
+            isLoading={isLoading}
+            loadingMessage="Loading FAQs from Supabase..."
+            showRowNumbers
+            startIndex={(currentPage - 1) * pageSize + 1}
+            emptyMessage="No FAQs found in Supabase matching your filters."
+            onRowClick={(faq) => setViewingFaq(faq)}
+            containerClassName="border-0 shadow-none rounded-none"
+            columns={[
+              {
+                key: "question",
+                header: "Question & Answer Snippet",
+                className: "min-w-[340px]",
+                cell: (faq) => (
+                  <div className="space-y-1 py-1 cursor-pointer" onClick={() => setViewingFaq(faq)}>
+                    <div className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                      {faq.question}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground line-clamp-1 max-w-[540px]">
+                      {faq.answer}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground line-clamp-1 max-w-[420px]">
-                    {faq.answer}
+                ),
+              },
+              {
+                key: "category",
+                header: "Category",
+                className: "w-[150px]",
+                cell: (faq) => {
+                  const conf = CATEGORY_LABELS[faq.category] || {
+                    label: faq.category,
+                    dotColor: "bg-slate-400",
+                  }
+                  return (
+                    <div className="inline-flex items-center gap-1.5 text-xs text-foreground/90 max-w-[150px]">
+                      <span className={`size-1.5 rounded-full shrink-0 ${conf.dotColor}`} />
+                      <span className="font-medium text-[11px] truncate">{conf.label}</span>
+                    </div>
+                  )
+                },
+              },
+              {
+                key: "targetAudience",
+                header: "Audience",
+                className: "w-[120px]",
+                cell: (faq) => {
+                  const labelMap: Record<FAQTargetAudience, string> = {
+                    all: "All Users",
+                    foreman: "Field Foreman",
+                    boss: "Company Boss",
+                    super_admin: "Super Admin",
+                  }
+                  return (
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {labelMap[faq.targetAudience] || faq.targetAudience}
+                    </span>
+                  )
+                },
+              },
+              {
+                key: "status",
+                header: "Status",
+                align: "center",
+                className: "w-[110px] text-center",
+                headerClassName: "text-center",
+                cell: (faq) => {
+                  if (faq.status === "published") {
+                    return (
+                      <div className="flex justify-center">
+                        <span className="inline-flex items-center justify-center gap-1.5 w-[96px] h-6 rounded-full text-[10.5px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                          <CheckCircle2 className="size-3 text-emerald-600 shrink-0" />
+                          Published
+                        </span>
+                      </div>
+                    )
+                  }
+                  if (faq.status === "draft") {
+                    return (
+                      <div className="flex justify-center">
+                        <span className="inline-flex items-center justify-center gap-1.5 w-[96px] h-6 rounded-full text-[10.5px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25">
+                          <Clock className="size-3 text-amber-600 shrink-0" />
+                          Draft
+                        </span>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div className="flex justify-center">
+                      <span className="inline-flex items-center justify-center gap-1.5 w-[96px] h-6 rounded-full text-[10.5px] font-semibold bg-muted/70 text-muted-foreground border border-border/80">
+                        <span className="size-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+                        Archived
+                      </span>
+                    </div>
+                  )
+                },
+              },
+              {
+                key: "actions",
+                header: "Actions",
+                align: "right",
+                className: "w-[85px]",
+                cell: (faq) => (
+                  <div
+                    className="flex items-center justify-end gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setViewingFaq(faq)}
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer rounded-lg hover:bg-muted"
+                      title="View FAQ"
+                    >
+                      <Eye className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleOpenEdit(faq)}
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-primary cursor-pointer rounded-lg hover:bg-primary/10"
+                      title="Edit FAQ"
+                    >
+                      <Edit className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setDeletingFaq(faq)}
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive cursor-pointer rounded-lg hover:bg-destructive/10"
+                      title="Delete FAQ"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
                   </div>
-                </div>
-              ),
-            },
-            {
-              key: "category",
-              header: "Category",
-              className: "min-w-[150px]",
-              cell: (faq) => {
-                const conf = CATEGORY_LABELS[faq.category] || {
-                  label: faq.category,
-                  color: "bg-muted text-muted-foreground",
-                }
-                return (
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] font-medium border ${conf.color}`}
-                  >
-                    {conf.label}
-                  </Badge>
-                )
+                ),
               },
-            },
-            {
-              key: "targetAudience",
-              header: "Target Role",
-              className: "min-w-[130px]",
-              cell: (faq) => {
-                const aud = AUDIENCE_LABELS[faq.targetAudience] || {
-                  label: faq.targetAudience,
-                  badge: "bg-muted text-muted-foreground",
-                }
-                return (
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${aud.badge}`}
-                  >
-                    {aud.label}
-                  </span>
-                )
-              },
-            },
-            {
-              key: "orderIndex",
-              header: "Order",
-              className: "w-16 text-center font-mono text-[11px]",
-              headerClassName: "text-center",
-              align: "center",
-              cell: (faq) => (
-                <span className="text-muted-foreground font-semibold">
-                  #{faq.orderIndex}
-                </span>
-              ),
-            },
-            {
-              key: "status",
-              header: "Status",
-              className: "w-28 text-center",
-              headerClassName: "text-center",
-              align: "center",
-              cell: (faq) => {
-                if (faq.status === "published") {
-                  return (
-                    <Badge
-                      variant="outline"
-                      className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10 text-[10px] inline-flex items-center gap-1"
-                    >
-                      <CheckCircle2 className="size-3" />
-                      Published
-                    </Badge>
-                  )
-                }
-                if (faq.status === "draft") {
-                  return (
-                    <Badge
-                      variant="outline"
-                      className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px] inline-flex items-center gap-1"
-                    >
-                      <Clock className="size-3" />
-                      Draft
-                    </Badge>
-                  )
-                }
-                return (
-                  <Badge variant="outline" className="text-muted-foreground text-[10px]">
-                    Archived
-                  </Badge>
-                )
-              },
-            },
-            {
-              key: "actions",
-              header: "Actions",
-              className: "w-12 text-center",
-              headerClassName: "text-center",
-              align: "center",
-              cell: (faq) => (
-                <div
-                  className="flex items-center justify-center"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="size-7 p-0 rounded-md hover:bg-muted cursor-pointer text-muted-foreground hover:text-foreground"
-                      >
-                        <span className="font-bold">•••</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44 text-xs">
-                      <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase font-semibold">
-                        FAQ Options
-                      </DropdownMenuLabel>
-                      <DropdownMenuItem
-                        onClick={() => setViewingFaq(faq)}
-                        className="cursor-pointer gap-2"
-                      >
-                        <Eye className="size-3.5 text-primary" />
-                        <span>View FAQ Card</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleOpenEdit(faq)}
-                        className="cursor-pointer gap-2"
-                      >
-                        <Edit className="size-3.5 text-blue-500" />
-                        <span>Edit FAQ</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setDeletingFaq(faq)}
-                        className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
-                      >
-                        <Trash2 className="size-3.5 text-destructive" />
-                        <span className="font-semibold text-destructive">Delete FAQ</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ),
-            },
-          ]}
-        />
+            ]}
+          />
+        </div>
       ) : (
         /* Preview Accordion / Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
