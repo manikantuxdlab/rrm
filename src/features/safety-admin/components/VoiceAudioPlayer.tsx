@@ -25,13 +25,17 @@ export function VoiceAudioPlayer({
       audioRef.current.pause()
       setIsPlaying(false)
     } else {
+      audioRef.current.volume = 1.0
+      if (audioRef.current.ended || audioRef.current.currentTime >= (audioDuration || 1)) {
+        audioRef.current.currentTime = 0
+      }
       audioRef.current.play().catch((err) => console.warn("[VoiceAudioPlayer] Playback error:", err))
       setIsPlaying(true)
     }
   }
 
   const formatTime = (secs: number) => {
-    if (isNaN(secs) || secs < 0) secs = 0
+    if (isNaN(secs) || secs < 0 || !isFinite(secs)) secs = 0
     const m = Math.floor(secs / 60)
     const s = Math.floor(secs % 60)
     return `${m}:${s < 10 ? "0" : ""}${s}`
@@ -46,16 +50,16 @@ export function VoiceAudioPlayer({
       <audio
         ref={audioRef}
         src={audioUri}
-        preload="metadata"
+        preload="auto"
         onLoadedMetadata={() => {
-          if (audioRef.current?.duration && !isNaN(audioRef.current.duration)) {
+          if (audioRef.current?.duration && !isNaN(audioRef.current.duration) && isFinite(audioRef.current.duration)) {
             setAudioDuration(audioRef.current.duration)
           }
         }}
         onTimeUpdate={() => {
           if (audioRef.current) {
             setCurrentTime(audioRef.current.currentTime)
-            if (audioRef.current.duration && !isNaN(audioRef.current.duration)) {
+            if (audioRef.current.duration && !isNaN(audioRef.current.duration) && isFinite(audioRef.current.duration)) {
               setAudioDuration(audioRef.current.duration)
             }
           }
@@ -93,7 +97,7 @@ export function VoiceAudioPlayer({
               <span className="truncate">{label}</span>
             </span>
             <span className="text-[10px] font-mono text-muted-foreground font-bold shrink-0">
-              {formatTime(currentTime)} / {formatTime(audioDuration || duration || 4)}
+              {formatTime(currentTime)} / {formatTime(audioDuration || duration || 3)}
             </span>
           </div>
 
