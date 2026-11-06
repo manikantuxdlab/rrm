@@ -18,7 +18,6 @@ import {
   User,
   Printer,
   AlertTriangle,
-  MinusCircle,
   Camera,
   Image as ImageIcon,
   ZoomIn,
@@ -29,7 +28,6 @@ import {
   XCircle,
   Clock,
   ShieldCheck,
-  Loader2,
 } from "lucide-react"
 import {
   Sheet,
@@ -153,7 +151,6 @@ export function SubmissionDetailModal({
   )
   const [isUpdatingApproval, setIsUpdatingApproval] = React.useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
-  const [approvalFeedbackMessage, setApprovalFeedbackMessage] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (submission) {
@@ -161,14 +158,12 @@ export function SubmissionDetailModal({
       setApprovalNotes(submission.approvalNotes || submission.data?.approvalNotes || "")
       setApprovedBy(submission.approvedBy || submission.data?.approvedBy || "")
       setApprovedAt(submission.approvedAt || submission.data?.approvedAt || "")
-      setApprovalFeedbackMessage(null)
     }
   }, [submission?.id, submission?.approvalStatus, submission?.data?.approvalStatus])
 
   const handleUpdateApproval = async (newStatus: "pending_approval" | "approved" | "revision_requested" | "rejected") => {
     if (!submission?.id) return
     setIsUpdatingApproval(true)
-    setApprovalFeedbackMessage(null)
     try {
       const ok = await submissionsService.updateApprovalStatus(submission.id, newStatus, {
         reviewerName: "Safety Director / Super Admin",
@@ -506,239 +501,196 @@ export function SubmissionDetailModal({
           </SheetHeader>
 
           {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-xs">
-            {/* SUPER ADMIN APPROVAL CONSOLE */}
-            <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card p-4 space-y-3.5 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-xs">
-                    <ShieldCheck className="size-4.5" />
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs">
+            {/* Super Admin Compliance Decision & Directive Ribbon */}
+            <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/5 via-card to-card p-3.5 space-y-2.5 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="size-7 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold">
+                    <ShieldCheck className="size-4" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-foreground flex items-center gap-2">
-                      Super Admin Audit Approval & Compliance Sign-Off
-                      {approvalStatus === "approved" && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 border border-emerald-500/30">
-                          CERTIFIED COMPLIANT
-                        </span>
-                      )}
-                    </h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Review checkpoints and authorize this field submission for OSHA recordkeeping
-                    </p>
-                  </div>
-                </div>
-
-                {approvedAt && (
-                  <div className="text-[10.5px] font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-lg border border-border/60">
-                    Reviewed: {new Date(approvedAt).toLocaleDateString()} by {approvedBy || "Super Admin"}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons Row */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={isUpdatingApproval}
-                  onClick={() => handleUpdateApproval("approved")}
-                  className={`h-8 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer gap-1.5 ${
-                    approvalStatus === "approved"
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs ring-2 ring-emerald-500/30"
-                      : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 border border-emerald-500/30"
-                  }`}
-                >
-                  <Check className="size-3.5" />
-                  {approvalStatus === "approved" ? "Audit Certified & Approved" : "Approve & Certify"}
-                </Button>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={isUpdatingApproval}
-                  onClick={() => handleUpdateApproval("revision_requested")}
-                  className={`h-8 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer gap-1.5 ${
-                    approvalStatus === "revision_requested"
-                      ? "bg-amber-600 hover:bg-amber-700 text-white shadow-xs ring-2 ring-amber-500/30"
-                      : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30"
-                  }`}
-                >
-                  <AlertTriangle className="size-3.5" />
-                  {approvalStatus === "revision_requested" ? "Revision Required" : "Request Revision"}
-                </Button>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={isUpdatingApproval}
-                  onClick={() => handleUpdateApproval("rejected")}
-                  className={`h-8 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer gap-1.5 ${
-                    approvalStatus === "rejected"
-                      ? "bg-rose-600 hover:bg-rose-700 text-white shadow-xs ring-2 ring-rose-500/30"
-                      : "bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 border border-rose-500/30"
-                  }`}
-                >
-                  <XCircle className="size-3.5" />
-                  {approvalStatus === "rejected" ? "Audit Rejected" : "Reject Audit"}
-                </Button>
-
-                {approvalStatus !== "pending_approval" && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={isUpdatingApproval}
-                    onClick={() => handleUpdateApproval("pending_approval")}
-                    className="h-8 px-2.5 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
-                  >
-                    Reset to Pending
-                  </Button>
-                )}
-
-                {isUpdatingApproval && (
-                  <div className="flex items-center gap-1.5 text-xs text-primary font-semibold animate-pulse ml-2">
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>Saving Decision...</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Reviewer Directives / Notes Input */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
-                  <span>Reviewer Notes & Compliance Directives (Sent to Foreman & Boss):</span>
-                  {approvalFeedbackMessage && (
-                    <span className="text-emerald-600 font-bold animate-in fade-in">
-                      {approvalFeedbackMessage}
+                    <span className="text-xs font-bold text-foreground block">
+                      Super Admin Compliance Attestation
                     </span>
-                  )}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={approvalNotes}
-                    onChange={(e) => setApprovalNotes(e.target.value)}
-                    placeholder="e.g. Scaffolding guardrail deficiency requires photo remediation within 24h before clearance..."
-                    className="flex-1 h-8 px-3 text-xs rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
-                  />
-                  <Button
+                    <span className="text-[10.5px] text-muted-foreground block">
+                      Review checkpoints and authorize this field submission
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3 Executive Action Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
                     type="button"
-                    size="sm"
-                    variant="outline"
                     disabled={isUpdatingApproval}
-                    onClick={() => handleUpdateApproval(approvalStatus)}
-                    className="h-8 px-3 text-xs font-semibold rounded-xl border-border/80 hover:bg-muted cursor-pointer shrink-0"
+                    onClick={() => handleUpdateApproval("approved")}
+                    className={`h-7 px-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                      approvalStatus === "approved"
+                        ? "bg-emerald-600 text-white shadow-2xs ring-2 ring-emerald-500/30"
+                        : "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 border border-emerald-500/25"
+                    }`}
                   >
-                    Save Notes
-                  </Button>
+                    <Check className="size-3 stroke-[2.5]" />
+                    {approvalStatus === "approved" ? "Certified Approved" : "Approve & Certify"}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isUpdatingApproval}
+                    onClick={() => handleUpdateApproval("revision_requested")}
+                    className={`h-7 px-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                      approvalStatus === "revision_requested"
+                        ? "bg-amber-600 text-white shadow-2xs ring-2 ring-amber-500/30"
+                        : "bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border border-amber-500/25"
+                    }`}
+                  >
+                    <AlertTriangle className="size-3" />
+                    {approvalStatus === "revision_requested" ? "Revision Required" : "Request Revision"}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isUpdatingApproval}
+                    onClick={() => handleUpdateApproval("rejected")}
+                    className={`h-7 px-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                      approvalStatus === "rejected"
+                        ? "bg-rose-600 text-white shadow-2xs ring-2 ring-rose-500/30"
+                        : "bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 border border-rose-500/25"
+                    }`}
+                  >
+                    <XCircle className="size-3" />
+                    Reject
+                  </button>
                 </div>
               </div>
+
+              {/* Directives Note Input */}
+              <div className="flex items-center gap-2 pt-1.5 border-t border-border/50">
+                <input
+                  type="text"
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  placeholder="Compliance directives / reviewer notes (dispatched to Foreman & Boss)..."
+                  className="flex-1 h-8 px-3 text-xs rounded-xl border border-border/80 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isUpdatingApproval}
+                  onClick={() => handleUpdateApproval(approvalStatus)}
+                  className="h-8 px-3 text-xs font-bold rounded-xl border-border/80 hover:bg-muted cursor-pointer shrink-0"
+                >
+                  Save Note
+                </Button>
+              </div>
+
+              {(approvedBy || approvedAt) && (
+                <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 px-0.5 pt-0.5">
+                  <ShieldCheck className="size-3 text-emerald-600" />
+                  <span>
+                    Last reviewed by <strong className="text-foreground">{approvedBy || "Super Admin"}</strong>
+                    {approvedAt ? ` on ${new Date(approvedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : ""}
+                  </span>
+                </div>
+              )}
             </div>
+
             {/* TAB 1: CHECKLIST MARKINGS SCREEN */}
             {activeTab === "markings" && hasItems && (
-              <div className="space-y-4">
-                {/* Tally Stats Card */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-3 rounded-xl border border-border bg-card">
-                    <span className="text-[11px] text-muted-foreground block">Total Verified</span>
-                    <span className="text-lg font-bold text-foreground mt-0.5 block">
-                      {checklistItems.length}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
-                    <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium block flex items-center gap-1">
-                      <CheckCircle2 className="size-3" /> Passed
-                    </span>
-                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 block">
-                      {passedCount}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10">
-                    <span className="text-[11px] text-rose-700 dark:text-rose-400 font-medium block flex items-center gap-1">
-                      <AlertTriangle className="size-3" /> Deficiencies
-                    </span>
-                    <span className="text-lg font-bold text-rose-700 dark:text-rose-400 mt-0.5 block">
-                      {failedCount}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl border border-border bg-muted/40">
-                    <span className="text-[11px] text-muted-foreground block flex items-center gap-1">
-                      <MinusCircle className="size-3" /> N/A Marked
-                    </span>
-                    <span className="text-lg font-bold text-foreground mt-0.5 block">
-                      {naCount}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Filter Controls Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-2 p-2 px-3 rounded-xl bg-muted/40 border border-border">
+              <div className="space-y-3.5">
+                {/* Unified Executive Metric & Filter Strip (Consolidated Tally & Filtering) */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 p-2 rounded-2xl bg-card border border-border/80 shadow-2xs">
+                  {/* Interactive Status Metrics */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-semibold text-muted-foreground mr-1">Status:</span>
                     <button
+                      type="button"
                       onClick={() => setMarkingStatusFilter("all")}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         markingStatusFilter === "all"
-                          ? "bg-card text-foreground shadow-2xs border border-border"
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-foreground text-background shadow-2xs"
+                          : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
-                      All ({checklistItems.length})
+                      <span>All</span>
+                      <span className="font-mono text-[11px] opacity-80">({checklistItems.length})</span>
                     </button>
+
                     <button
+                      type="button"
                       onClick={() => setMarkingStatusFilter("pass")}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         markingStatusFilter === "pass"
-                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-emerald-600 text-white shadow-2xs"
+                          : "text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20"
                       }`}
                     >
-                      Passed ({passedCount})
+                      <CheckCircle2 className="size-3" />
+                      <span>Passed</span>
+                      <span className="font-mono text-[11px]">({passedCount})</span>
                     </button>
+
                     <button
+                      type="button"
                       onClick={() => setMarkingStatusFilter("fail")}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         markingStatusFilter === "fail"
-                          ? "bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30"
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-rose-600 text-white shadow-2xs"
+                          : failedCount > 0
+                          ? "text-rose-700 dark:text-rose-400 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30"
+                          : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
-                      Deficiencies ({failedCount})
+                      <AlertTriangle className="size-3" />
+                      <span>Deficiencies</span>
+                      <span className="font-mono text-[11px]">({failedCount})</span>
                     </button>
-                    <button
-                      onClick={() => setMarkingStatusFilter("na")}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-                        markingStatusFilter === "na"
-                          ? "bg-card text-foreground shadow-2xs border border-border"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      N/A ({naCount})
-                    </button>
+
+                    {naCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setMarkingStatusFilter("na")}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          markingStatusFilter === "na"
+                            ? "bg-foreground text-background shadow-2xs"
+                            : "text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <span>N/A</span>
+                        <span className="font-mono text-[11px]">({naCount})</span>
+                      </button>
+                    )}
                   </div>
 
-                  {categories.length > 0 && (
-                    <select
-                      value={markingCategoryFilter}
-                      onChange={(e) => setMarkingCategoryFilter(e.target.value)}
-                      className="h-7 px-2.5 text-[11px] rounded-md border border-border bg-card text-foreground"
-                    >
-                      <option value="all">All Categories</option>
-                      {categories.map((c) => (
-                        <option key={c} value={c}>
-                          {c.replace("_", " ").toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  {/* Category Filter & Score Badge */}
+                  <div className="flex items-center gap-2 ml-auto">
+                    {categories.length > 0 && (
+                      <select
+                        value={markingCategoryFilter}
+                        onChange={(e) => setMarkingCategoryFilter(e.target.value)}
+                        className="h-8 px-2.5 text-xs font-medium rounded-xl border border-border/80 bg-background text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                      >
+                        <option value="all">All Categories</option>
+                        {categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c.replace("_", " ").toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    <span className={`px-2.5 py-1 rounded-xl text-xs font-mono font-black border ${
+                      failedCount === 0
+                        ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                        : "bg-amber-500/15 text-amber-800 border-amber-500/30"
+                    }`}>
+                      {Math.round((passedCount / (passedCount + failedCount || 1)) * 100)}% SCORE
+                    </span>
+                  </div>
                 </div>
 
-                {/* Markings List */}
-                <div className="space-y-2.5">
+                {/* Clean, Generously Spaced Checkpoint Items */}
+                <div className="space-y-3">
                   {filteredItems.map((item, idx) => {
                     const isPass = item.status === "pass"
                     const isFail = item.status === "fail"
@@ -747,118 +699,115 @@ export function SubmissionDetailModal({
                     return (
                       <div
                         key={item.id || idx}
-                        className={`p-3.5 rounded-xl border transition-all ${
+                        className={`p-4 rounded-2xl border text-xs space-y-2.5 transition-all shadow-2xs ${
                           isFail
-                            ? "border-rose-500/30 bg-rose-500/5"
+                            ? "border-rose-500/35 bg-rose-500/[0.04] ring-1 ring-rose-500/15"
                             : isPass
-                            ? "border-border bg-card hover:border-emerald-500/30"
+                            ? "border-border/80 bg-card hover:border-border"
                             : "border-border/60 bg-muted/20"
                         }`}
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                          <div className="space-y-1.5 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1.5 min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono text-xs font-bold text-muted-foreground">
                                 #{idx + 1}
                               </span>
-                              <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0">
-                                {item.category?.replace("_", " ")}
-                              </Badge>
+                              {item.category && (
+                                <Badge variant="outline" className="text-[9.5px] uppercase font-bold tracking-wider px-2 py-0.5 border-border/80">
+                                  {item.category.replace("_", " ")}
+                                </Badge>
+                              )}
                               {item.oshaRef && (
-                                <Badge variant="outline" className="text-[9px] font-mono text-muted-foreground px-1.5 py-0">
-                                  {item.oshaRef}
+                                <Badge variant="outline" className="text-[9.5px] font-mono text-muted-foreground px-2 py-0.5 border-border/80">
+                                  OSHA {item.oshaRef}
                                 </Badge>
                               )}
                             </div>
 
-                            <p className="font-medium text-xs text-foreground leading-snug">
+                            <p className="font-semibold text-xs text-foreground leading-relaxed">
                               {item.labelEn}
                             </p>
-
-                            {/* Deficiency notes / corrective action */}
-                            {item.notes && (
-                              <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] space-y-0.5">
-                                <span className="font-semibold block flex items-center gap-1">
-                                  <AlertTriangle className="size-3" /> Field Note / Corrective Action:
-                                </span>
-                                <p>{item.notes}</p>
-                              </div>
-                            )}
-
-                            {/* Attached Foreman Exact Voice Recording */}
-                            {item.audioUri && (
-                              <div className="mt-2">
-                                <VoiceAudioPlayer
-                                  audioUri={item.audioUri}
-                                  duration={item.audioDuration}
-                                  label="Foreman Exact Voice Recording"
-                                />
-                              </div>
-                            )}
-
-                            {/* Attached Photo Thumbnail in item */}
-                            {item.photoUri && (
-                              <div className="mt-2 flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setPreviewPhoto({
-                                      uri: item.photoUri!,
-                                      label: item.labelEn || "Item Hazard Photo",
-                                    })
-                                  }
-                                  className="relative group rounded-lg overflow-hidden border border-border size-16 shrink-0 bg-muted cursor-pointer"
-                                  title="Click to view full image"
-                                >
-                                  <img
-                                    src={item.photoUri}
-                                    alt="Evidence"
-                                    className="size-full object-cover group-hover:scale-105 transition-transform"
-                                  />
-                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                    <ZoomIn className="size-4" />
-                                  </div>
-                                </button>
-                                <div className="text-[11px] text-muted-foreground">
-                                  <span className="font-medium text-foreground block">
-                                    Evidence Photo Attached
-                                  </span>
-                                  <span>Click thumbnail to view full image</span>
-                                </div>
-                              </div>
-                            )}
                           </div>
 
                           {/* Status Marking Badge */}
-                          <div className="shrink-0 self-start sm:self-center">
+                          <div className="shrink-0 pt-0.5">
                             {isPass && (
-                              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold gap-1 py-1 px-2.5">
-                                <CheckCircle2 className="size-3" /> PASS
+                              <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-emerald-500/30 text-[10px] font-bold gap-1 px-2.5 py-0.5">
+                                <Check className="size-2.5 stroke-[3]" /> PASS
                               </Badge>
                             )}
                             {isFail && (
-                              <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 text-[11px] font-semibold gap-1 py-1 px-2.5">
-                                <AlertTriangle className="size-3" /> DEFICIENT
+                              <Badge className="bg-rose-500/20 text-rose-700 hover:bg-rose-500/25 border-rose-500/40 text-[10px] font-black gap-1 px-2.5 py-0.5 animate-pulse">
+                                <AlertTriangle className="size-2.5" /> DEFICIENT
                               </Badge>
                             )}
                             {isNa && (
-                              <Badge variant="outline" className="text-muted-foreground text-[11px] font-medium gap-1 py-1 px-2.5">
-                                <MinusCircle className="size-3" /> N/A
-                              </Badge>
-                            )}
-                            {!isPass && !isFail && !isNa && (
-                              <Badge variant="outline" className="text-muted-foreground text-[11px]">
-                                Unanswered
+                              <Badge variant="outline" className="text-muted-foreground text-[10px] font-medium px-2 py-0.5">
+                                N/A
                               </Badge>
                             )}
                           </div>
                         </div>
+
+                        {/* Field Remediation Note */}
+                        {item.notes && (
+                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-[11px] text-amber-900 dark:text-amber-200 space-y-0.5">
+                            <span className="font-bold text-[10px] uppercase tracking-wider block text-amber-800 dark:text-amber-300">
+                              Field Note / Remediation:
+                            </span>
+                            <p className="leading-relaxed">{item.notes}</p>
+                          </div>
+                        )}
+
+                        {/* Attached Foreman Exact Voice Audio Player */}
+                        {item.audioUri && (
+                          <div className="pt-0.5 max-w-md">
+                            <VoiceAudioPlayer
+                              audioUri={item.audioUri}
+                              duration={item.audioDuration}
+                              label="Foreman Exact Voice Recording"
+                            />
+                          </div>
+                        )}
+
+                        {/* Attached Evidence Photo Proof */}
+                        {item.photoUri && (
+                          <div className="flex items-center gap-2.5 pt-1">
+                            <div
+                              onClick={() =>
+                                setPreviewPhoto({
+                                  uri: item.photoUri!,
+                                  label: item.labelEn || "Item Hazard Photo",
+                                })
+                              }
+                              className="group relative size-14 rounded-xl overflow-hidden border border-border cursor-pointer shadow-2xs hover:ring-2 hover:ring-primary transition-all shrink-0"
+                            >
+                              <img
+                                src={item.photoUri}
+                                alt="Evidence"
+                                className="size-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                <ZoomIn className="size-3.5" />
+                              </div>
+                            </div>
+                            <div className="text-[11px] space-y-0.5">
+                              <span className="font-semibold text-foreground block">
+                                Attached Photo Proof
+                              </span>
+                              <span className="text-muted-foreground text-[10.5px]">
+                                Tap thumbnail to view full-size
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
 
                   {filteredItems.length === 0 && (
-                    <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl">
+                    <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-2xl bg-muted/20">
                       No checklist items match the selected filter.
                     </div>
                   )}
@@ -1163,15 +1112,7 @@ export function SubmissionDetailModal({
                   <>
                     <div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Generating PDF...
-                    {/* Delete Submission Custom Modal Dialog */}
-      <DeleteSubmissionDialog
-        submission={submission}
-        open={isDeleteDialogOpen}
-        isDeleting={isDeleting}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleConfirmDelete}
-      />
-    </>
+                  </>
                 ) : (
                   <>
                     <Download className="size-3.5" />
@@ -1183,6 +1124,15 @@ export function SubmissionDetailModal({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {/* Delete Submission Custom Modal Dialog */}
+      <DeleteSubmissionDialog
+        submission={submission}
+        open={isDeleteDialogOpen}
+        isDeleting={isDeleting}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
 
       {/* Lightbox Dialog for Full Image Preview */}
       <Dialog open={Boolean(previewPhoto)} onOpenChange={(open) => !open && setPreviewPhoto(null)}>
