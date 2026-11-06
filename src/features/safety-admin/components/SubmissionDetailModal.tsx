@@ -774,12 +774,6 @@ export function SubmissionDetailModal({
                               {item.labelEn}
                             </p>
 
-                            {item.labelEs && item.labelEs !== item.labelEn && (
-                              <p className="text-[11px] text-muted-foreground italic leading-snug">
-                                {item.labelEs}
-                              </p>
-                            )}
-
                             {/* Deficiency notes / corrective action */}
                             {item.notes && (
                               <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] space-y-0.5">

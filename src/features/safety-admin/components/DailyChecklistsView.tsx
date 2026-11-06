@@ -562,11 +562,6 @@ export function DailyChecklistsView({
                           <div className="font-semibold text-foreground text-xs leading-relaxed">
                             {item.labelEn}
                           </div>
-                          {item.labelEs && item.labelEs !== item.labelEn && (
-                            <div className="text-[11px] text-muted-foreground italic leading-relaxed">
-                              {item.labelEs}
-                            </div>
-                          )}
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
