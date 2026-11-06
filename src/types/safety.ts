@@ -77,6 +77,8 @@ export interface ChecklistItem {
   status: "pass" | "fail" | "na" | "unanswered"
   notes?: string
   photoUri?: string
+  audioUri?: string
+  audioDuration?: number
   severity?: "low" | "medium" | "high" | "critical"
   isArchived?: boolean
   oshaRef?: string

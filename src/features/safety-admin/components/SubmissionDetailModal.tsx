@@ -4,6 +4,7 @@ import type { SubmissionRecord, ChecklistItem } from "@/types"
 import { submissionsService } from "@/services/submissionsService"
 import { generateSafetyAuditPdf } from "@/services/pdfReportService"
 import { sendBrandedAuditEmail } from "@/services/brandedEmailService"
+import { VoiceAudioPlayer } from "./VoiceAudioPlayer"
 import { DeleteSubmissionDialog } from "./DeleteSubmissionDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -781,6 +782,17 @@ export function SubmissionDetailModal({
                                   <AlertTriangle className="size-3" /> Field Note / Corrective Action:
                                 </span>
                                 <p>{item.notes}</p>
+                              </div>
+                            )}
+
+                            {/* Attached Foreman Exact Voice Recording */}
+                            {item.audioUri && (
+                              <div className="mt-2">
+                                <VoiceAudioPlayer
+                                  audioUri={item.audioUri}
+                                  duration={item.audioDuration}
+                                  label="Foreman Exact Voice Recording"
+                                />
                               </div>
                             )}
 
