@@ -775,14 +775,14 @@ export function ToolboxTalksView({
                         className="size-3.5 mx-auto"
                       />
                     </TableHead>
-                    <TableHead className="w-[100px] font-bold">Topic #</TableHead>
+                    <TableHead className="w-[85px] font-bold">Topic #</TableHead>
                     <TableHead className="font-bold">Topic & Module Title</TableHead>
                     <TableHead className="font-bold">Jobsite & Project</TableHead>
                     <TableHead className="font-bold">Foreman / Lead</TableHead>
                     <TableHead className="font-bold">Attending Crew</TableHead>
                     <TableHead className="font-bold">Timestamp</TableHead>
-                    <TableHead className="font-bold">Audit Status</TableHead>
-                    <TableHead className="text-right font-bold">Action</TableHead>
+                    <TableHead className="font-bold text-center w-[100px]">Audit Status</TableHead>
+                    <TableHead className="text-right font-bold w-[70px]">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -870,46 +870,61 @@ export function ToolboxTalksView({
                           </span>
                         </TableCell>
 
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] font-mono text-emerald-700 bg-emerald-500/10 border-emerald-500/25 gap-1 shrink-0 whitespace-nowrap"
+                        <TableCell className="text-center">
+                          <span
+                            title="Audit Status: Signed & Verified (Compliant)"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full whitespace-nowrap"
                           >
-                            <CheckCircle2 className="size-3" /> Signed & Verified
-                          </Badge>
+                            <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <span>Verified</span>
+                          </span>
                         </TableCell>
 
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={() => onSelectSubmission(sub)}
-                              className="text-xs text-muted-foreground hover:text-foreground gap-1 h-7 px-2"
-                            >
-                              <Eye className="size-3" /> View
-                            </Button>
+                          <div className="flex items-center justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                >
+                                  <MoreVertical className="size-4" />
+                                  <span className="sr-only">Actions</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onClick={() => onSelectSubmission(sub)}
+                                  className="cursor-pointer gap-2 text-xs"
+                                >
+                                  <Eye className="size-3.5 text-muted-foreground" />
+                                  <span>View Audit Details</span>
+                                </DropdownMenuItem>
 
-                            {documentUrl ? (
-                              <a
-                                href={documentUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[11px] font-bold bg-primary text-white hover:bg-primary/90 px-2.5 py-1 rounded-md transition-colors shadow-2xs h-7"
-                              >
-                                <Download className="size-3" />
-                                PDF
-                              </a>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="xs"
-                                onClick={() => onSelectSubmission(sub)}
-                                className="text-xs gap-1 border-primary/30 text-primary h-7 px-2"
-                              >
-                                <Download className="size-3" /> PDF
-                              </Button>
-                            )}
+                                {documentUrl ? (
+                                  <DropdownMenuItem asChild>
+                                    <a
+                                      href={documentUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="cursor-pointer gap-2 text-xs font-semibold text-primary flex items-center"
+                                    >
+                                      <Download className="size-3.5" />
+                                      <span>Download Signed PDF</span>
+                                    </a>
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() => onSelectSubmission(sub)}
+                                    className="cursor-pointer gap-2 text-xs font-semibold text-primary"
+                                  >
+                                    <Download className="size-3.5" />
+                                    <span>Download Signed PDF</span>
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1223,13 +1238,8 @@ export function ToolboxTalksView({
             </div>
 
             <div>
-              <label className="font-bold text-foreground text-xs block mb-1.5">Title (English):</label>
+              <label className="font-bold text-foreground text-xs block mb-1.5">Topic Title:</label>
               <Input value={formTitleEn} onChange={e => setFormTitleEn(e.target.value)} className="h-10 text-xs rounded-xl font-medium" />
-            </div>
-
-            <div>
-              <label className="font-bold text-foreground text-xs block mb-1.5">Title (Spanish):</label>
-              <Input value={formTitleEs} onChange={e => setFormTitleEs(e.target.value)} className="h-10 text-xs rounded-xl italic font-medium" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -1340,22 +1350,12 @@ export function ToolboxTalksView({
             </div>
 
             <div>
-              <label className="font-bold text-foreground text-xs block mb-1.5">Title (English):</label>
+              <label className="font-bold text-foreground text-xs block mb-1.5">Topic Title:</label>
               <Input
                 placeholder="e.g. Scaffolding Load Capacity & Fall Hazards"
                 value={formTitleEn}
                 onChange={e => setFormTitleEn(e.target.value)}
                 className="h-10 text-xs rounded-xl font-medium"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-foreground text-xs block mb-1.5">Title (Spanish):</label>
-              <Input
-                placeholder="e.g. Capacidad de Carga y Peligros de Caída en Andamios"
-                value={formTitleEs}
-                onChange={e => setFormTitleEs(e.target.value)}
-                className="h-10 text-xs rounded-xl italic font-medium"
               />
             </div>
 

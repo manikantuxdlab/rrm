@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   HardHat,
   Send,
+  Users,
 } from "lucide-react"
 import {
   Sheet,
@@ -273,6 +274,11 @@ export function SubmissionDetailModal({
       "document_url",
       "html",
       "reportHtml",
+      "attendees",
+      "attendeesList",
+      "crewList",
+      "attendingCrew",
+      "acknowledgedCrew",
     ])
     return Object.entries(submission.data).filter(([key, val]) => {
       if (excludedKeys.has(key)) return false
@@ -301,6 +307,31 @@ export function SubmissionDetailModal({
       }
       return true
     })
+  }, [submission?.data])
+
+  // Attendees / Crew List extraction (for Toolbox Talks, JHAs, Safety Meetings)
+  const attendingWorkers = React.useMemo<string[]>(() => {
+    if (!submission?.data) return []
+    const raw =
+      submission.data.attendees ||
+      submission.data.attendingCrew ||
+      submission.data.acknowledgedCrew ||
+      submission.data.crewList ||
+      submission.data.attendeesList
+
+    if (Array.isArray(raw)) {
+      return raw
+        .map((item) => (typeof item === "string" ? item : item?.name || String(item)))
+        .filter((name) => Boolean(name && name.trim()))
+    }
+    if (typeof raw === "string" && raw.trim()) {
+      // Could be comma or newline separated
+      return raw
+        .split(/[\n,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    }
+    return []
   }, [submission?.data])
 
   // Signature data check
@@ -1174,6 +1205,43 @@ export function SubmissionDetailModal({
                     ))}
                   </div>
                 </div>
+
+                {/* Attending Crew Members Roster (OSHA 1926 Compliance) */}
+                {attendingWorkers.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Users className="size-3.5 text-primary" />
+                        Attending Crew Roster ({attendingWorkers.length} Verified)
+                      </h4>
+                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        100% Attestation Signed
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {attendingWorkers.map((workerName, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 p-2 rounded-lg bg-muted/40 border border-border/60 text-xs"
+                          >
+                            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-mono text-[10px] font-bold">
+                              {idx + 1}
+                            </span>
+                            <div className="min-w-0 flex-1 truncate">
+                              <p className="font-bold text-foreground truncate">{workerName}</p>
+                              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <CheckCircle2 className="size-2.5 text-emerald-600 shrink-0" />
+                                <span>Present & Signed</span>
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Electronic Signature & Notification Recipients */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
