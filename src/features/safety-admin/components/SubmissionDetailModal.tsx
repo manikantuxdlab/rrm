@@ -6,7 +6,6 @@ import { generateSafetyAuditPdf } from "@/services/pdfReportService"
 import { sendBrandedAuditEmail } from "@/services/brandedEmailService"
 import { VoiceAudioPlayer } from "./VoiceAudioPlayer"
 import { DeleteSubmissionDialog } from "./DeleteSubmissionDialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Building2,
@@ -28,6 +27,7 @@ import {
   XCircle,
   Clock,
   ShieldCheck,
+  HardHat,
 } from "lucide-react"
 import {
   Sheet,
@@ -198,6 +198,29 @@ export function SubmissionDetailModal({
     () => checklistItems.filter((i) => i.status === "na").length,
     [checklistItems]
   )
+
+  const complianceScore = Math.round((passedCount / (passedCount + failedCount || 1)) * 100)
+
+  const cleanTitle = React.useMemo(() => {
+    if (!submission?.title) return "Daily Site Safety Inspection"
+    const parts = submission.title.split(" - ")
+    let main = parts[0]
+    main = main.replace(/\(\d+\s*Items?\s*Verified\)/gi, "").trim()
+    return main || submission.title
+  }, [submission?.title])
+
+  const locationSubtitle = React.useMemo(() => {
+    if (submission?.jobSiteName) return submission.jobSiteName
+    if (submission?.title?.includes(" - ")) {
+      return submission.title.split(" - ").slice(1).join(" • ").trim()
+    }
+    return ""
+  }, [submission?.jobSiteName, submission?.title])
+
+  const foremanDisplayName =
+    submission?.foremanName ||
+    submission?.data?.foremanName ||
+    "Diego Morales"
 
   // Available categories
   const categories = React.useMemo(() => {
@@ -381,120 +404,225 @@ export function SubmissionDetailModal({
     <>
       <Sheet open={Boolean(submission)} onOpenChange={(open) => !open && onClose()}>
         <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl flex flex-col p-0 overflow-hidden h-full">
-          {/* Header */}
-          <SheetHeader className="px-6 py-4 border-b shrink-0 text-left bg-card">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <Badge
-                variant={
-                  submission.moduleType === "claim_alert"
-                    ? "destructive"
-                    : "outline"
-                }
-                className="uppercase text-[10px] tracking-wider font-semibold"
-              >
-                {submission.moduleType.replace("_", " ")}
-              </Badge>
-              <Badge variant="outline" className="text-[10px] font-mono">
-                {submission.id}
-              </Badge>
+          {/* Executive Header */}
+          <SheetHeader className="px-6 pt-5 pb-3 border-b shrink-0 text-left bg-card space-y-3">
+            {/* Row 1: Soft Colored Status Pills + Quick Action Bar */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Approval Status Pill */}
+                {approvalStatus === "approved" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                    <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Certified by Admin
+                  </span>
+                )}
+                {approvalStatus === "revision_requested" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                    <AlertTriangle className="size-3.5 text-amber-600 dark:text-amber-400" />
+                    Revision Requested
+                  </span>
+                )}
+                {approvalStatus === "rejected" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
+                    <XCircle className="size-3.5 text-rose-600 dark:text-rose-400" />
+                    Rejected
+                  </span>
+                )}
+                {approvalStatus === "pending_approval" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
+                    <Clock className="size-3.5 text-sky-600 dark:text-sky-400" />
+                    Pending Admin Approval
+                  </span>
+                )}
 
-              {/* Dynamic Sync Status Badge */}
-              {submission.syncStatus === "synced" && (
-                <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <CheckCircle2 className="size-3" />
-                  Synced
-                </span>
-              )}
-              {submission.syncStatus === "pending" && (
-                <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                  ⌛ Pending Sync
-                </span>
-              )}
-              {submission.syncStatus === "failed" && (
-                <span className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
-                  ⚠️ Sync Failed
-                </span>
-              )}
-
-              {/* Super Admin Approval Status Badge */}
-              {approvalStatus === "approved" && (
-                <span className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                  <ShieldCheck className="size-3" />
-                  Approved & Certified
-                </span>
-              )}
-              {approvalStatus === "revision_requested" && (
-                <span className="flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 font-bold bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                  <AlertTriangle className="size-3" />
-                  Revision Requested
-                </span>
-              )}
-              {approvalStatus === "rejected" && (
-                <span className="flex items-center gap-1 text-[11px] text-rose-700 dark:text-rose-400 font-bold bg-rose-500/15 px-2.5 py-0.5 rounded-full border border-rose-500/30">
-                  <XCircle className="size-3" />
-                  Rejected
-                </span>
-              )}
-              {approvalStatus === "pending_approval" && (
-                <span className="flex items-center gap-1 text-[11px] text-sky-700 dark:text-sky-400 font-bold bg-sky-500/15 px-2.5 py-0.5 rounded-full border border-sky-500/30">
-                  <Clock className="size-3" />
-                  Pending Admin Approval
-                </span>
-              )}
-            </div>
-
-            <SheetTitle className="text-base sm:text-lg font-bold text-foreground leading-snug">
-              {submission.title}
-            </SheetTitle>
-            <SheetDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-3 mt-0.5">
-              <span className="flex items-center gap-1 text-foreground font-medium">
-                <Building2 className="size-3.5 text-muted-foreground" />
-                {submission.companyName}
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Calendar className="size-3.5" />
-                {submission.timestamp}
-              </span>
-            </SheetDescription>
-
-            {/* View Switcher Tabs Bar */}
-            <div className="flex items-center gap-1 pt-3 border-t border-border/50 mt-3">
-              {hasItems && (
-                <button
-                  onClick={() => setActiveTab("markings")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                    activeTab === "markings"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                {/* Compliance Score Pill */}
+                <span
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border ${
+                    failedCount === 0
+                      ? "bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20"
+                      : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
                   }`}
                 >
-                  <ClipboardList className="size-3.5" />
+                  {complianceScore}% Compliant
+                </span>
+
+                {/* Cloud Sync Status Pill */}
+                {submission.syncStatus === "synced" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                    <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Synced
+                  </span>
+                )}
+                {submission.syncStatus === "pending" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                    <Clock className="size-3.5 text-amber-600 dark:text-amber-400" />
+                    Pending Sync
+                  </span>
+                )}
+                {submission.syncStatus === "failed" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
+                    <AlertTriangle className="size-3.5 text-rose-600 dark:text-rose-400" />
+                    Sync Failed
+                  </span>
+                )}
+              </div>
+
+              {/* Quick Actions (Print & PDF) */}
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handlePrint}
+                  className="size-8 rounded-xl border-border/80 text-muted-foreground hover:text-foreground cursor-pointer"
+                  title="Print Audit"
+                >
+                  <Printer className="size-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDownload}
+                  disabled={isGeneratingPdf}
+                  className="h-8 px-3.5 text-xs font-bold rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Download className="size-3.5" />
+                  {isGeneratingPdf ? "Generating..." : "PDF Report"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Row 2: Clean Inspection Title & Subtitle */}
+            <div className="space-y-1">
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
+                <SheetTitle className="text-lg sm:text-xl font-bold text-foreground tracking-tight leading-snug">
+                  {cleanTitle}
+                </SheetTitle>
+                <span className="text-xs text-muted-foreground shrink-0 font-medium flex items-center gap-1">
+                  <Calendar className="size-3.5" />
+                  {submission.timestamp}
+                </span>
+              </div>
+
+              <SheetDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1 text-foreground font-medium">
+                  <HardHat className="size-3.5 text-amber-600 dark:text-amber-500" />
+                  Foreman: <strong className="font-semibold">{foremanDisplayName}</strong>
+                </span>
+                {locationSubtitle && (
+                  <>
+                    <span className="text-muted-foreground/60">•</span>
+                    <span className="text-foreground/90 font-medium">{locationSubtitle}</span>
+                  </>
+                )}
+                {submission.companyName && (
+                  <>
+                    <span className="text-muted-foreground/60">•</span>
+                    <span className="text-muted-foreground">{submission.companyName}</span>
+                  </>
+                )}
+              </SheetDescription>
+            </div>
+
+            {/* Row 3: 4-Stat Metric Summary Strip */}
+            <div className="rounded-2xl border border-border/70 bg-card p-2.5 grid grid-cols-4 divide-x divide-border/60 text-center shadow-2xs">
+              <div className="px-2">
+                <div className="text-base font-bold text-foreground leading-none mb-1">
+                  {checklistItems.length}
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Checked
+                </div>
+              </div>
+              <div className="px-2">
+                <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 leading-none mb-1">
+                  {passedCount}
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  Passed
+                </div>
+              </div>
+              <div className="px-2">
+                <div
+                  className={`text-base font-bold leading-none mb-1 ${
+                    failedCount > 0
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {failedCount}
+                </div>
+                <div
+                  className={`text-[10px] font-bold uppercase tracking-wider ${
+                    failedCount > 0
+                      ? "text-rose-700 dark:text-rose-400"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Flagged
+                </div>
+              </div>
+              <div className="px-2">
+                <div
+                  className={`text-base font-bold leading-none mb-1 ${
+                    failedCount === 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-orange-600 dark:text-orange-400"
+                  }`}
+                >
+                  {complianceScore}%
+                </div>
+                <div
+                  className={`text-[10px] font-bold uppercase tracking-wider ${
+                    failedCount === 0
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-orange-600 dark:text-orange-400"
+                  }`}
+                >
+                  Score
+                </div>
+              </div>
+            </div>
+
+            {/* Row 4: View Switcher Tabs Bar (Segmented Control - No Clunky Blocks) */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/60 border border-border/50 self-start">
+              {hasItems && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("markings")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeTab === "markings"
+                      ? "bg-card text-foreground font-bold shadow-xs border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <ClipboardList className="size-3.5 text-orange-600 dark:text-orange-500" />
                   Checklist Markings ({checklistItems.length})
                 </button>
               )}
 
               <button
+                type="button"
                 onClick={() => setActiveTab("photos")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   activeTab === "photos"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-card text-foreground font-bold shadow-xs border border-border/60"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Camera className="size-3.5" />
+                <Camera className="size-3.5 text-sky-600 dark:text-sky-500" />
                 Evidence Photos ({visiblePhotos.length})
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab("overview")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   activeTab === "overview"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-card text-foreground font-bold shadow-xs border border-border/60"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <FileText className="size-3.5" />
+                <FileText className="size-3.5 text-emerald-600 dark:text-emerald-500" />
                 Overview & Sign-Off
               </button>
             </div>
@@ -599,16 +727,26 @@ export function SubmissionDetailModal({
             {/* TAB 1: CHECKLIST MARKINGS SCREEN */}
             {activeTab === "markings" && hasItems && (
               <div className="space-y-3.5">
-                {/* Unified Executive Metric & Filter Strip (Consolidated Tally & Filtering) */}
-                <div className="flex flex-wrap items-center justify-between gap-2.5 p-2 rounded-2xl bg-card border border-border/80 shadow-2xs">
-                  {/* Interactive Status Metrics */}
+                {/* Unified Executive Checkpoints Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 p-2 rounded-2xl bg-card border border-border/70 shadow-2xs">
+                  {/* Left: Verified Checkpoints header */}
+                  <div className="flex items-center gap-2 pl-1">
+                    <span className="p-1 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-500">
+                      <ClipboardList className="size-4" />
+                    </span>
+                    <span className="font-bold text-xs uppercase tracking-wider text-foreground">
+                      Verified Checkpoints ({checklistItems.length})
+                    </span>
+                  </div>
+
+                  {/* Interactive Status Filter Pills (NO BLACK BADGES) */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button
                       type="button"
                       onClick={() => setMarkingStatusFilter("all")}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         markingStatusFilter === "all"
-                          ? "bg-foreground text-background shadow-2xs"
+                          ? "bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30"
                           : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
@@ -621,7 +759,7 @@ export function SubmissionDetailModal({
                       onClick={() => setMarkingStatusFilter("pass")}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         markingStatusFilter === "pass"
-                          ? "bg-emerald-600 text-white shadow-2xs"
+                          ? "bg-emerald-600 text-white shadow-2xs font-bold"
                           : "text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20"
                       }`}
                     >
@@ -630,21 +768,21 @@ export function SubmissionDetailModal({
                       <span className="font-mono text-[11px]">({passedCount})</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setMarkingStatusFilter("fail")}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        markingStatusFilter === "fail"
-                          ? "bg-rose-600 text-white shadow-2xs"
-                          : failedCount > 0
-                          ? "text-rose-700 dark:text-rose-400 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30"
-                          : "text-muted-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <AlertTriangle className="size-3" />
-                      <span>Deficiencies</span>
-                      <span className="font-mono text-[11px]">({failedCount})</span>
-                    </button>
+                    {failedCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setMarkingStatusFilter("fail")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          markingStatusFilter === "fail"
+                            ? "bg-rose-600 text-white shadow-2xs font-bold"
+                            : "text-rose-700 dark:text-rose-400 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30"
+                        }`}
+                      >
+                        <AlertTriangle className="size-3" />
+                        <span>Deficiencies</span>
+                        <span className="font-mono text-[11px]">({failedCount})</span>
+                      </button>
+                    )}
 
                     {naCount > 0 && (
                       <button
@@ -652,7 +790,7 @@ export function SubmissionDetailModal({
                         onClick={() => setMarkingStatusFilter("na")}
                         className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                           markingStatusFilter === "na"
-                            ? "bg-foreground text-background shadow-2xs"
+                            ? "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold"
                             : "text-muted-foreground hover:bg-muted"
                         }`}
                       >
@@ -660,15 +798,12 @@ export function SubmissionDetailModal({
                         <span className="font-mono text-[11px]">({naCount})</span>
                       </button>
                     )}
-                  </div>
 
-                  {/* Category Filter & Score Badge */}
-                  <div className="flex items-center gap-2 ml-auto">
                     {categories.length > 0 && (
                       <select
                         value={markingCategoryFilter}
                         onChange={(e) => setMarkingCategoryFilter(e.target.value)}
-                        className="h-8 px-2.5 text-xs font-medium rounded-xl border border-border/80 bg-background text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                        className="h-8 px-2.5 text-xs font-medium rounded-xl border border-border/80 bg-background text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs ml-1"
                       >
                         <option value="all">All Categories</option>
                         {categories.map((c) => (
@@ -678,14 +813,6 @@ export function SubmissionDetailModal({
                         ))}
                       </select>
                     )}
-
-                    <span className={`px-2.5 py-1 rounded-xl text-xs font-mono font-black border ${
-                      failedCount === 0
-                        ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
-                        : "bg-amber-500/15 text-amber-800 border-amber-500/30"
-                    }`}>
-                      {Math.round((passedCount / (passedCount + failedCount || 1)) * 100)}% SCORE
-                    </span>
                   </div>
                 </div>
 
@@ -714,14 +841,14 @@ export function SubmissionDetailModal({
                                 #{idx + 1}
                               </span>
                               {item.category && (
-                                <Badge variant="outline" className="text-[9.5px] uppercase font-bold tracking-wider px-2 py-0.5 border-border/80">
+                                <span className="px-2 py-0.5 rounded-md text-[9.5px] uppercase font-bold tracking-wider bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/20">
                                   {item.category.replace("_", " ")}
-                                </Badge>
+                                </span>
                               )}
                               {item.oshaRef && (
-                                <Badge variant="outline" className="text-[9.5px] font-mono text-muted-foreground px-2 py-0.5 border-border/80">
+                                <span className="px-2 py-0.5 rounded-md text-[9.5px] font-mono font-medium bg-muted text-muted-foreground border border-border/60">
                                   OSHA {item.oshaRef}
-                                </Badge>
+                                </span>
                               )}
                             </div>
 
@@ -730,22 +857,22 @@ export function SubmissionDetailModal({
                             </p>
                           </div>
 
-                          {/* Status Marking Badge */}
+                          {/* Status Marking Badge - Clean pastel pills (NO BLACK BADGES) */}
                           <div className="shrink-0 pt-0.5">
                             {isPass && (
-                              <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-emerald-500/30 text-[10px] font-bold gap-1 px-2.5 py-0.5">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                                 <Check className="size-2.5 stroke-[3]" /> PASS
-                              </Badge>
+                              </span>
                             )}
                             {isFail && (
-                              <Badge className="bg-rose-500/20 text-rose-700 hover:bg-rose-500/25 border-rose-500/40 text-[10px] font-black gap-1 px-2.5 py-0.5 animate-pulse">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/40">
                                 <AlertTriangle className="size-2.5" /> DEFICIENT
-                              </Badge>
+                              </span>
                             )}
                             {isNa && (
-                              <Badge variant="outline" className="text-muted-foreground text-[10px] font-medium px-2 py-0.5">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium bg-muted text-muted-foreground border border-border/60">
                                 N/A
-                              </Badge>
+                              </span>
                             )}
                           </div>
                         </div>
@@ -859,12 +986,9 @@ export function SubmissionDetailModal({
                             <span>View Full</span>
                           </div>
                           {photo.category && (
-                            <Badge
-                              variant="outline"
-                              className="absolute top-2 left-2 bg-background/90 backdrop-blur-xs text-[9px] font-bold uppercase"
-                            >
+                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-background/90 backdrop-blur-xs text-[9px] font-bold uppercase text-foreground border border-border/70">
                               {photo.category.replace("_", " ")}
-                            </Badge>
+                            </span>
                           )}
                           <button
                             type="button"
