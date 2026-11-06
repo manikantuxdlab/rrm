@@ -55,6 +55,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "Underwriter queue for ACORD 25 certificates, client endorsements & dispatch",
   },
   {
+    key: "claims",
+    title: "Claims",
+    url: "/claims",
+    description: "First reports of injury, Cal/OSHA 5020 & instant site incident triage queue",
+  },
+  {
     key: "workforce",
     title: "Certificates",
     url: "/workforce",

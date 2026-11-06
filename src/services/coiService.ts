@@ -8,7 +8,62 @@ export const coiService = {
    * Fetch COI requests for a specific jobsite (or all if empty)
    */
   async fetchRequests(jobSiteId?: string): Promise<CoiRequestRecord[]> {
-    let list = this.getAllStoredRequests()
+    let list: CoiRequestRecord[] = []
+
+    // 1. Primary: Fetch from dedicated Supabase 'coi_requests' table
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase
+          .from("coi_requests")
+          .select("*")
+          .order("created_at", { ascending: false })
+
+        if (jobSiteId) {
+          query = query.eq("job_site_id", jobSiteId)
+        }
+
+        const { data: dbRows, error: dbError } = await query
+
+        if (!dbError && Array.isArray(dbRows) && dbRows.length > 0) {
+          list = dbRows.map((row: any) => ({
+            id: row.id,
+            companyName: row.company_name,
+            jobSiteId: row.job_site_id,
+            jobSiteName: row.job_site_name,
+            jobNumber: row.job_number,
+            requestedByName: row.requested_by_name,
+            requestedByRole: row.requested_by_role,
+            holderName: row.holder_name,
+            holderAddress: row.holder_address,
+            holderContactName: row.holder_contact_name,
+            holderEmail: row.holder_email,
+            ccEmails: row.cc_emails || [],
+            coverages: row.coverages_requested || {},
+            endorsements: row.special_endorsements || {},
+            urgency: row.urgency || "normal",
+            notes: row.notes || "",
+            contractDocUrl: row.contract_doc_url,
+            status: row.status,
+            underwriterNotes: row.underwriter_notes,
+            issuedCoiUrl: row.issued_coi_url,
+            issuedByName: row.issued_by_name,
+            issuedAt: row.issued_at,
+            createdAt: row.created_at,
+          }))
+        }
+      } catch (err) {
+        console.warn("[coiService] Table fetch failed, falling back to sync bus:", err)
+      }
+    }
+
+    // 2. If table returned results, cache and return
+    if (list.length > 0) {
+      localStorage.setItem("rrm_coi_requests", JSON.stringify(list))
+      return list
+    }
+
+    // 3. Fallback: LocalStorage + Real-time Sync Bus
+    list = this.getAllStoredRequests()
     list = list.filter((r) => !r.holderName?.toLowerCase().includes("turner") && r.id !== "coi-demo-101")
 
     if (isSupabaseConfigured) {
@@ -88,6 +143,30 @@ export const coiService = {
 
     if (isSupabaseConfigured) {
       try {
+        // Also persist into dedicated coi_requests table
+        await supabase.from("coi_requests").insert({
+          company_name: newRecord.companyName,
+          job_site_id: newRecord.jobSiteId,
+          job_site_name: newRecord.jobSiteName,
+          job_number: newRecord.jobNumber || "",
+          requested_by_name: newRecord.requestedByName,
+          requested_by_role: newRecord.requestedByRole,
+          holder_name: newRecord.holderName,
+          holder_address: newRecord.holderAddress,
+          holder_contact_name: newRecord.holderContactName || "",
+          holder_email: newRecord.holderEmail,
+          cc_emails: newRecord.ccEmails || [],
+          coverages_requested: newRecord.coverages,
+          special_endorsements: newRecord.endorsements,
+          urgency: newRecord.urgency || "normal",
+          notes: newRecord.notes || "",
+          status: newRecord.status,
+        })
+      } catch (dbErr) {
+        console.warn("[coiService] Insert into coi_requests table error:", dbErr)
+      }
+
+      try {
         await supabase.from("support_ticket_messages").insert({
           ticket_id: SYNC_BUS_TICKET_ID,
           sender_name: newRecord.requestedByName,
@@ -154,6 +233,22 @@ export const coiService = {
     this.updateLocalRequest(id, updates)
 
     if (isSupabaseConfigured) {
+      try {
+        // Also update dedicated coi_requests table
+        await supabase
+          .from("coi_requests")
+          .update({
+            status,
+            issued_by_name: issuedData?.issuedByName,
+            underwriter_notes: issuedData?.underwriterNotes,
+            issued_at: updates.issuedAt,
+            updated_at: updates.updatedAt,
+          })
+          .match({ id })
+      } catch (dbErr) {
+        console.warn("[coiService] Update coi_requests table error:", dbErr)
+      }
+
       try {
         await supabase.from("support_ticket_messages").insert({
           ticket_id: SYNC_BUS_TICKET_ID,

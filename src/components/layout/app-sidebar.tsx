@@ -26,6 +26,7 @@ import {
   Truck,
   FileCheck2,
   ScrollText,
+  AlertTriangle,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -46,6 +47,7 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   "toolbox-talks": <ScrollText className="size-5 shrink-0" />,
   fleet: <Truck className="size-5 shrink-0" />,
   "coi-requests": <FileCheck2 className="size-5 shrink-0" />,
+  claims: <AlertTriangle className="size-5 shrink-0 text-destructive" />,
   workforce: <AwardIcon className="size-5 shrink-0" />,
   faqs: <HelpCircle className="size-5 shrink-0" />,
   tickets: <LifeBuoy className="size-5 shrink-0" />,

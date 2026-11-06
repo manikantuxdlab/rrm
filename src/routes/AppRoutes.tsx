@@ -15,6 +15,7 @@ import {
   SystemSettingsView,
   FleetMachineryView,
   COIRequestsQueueView,
+  IncidentsClaimsView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -118,15 +119,25 @@ export function AppRoutes({
       />
       <Route
         path="/incidents"
-        element={<Navigate to="/submissions" replace />}
+        element={
+          <IncidentsClaimsView
+            onSelectSubmission={onSelectSubmission}
+            onOpenDispatch={onOpenDispatch}
+          />
+        }
       />
       <Route
         path="/coi"
-        element={<Navigate to="/submissions" replace />}
+        element={<Navigate to="/coi-requests" replace />}
       />
       <Route
         path="/claims"
-        element={<Navigate to="/submissions" replace />}
+        element={
+          <IncidentsClaimsView
+            onSelectSubmission={onSelectSubmission}
+            onOpenDispatch={onOpenDispatch}
+          />
+        }
       />
 
       {/* 9. FAQ Management */}
