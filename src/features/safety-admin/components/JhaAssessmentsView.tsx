@@ -731,7 +731,7 @@ export function JhaAssessmentsView({
             {/* Right Column: Detailed Template Inspector & Controls */}
             <div className="lg:col-span-7">
               {selectedTemplate ? (
-                <Card className="rounded-3xl border-border/80 shadow-xs h-full flex flex-col justify-between">
+                <Card className="rounded-3xl border-border/80 shadow-xs flex flex-col space-y-0">
                   <CardHeader className="space-y-2 border-b border-border/60 pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -822,7 +822,7 @@ export function JhaAssessmentsView({
                     </div>
                   </CardContent>
 
-                  <CardFooter className="flex items-center justify-between border-t border-border/60 pt-3">
+                  <CardFooter className="flex items-center justify-between border-t border-border/60 pt-3 mt-4">
                     <span className="text-[11px] text-muted-foreground font-medium">
                       Live sync to mobile field crews
                     </span>
