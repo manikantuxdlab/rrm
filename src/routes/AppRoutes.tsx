@@ -16,6 +16,7 @@ import {
   FleetMachineryView,
   COIRequestsQueueView,
   IncidentsClaimsView,
+  NearMissHazardsView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -140,7 +141,10 @@ export function AppRoutes({
         }
       />
 
-      {/* 9. FAQ Management */}
+      {/* 9. Near-Miss Proactive Hazards */}
+      <Route path="/near-miss" element={<NearMissHazardsView />} />
+
+      {/* 10. FAQ Management */}
       <Route path="/faqs" element={<FaqManagementView />} />
 
       {/* 10. Support Tickets */}

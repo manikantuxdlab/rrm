@@ -61,6 +61,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "First reports of injury, Cal/OSHA 5020 & instant site incident triage queue",
   },
   {
+    key: "near-miss",
+    title: "Near-Miss",
+    url: "/near-miss",
+    description: "Multi-tenant hazard close-call logs, OSHA non-recordable audits & good catch rewards",
+  },
+  {
     key: "workforce",
     title: "Certificates",
     url: "/workforce",
