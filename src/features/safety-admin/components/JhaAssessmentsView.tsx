@@ -9,11 +9,11 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MOCK_JHA_TEMPLATES } from "@/data/safetyMockData"
 import { submissionsService } from "@/services/submissionsService"
+import { jhaTemplateService, type DynamicJHATemplate } from "@/services/jhaTemplateService"
 import { supabase } from "@/lib/supabase"
 import { downloadJhaPdf } from "@/lib/jhaPdfGenerator"
-import type { SubmissionRecord, JHATemplate } from "@/types"
+import type { SubmissionRecord } from "@/types"
 import { toast } from "sonner"
 import {
   FileText,
@@ -34,6 +34,12 @@ import {
   UserCheck,
   ShieldCheck,
   X,
+  Plus,
+  Trash2,
+  Edit3,
+  Copy,
+  Layers,
+  Sliders,
 } from "lucide-react"
 
 export function JhaAssessmentsView({
@@ -41,43 +47,85 @@ export function JhaAssessmentsView({
 }: {
   onSelectSubmission?: (submission: SubmissionRecord) => void
 }) {
-  const [selectedTemplate, setSelectedTemplate] = React.useState<JHATemplate | null>(
-    MOCK_JHA_TEMPLATES[0] || null
-  )
+  // Navigation Tabs: Live Field Records vs Super Admin Template Manager
+  const [activeTab, setActiveTab] = React.useState<"templates" | "field_jhas">("templates")
+
+  // Search & Filters
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [activeTab, setActiveTab] = React.useState<"field_jhas" | "templates">("field_jhas")
   const [tradeFilter, setTradeFilter] = React.useState<string>("all")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
 
-  // Real Database Submissions State
+  // Real Database Submissions State (Field Records)
   const [jhaSubmissions, setJhaSubmissions] = React.useState<SubmissionRecord[]>([])
-  const [isLoading, setIsLoading] = React.useState(true)
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = React.useState(true)
 
-  // Drawer State
+  // Dynamic Super Admin Templates State
+  const [templates, setTemplates] = React.useState<DynamicJHATemplate[]>([])
+  const [selectedTemplate, setSelectedTemplate] = React.useState<DynamicJHATemplate | null>(null)
+  const [isLoadingTemplates, setIsLoadingTemplates] = React.useState(true)
+
+  // Drawer & Modal States
   const [inspectingJha, setInspectingJha] = React.useState<SubmissionRecord | null>(null)
   const [adminNotesInput, setAdminNotesInput] = React.useState("")
   const [isCertifying, setIsCertifying] = React.useState(false)
 
-  // Fetch real submissions from Supabase
-  const loadData = React.useCallback(async () => {
-    setIsLoading(true)
+  // Template Editor Modal State (Create & Edit)
+  const [isEditorOpen, setIsEditorOpen] = React.useState(false)
+  const [editingTemplateId, setEditingTemplateId] = React.useState<string | null>(null)
+  const [editorActivity, setEditorActivity] = React.useState("")
+  const [editorTrade, setEditorTrade] = React.useState("Excavation & Earthwork")
+  const [editorOshaStandard, setEditorOshaStandard] = React.useState("Cal/OSHA Title 8 § 1509")
+  const [editorStatus, setEditorStatus] = React.useState<"active" | "inactive">("active")
+  const [editorHazards, setEditorHazards] = React.useState<string[]>([])
+  const [editorPPE, setEditorPPE] = React.useState<string[]>([])
+  const [editorControls, setEditorControls] = React.useState<string[]>([])
+  const [newHazardText, setNewHazardText] = React.useState("")
+  const [newPPEText, setNewPPEText] = React.useState("")
+  const [newControlText, setNewControlText] = React.useState("")
+  const [isSavingTemplate, setIsSavingTemplate] = React.useState(false)
+
+  // -------------------------------------------------------------
+  // Data Fetching: Live Submissions & Dynamic Templates
+  // -------------------------------------------------------------
+  const loadSubmissions = React.useCallback(async () => {
+    setIsLoadingSubmissions(true)
     try {
       const records = await submissionsService.fetchAll({ moduleType: "jha" })
       setJhaSubmissions(records)
     } catch (err: any) {
-      console.error("[JhaAssessmentsView] Fetch error:", err)
-      toast.error("Failed to load real JHA records from database.")
+      console.error("[JhaAssessmentsView] Fetch submissions error:", err)
+      toast.error("Failed to load live JHA records.")
     } finally {
-      setIsLoading(false)
+      setIsLoadingSubmissions(false)
     }
   }, [])
 
-  React.useEffect(() => {
-    loadData()
+  const loadTemplates = React.useCallback(async () => {
+    setIsLoadingTemplates(true)
+    try {
+      const list = await jhaTemplateService.fetchAll()
+      setTemplates(list)
+      if (list.length > 0 && !selectedTemplate) {
+        setSelectedTemplate(list[0])
+      } else if (selectedTemplate) {
+        const stillExists = list.find((t) => t.id === selectedTemplate.id)
+        setSelectedTemplate(stillExists || list[0] || null)
+      }
+    } catch (err: any) {
+      console.error("[JhaAssessmentsView] Fetch templates error:", err)
+      toast.error("Failed to load dynamic JHA templates.")
+    } finally {
+      setIsLoadingTemplates(false)
+    }
+  }, [selectedTemplate])
 
-    // Realtime Supabase channel subscription
-    const channel = supabase
-      .channel("realtime_jha_assessments")
+  React.useEffect(() => {
+    loadSubmissions()
+    loadTemplates()
+
+    // Realtime Supabase channel subscriptions for both field submissions and admin templates
+    const subChannel = supabase
+      .channel("realtime_jha_admin_channel")
       .on(
         "postgres_changes",
         {
@@ -87,15 +135,27 @@ export function JhaAssessmentsView({
           filter: "module_type=eq.jha",
         },
         () => {
-          loadData()
+          loadSubmissions()
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "submissions",
+          filter: "module_type=eq.jha_template",
+        },
+        () => {
+          loadTemplates()
         }
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(subChannel)
     }
-  }, [loadData])
+  }, [loadSubmissions, loadTemplates])
 
   // Dynamic KPIs
   const totalJhas = jhaSubmissions.length
@@ -112,16 +172,29 @@ export function JhaAssessmentsView({
   }, [jhaSubmissions])
 
   const bossApprovedCount = jhaSubmissions.filter((s) => s.data?.bossApproval).length
-  const adminCertifiedCount = jhaSubmissions.filter((s) => s.data?.adminCertified).length
+  const activeTemplatesCount = templates.filter((t) => t.status === "active").length
 
   // Filtered Templates
   const filteredTemplates = React.useMemo(() => {
-    return MOCK_JHA_TEMPLATES.filter(
-      (j) =>
-        j.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        j.trade.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  }, [searchQuery])
+    return templates.filter((j) => {
+      const q = searchQuery.toLowerCase()
+      const matchesSearch =
+        j.activity.toLowerCase().includes(q) ||
+        j.trade.toLowerCase().includes(q) ||
+        (j.oshaStandard || "").toLowerCase().includes(q)
+
+      if (!matchesSearch) return false
+
+      if (tradeFilter !== "all") {
+        if (!j.trade.toLowerCase().includes(tradeFilter.toLowerCase())) return false
+      }
+
+      if (statusFilter === "active" && j.status !== "active") return false
+      if (statusFilter === "inactive" && j.status !== "inactive") return false
+
+      return true
+    })
+  }, [templates, searchQuery, tradeFilter, statusFilter])
 
   // Filtered Submissions
   const filteredSubmissions = React.useMemo(() => {
@@ -139,19 +212,172 @@ export function JhaAssessmentsView({
         if (!sub.data?.trade?.toLowerCase().includes(tradeFilter.toLowerCase())) return false
       }
 
-      if (statusFilter === "approved") {
-        if (!sub.data?.bossApproval) return false
-      } else if (statusFilter === "pending") {
-        if (sub.data?.bossApproval) return false
-      } else if (statusFilter === "certified") {
-        if (!sub.data?.adminCertified) return false
-      }
+      if (statusFilter === "approved" && !sub.data?.bossApproval) return false
+      if (statusFilter === "pending" && sub.data?.bossApproval) return false
+      if (statusFilter === "certified" && !sub.data?.adminCertified) return false
 
       return true
     })
   }, [jhaSubmissions, searchQuery, tradeFilter, statusFilter])
 
-  // Direct PDF Download Handler
+  // -------------------------------------------------------------
+  // Template CRUD Operations (Super Admin Controlled)
+  // -------------------------------------------------------------
+  const handleOpenCreateModal = () => {
+    setEditingTemplateId(null)
+    setEditorActivity("")
+    setEditorTrade("Excavation & Earthwork")
+    setEditorOshaStandard("Cal/OSHA Title 8 § 1541")
+    setEditorStatus("active")
+    setEditorHazards([
+      "Trench wall cave-in or soil collapse burying workers",
+      "Struck-by hydraulic excavator boom or bucket swing radius",
+    ])
+    setEditorPPE([
+      "Hard Hat (ANSI Z89.1 Type 1/2 with chin strap)",
+      "High-Visibility Class 3 vest with reflective striping",
+      "Steel/composite toe work boots",
+    ])
+    setEditorControls([
+      "811 DigAlert ticket verified active with markings visible",
+      "Competent person daily trench soil classification and inspection",
+    ])
+    setNewHazardText("")
+    setNewPPEText("")
+    setNewControlText("")
+    setIsEditorOpen(true)
+  }
+
+  const handleOpenEditModal = (tpl: DynamicJHATemplate) => {
+    setEditingTemplateId(tpl.id)
+    setEditorActivity(tpl.activity)
+    setEditorTrade(tpl.trade)
+    setEditorOshaStandard(tpl.oshaStandard || "Cal/OSHA Title 8 § 1509")
+    setEditorStatus(tpl.status)
+    setEditorHazards([...tpl.hazards])
+    setEditorPPE([...tpl.requiredPPE])
+    setEditorControls([...tpl.controlMeasures])
+    setNewHazardText("")
+    setNewPPEText("")
+    setNewControlText("")
+    setIsEditorOpen(true)
+  }
+
+  const handleSaveTemplate = async () => {
+    if (!editorActivity.trim()) {
+      toast.error("Activity name is required.")
+      return
+    }
+
+    if (editorHazards.length === 0) {
+      toast.error("Please add at least 1 identified hazard.")
+      return
+    }
+
+    if (editorControls.length === 0) {
+      toast.error("Please add at least 1 mandatory engineering control.")
+      return
+    }
+
+    setIsSavingTemplate(true)
+    try {
+      if (editingTemplateId) {
+        // Update existing template
+        const ok = await jhaTemplateService.update(editingTemplateId, {
+          activity: editorActivity.trim(),
+          trade: editorTrade.trim(),
+          oshaStandard: editorOshaStandard.trim(),
+          status: editorStatus,
+          hazards: editorHazards,
+          requiredPPE: editorPPE,
+          controlMeasures: editorControls,
+        })
+        if (ok) {
+          toast.success("JHA Template updated successfully!")
+          setIsEditorOpen(false)
+          loadTemplates()
+        } else {
+          toast.error("Failed to update template in database.")
+        }
+      } else {
+        // Create new template
+        const created = await jhaTemplateService.create({
+          activity: editorActivity.trim(),
+          trade: editorTrade.trim(),
+          oshaStandard: editorOshaStandard.trim(),
+          status: editorStatus,
+          hazards: editorHazards,
+          requiredPPE: editorPPE,
+          controlMeasures: editorControls,
+        })
+        if (created) {
+          toast.success("New JHA Template created and published to field app!")
+          setIsEditorOpen(false)
+          setSelectedTemplate(created)
+          loadTemplates()
+        } else {
+          toast.error("Failed to create template in database.")
+        }
+      }
+    } catch (err: any) {
+      console.error("[JhaAssessmentsView] Save template error:", err)
+      toast.error("Error saving template.")
+    } finally {
+      setIsSavingTemplate(false)
+    }
+  }
+
+  const handleDeleteTemplate = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete the template:\n"${name}"?`)) {
+      return
+    }
+
+    try {
+      const ok = await jhaTemplateService.delete(id)
+      if (ok) {
+        toast.success("Template deleted from database.")
+        loadTemplates()
+      } else {
+        toast.error("Failed to delete template.")
+      }
+    } catch (err) {
+      toast.error("Error deleting template.")
+    }
+  }
+
+  const handleDuplicateTemplate = async (tpl: DynamicJHATemplate) => {
+    try {
+      const created = await jhaTemplateService.create({
+        activity: `${tpl.activity} (Custom Copy)`,
+        trade: tpl.trade,
+        oshaStandard: tpl.oshaStandard,
+        status: "active",
+        hazards: [...tpl.hazards],
+        requiredPPE: [...tpl.requiredPPE],
+        controlMeasures: [...tpl.controlMeasures],
+      })
+      if (created) {
+        toast.success(`Duplicated template: ${created.activity}`)
+        setSelectedTemplate(created)
+        loadTemplates()
+      }
+    } catch (err) {
+      toast.error("Could not duplicate template.")
+    }
+  }
+
+  const handleToggleTemplateStatus = async (tpl: DynamicJHATemplate) => {
+    const newStatus = tpl.status === "active" ? "inactive" : "active"
+    const ok = await jhaTemplateService.update(tpl.id, { status: newStatus })
+    if (ok) {
+      toast.success(
+        `Template ${tpl.activity} marked ${newStatus === "active" ? "Active (Visible in Field)" : "Inactive (Hidden)"}`
+      )
+      loadTemplates()
+    }
+  }
+
+  // PDF Export Handlers
   const handleDownloadPdf = (sub: SubmissionRecord) => {
     try {
       const subData = sub.data || {}
@@ -180,8 +406,7 @@ export function JhaAssessmentsView({
     }
   }
 
-  // Template PDF download
-  const handleDownloadTemplatePdf = (tpl: JHATemplate) => {
+  const handleDownloadTemplatePdf = (tpl: DynamicJHATemplate) => {
     try {
       downloadJhaPdf({
         activityName: tpl.activity,
@@ -261,12 +486,17 @@ export function JhaAssessmentsView({
       {/* ── Top Header Bar ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <ShieldAlert className="size-6 text-primary" />
-            Job Hazard Analyses (JHA) & Risk Assessments
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <ShieldAlert className="size-6 text-primary" />
+              Job Hazard Analyses (JHA) & Risk Assessments
+            </h2>
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
+              Dynamic Database Powered
+            </Badge>
+          </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Activity Hazard Analyses (AHA), Cal/OSHA Title 8 § 1509 compliance, 8-man crew attendance sign-offs, and formal signed PDFs
+            Super Admin controlled master templates, live field crew pre-task briefs, and formal signed compliance PDFs
           </p>
         </div>
 
@@ -274,34 +504,37 @@ export function JhaAssessmentsView({
           <Button
             variant="outline"
             size="sm"
-            onClick={loadData}
-            disabled={isLoading}
+            onClick={() => {
+              loadSubmissions()
+              loadTemplates()
+            }}
+            disabled={isLoadingSubmissions || isLoadingTemplates}
             className="text-xs font-semibold gap-1.5 h-8.5 rounded-lg"
           >
-            <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            <span>Sync Live</span>
+            <RefreshCw className={`size-3.5 ${isLoadingSubmissions || isLoadingTemplates ? "animate-spin" : ""}`} />
+            <span>Sync Database</span>
           </Button>
 
           <div className="inline-flex rounded-lg border border-border bg-muted p-1 text-xs">
             <button
+              onClick={() => setActiveTab("templates")}
+              className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
+                activeTab === "templates"
+                  ? "bg-card text-foreground shadow-xs ring-1 ring-border/50"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Master Templates ({templates.length})
+            </button>
+            <button
               onClick={() => setActiveTab("field_jhas")}
-              className={`px-3 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+              className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
                 activeTab === "field_jhas"
-                  ? "bg-card text-foreground shadow-xs"
+                  ? "bg-card text-foreground shadow-xs ring-1 ring-border/50"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Live Field JHAs ({jhaSubmissions.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("templates")}
-              className={`px-3 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                activeTab === "templates"
-                  ? "bg-card text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Master Trade Templates ({MOCK_JHA_TEMPLATES.length})
             </button>
           </div>
         </div>
@@ -311,14 +544,23 @@ export function JhaAssessmentsView({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-4 rounded-2xl border-border/80 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-bold uppercase tracking-wider">Total JHAs Logged</span>
-            <FileText className="size-4 text-primary" />
+            <span className="text-xs font-bold uppercase tracking-wider">Dynamic Templates</span>
+            <Layers className="size-4 text-primary" />
           </div>
-          <div className="text-2xl font-black text-foreground">{totalJhas}</div>
+          <div className="text-2xl font-black text-foreground">{templates.length}</div>
           <p className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
             <CheckCircle2 className="size-3" />
-            100% Cal/OSHA Standard
+            {activeTemplatesCount} Active in Mobile App
           </p>
+        </Card>
+
+        <Card className="p-4 rounded-2xl border-border/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-bold uppercase tracking-wider">Live Field JHAs</span>
+            <FileText className="size-4 text-blue-600" />
+          </div>
+          <div className="text-2xl font-black text-foreground">{totalJhas}</div>
+          <p className="text-[11px] text-muted-foreground">Archived in Cloud Vault</p>
         </Card>
 
         <Card className="p-4 rounded-2xl border-border/80 shadow-xs space-y-1">
@@ -327,7 +569,7 @@ export function JhaAssessmentsView({
             <Users className="size-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-foreground">{totalCrewCovered}</div>
-          <p className="text-[11px] text-muted-foreground">Roster Sign-Offs Briefed</p>
+          <p className="text-[11px] text-muted-foreground">Signed On-Site Rosters</p>
         </Card>
 
         <Card className="p-4 rounded-2xl border-border/80 shadow-xs space-y-1">
@@ -338,22 +580,269 @@ export function JhaAssessmentsView({
           <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
             {bossApprovedCount}
           </div>
-          <p className="text-[11px] text-muted-foreground">Superintendent Reviewed</p>
-        </Card>
-
-        <Card className="p-4 rounded-2xl border-border/80 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-bold uppercase tracking-wider">Admin Certified</span>
-            <ShieldCheck className="size-4 text-purple-600" />
-          </div>
-          <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-            {adminCertifiedCount}
-          </div>
-          <p className="text-[11px] text-muted-foreground">OSHA 1926 Legal Seal</p>
+          <p className="text-[11px] text-muted-foreground">Superintendent Certified</p>
         </Card>
       </div>
 
-      {/* ── TAB 1: LIVE FIELD JHA SUBMISSIONS ──────────────────────── */}
+      {/* ── TAB 1: SUPER ADMIN JHA TEMPLATE MANAGER (DYNAMIC CRUD) ─── */}
+      {activeTab === "templates" && (
+        <div className="space-y-4">
+          {/* Action & Filter Strip */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-muted/40 border border-border/70">
+            <div className="relative flex-1">
+              <Search className="size-3.5 absolute left-3 top-2.5 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search templates by activity name, trade, or OSHA standard..."
+                className="pl-8 text-xs h-9 rounded-xl bg-background border-border/80"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={tradeFilter}
+                onChange={(e) => setTradeFilter(e.target.value)}
+                className="text-xs h-9 px-3 rounded-xl bg-background border border-border/80 text-foreground font-medium"
+              >
+                <option value="all">All Trade Categories</option>
+                <option value="excavation">Excavation & Trenching</option>
+                <option value="concrete">Concrete & Masonry</option>
+                <option value="roofing">Roofing & Waterproofing</option>
+                <option value="crane">Crane & Rigging</option>
+              </select>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-xs h-9 px-3 rounded-xl bg-background border border-border/80 text-foreground font-medium"
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive (Hidden)</option>
+              </select>
+
+              <Button
+                onClick={handleOpenCreateModal}
+                className="text-xs font-bold gap-1.5 h-9 rounded-xl bg-primary hover:bg-primary/90 text-white shadow-xs cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>Create JHA Template</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Master Templates 2-Column Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Template Cards List */}
+            <div className="lg:col-span-5 space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Dynamic Templates ({filteredTemplates.length})
+                </span>
+                <span className="text-[11px] text-muted-foreground">Click to preview & edit</span>
+              </div>
+
+              {filteredTemplates.length === 0 ? (
+                <Card className="p-8 text-center rounded-3xl border-dashed border-border/80 bg-muted/20 space-y-2">
+                  <Layers className="size-8 text-muted-foreground/40 mx-auto" />
+                  <p className="text-xs font-bold text-foreground">No templates match the current filter</p>
+                  <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold">
+                    Create New Template
+                  </Button>
+                </Card>
+              ) : (
+                filteredTemplates.map((template) => {
+                  const isSelected = selectedTemplate?.id === template.id
+                  const isActive = template.status === "active"
+
+                  return (
+                    <div
+                      key={template.id}
+                      onClick={() => setSelectedTemplate(template)}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-xs space-y-2 ${
+                        isSelected
+                          ? "border-primary bg-primary/5 shadow-xs ring-2 ring-primary/20"
+                          : "border-border bg-card hover:bg-muted/40 hover:border-border/80"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Badge variant="outline" className="text-[9px] font-bold text-primary border-primary/30 truncate">
+                            {template.trade}
+                          </Badge>
+                          <Badge
+                            className={`text-[9px] font-bold px-1.5 py-0 h-4.5 ${
+                              isActive
+                                ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {isActive ? "Active in Mobile" : "Draft / Inactive"}
+                          </Badge>
+                        </div>
+
+                        {/* Quick Card Action Buttons */}
+                        <div
+                          className="flex items-center gap-1 shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            title="Edit Template"
+                            onClick={() => handleOpenEditModal(template)}
+                            className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Duplicate Template"
+                            onClick={() => handleDuplicateTemplate(template)}
+                            className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          >
+                            <Copy className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete Template"
+                            onClick={() => handleDeleteTemplate(template.id, template.activity)}
+                            className="p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="font-bold text-foreground text-xs leading-snug">
+                        {template.activity}
+                      </div>
+
+                      <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-0.5 border-t border-border/40">
+                        <span>{template.hazards.length} Hazards • {template.controlMeasures.length} Controls</span>
+                        <span className="font-mono text-[10px]">{template.oshaStandard || "Cal/OSHA"}</span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            {/* Right Column: Detailed Template Inspector & Controls */}
+            <div className="lg:col-span-7">
+              {selectedTemplate ? (
+                <Card className="rounded-3xl border-border/80 shadow-xs h-full flex flex-col justify-between">
+                  <CardHeader className="space-y-2 border-b border-border/60 pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-primary text-white font-bold text-xs">
+                          {selectedTemplate.trade}
+                        </Badge>
+                        <Badge variant="outline" className="text-emerald-600 border-emerald-500/20 bg-emerald-500/10 font-bold">
+                          {selectedTemplate.oshaStandard || "Cal/OSHA Title 8 § 1509"}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleTemplateStatus(selectedTemplate)}
+                          className={`h-7 text-xs font-bold rounded-lg ${
+                            selectedTemplate.status === "active"
+                              ? "text-emerald-700 border-emerald-500/30"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {selectedTemplate.status === "active" ? "Active in App ✓" : "Activate"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenEditModal(selectedTemplate)}
+                          className="h-7 text-xs font-bold gap-1 rounded-lg"
+                        >
+                          <Edit3 className="size-3" />
+                          <span>Edit</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    <CardTitle className="text-base font-black text-foreground">
+                      {selectedTemplate.activity}
+                    </CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4 pt-4 text-xs">
+                    {/* Potential Hazards */}
+                    <div className="space-y-2 p-3.5 rounded-2xl bg-destructive/5 border border-destructive/20">
+                      <div className="font-bold text-destructive flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <AlertTriangle className="size-4" />
+                          <span>Identified Activity Hazards ({selectedTemplate.hazards.length}):</span>
+                        </span>
+                      </div>
+                      <ul className="list-disc list-inside space-y-1.5 text-muted-foreground pl-1 leading-relaxed">
+                        {selectedTemplate.hazards.map((h, i) => (
+                          <li key={i}>{h}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Required Engineering Controls */}
+                    <div className="space-y-2 p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                      <div className="font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="size-4" />
+                        <span>Mandatory Engineering & Work Controls ({selectedTemplate.controlMeasures.length}):</span>
+                      </div>
+                      <ul className="list-disc list-inside space-y-1.5 text-muted-foreground pl-1 leading-relaxed">
+                        {selectedTemplate.controlMeasures.map((c, i) => (
+                          <li key={i}>{c}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Required PPE Matrix */}
+                    <div className="space-y-2">
+                      <div className="font-bold text-foreground flex items-center gap-1.5">
+                        <HardHat className="size-4 text-primary" />
+                        <span>Required Personal Protective Equipment (PPE Matrix):</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {selectedTemplate.requiredPPE.map((ppe, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/60 text-[11px]"
+                          >
+                            <CheckCircle2 className="size-3.5 text-primary shrink-0" />
+                            <span className="text-foreground font-medium">{ppe}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="flex items-center justify-between border-t border-border/60 pt-3">
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      Live sync to mobile field crews
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownloadTemplatePdf(selectedTemplate)}
+                      className="text-xs font-bold gap-1.5 bg-primary text-white rounded-xl cursor-pointer"
+                    >
+                      <FileDown className="size-3.5" />
+                      <span>Export Template PDF</span>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 2: LIVE FIELD JHA SUBMISSIONS ──────────────────────── */}
       {activeTab === "field_jhas" && (
         <div className="space-y-4">
           {/* Search & Filter Strip */}
@@ -456,7 +945,6 @@ export function JhaAssessmentsView({
                     </CardHeader>
 
                     <CardContent className="space-y-3 pt-0 text-xs">
-                      {/* Jobsite & Crew Stats Strip */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-2xl bg-muted/30 border border-border/50">
                         <div className="flex items-center gap-2">
                           <Building className="size-4 text-primary shrink-0" />
@@ -489,7 +977,6 @@ export function JhaAssessmentsView({
                         </div>
                       </div>
 
-                      {/* Key Controls Summary */}
                       {subData.keyControls && (
                         <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 text-xs flex items-center gap-2">
                           <CheckCircle2 className="size-4 text-primary shrink-0" />
@@ -535,140 +1022,288 @@ export function JhaAssessmentsView({
         </div>
       )}
 
-      {/* ── TAB 2: MASTER JHA TRADE TEMPLATES ───────────────────────── */}
-      {activeTab === "templates" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Templates list */}
-          <div className="lg:col-span-5 space-y-3">
-            <div className="relative">
-              <Search className="size-3.5 absolute left-3 top-2.5 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search trade or activity template..."
-                className="pl-8 text-xs h-9 rounded-xl"
-              />
+      {/* ── SUPER ADMIN TEMPLATE EDITOR DRAWER (CREATE & EDIT) ───────── */}
+      {isEditorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="fixed inset-0" onClick={() => setIsEditorOpen(false)} />
+          <div className="relative z-10 w-full max-w-2xl h-full bg-card shadow-2xl border-l border-border p-6 overflow-y-auto space-y-5 animate-in slide-in-from-right duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div>
+                <h3 className="text-base font-black text-foreground flex items-center gap-2">
+                  <Sliders className="size-5 text-primary" />
+                  <span>{editingTemplateId ? "Edit JHA Standard Template" : "Create Master JHA Template"}</span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Changes sync immediately to all mobile field foreman devices.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditorOpen(false)}
+                className="size-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground font-bold cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
             </div>
 
-            <div className="space-y-2">
-              {filteredTemplates.map((template) => {
-                const isSelected = selectedTemplate?.id === template.id
-                return (
-                  <div
-                    key={template.id}
-                    onClick={() => setSelectedTemplate(template)}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-xs space-y-1.5 ${
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-xs ring-2 ring-primary/20"
-                        : "border-border bg-card hover:bg-muted/40 hover:border-border/80"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-[9.5px] font-bold text-primary border-primary/30">
-                        {template.trade}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {template.id}
-                      </span>
-                    </div>
+            {/* Form Fields */}
+            <div className="space-y-4 text-xs">
+              {/* Activity Name */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-foreground">Activity Scope Title *</label>
+                <Input
+                  value={editorActivity}
+                  onChange={(e) => setEditorActivity(e.target.value)}
+                  placeholder="e.g. Deep Foundation Trenching & Footing Excavation"
+                  className="rounded-xl text-xs h-10"
+                />
+              </div>
 
-                    <div className="font-bold text-foreground text-xs leading-snug">
-                      {template.activity}
-                    </div>
+              {/* Trade Category & Regulatory Standard */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="font-bold text-foreground">Trade Category</label>
+                  <Input
+                    value={editorTrade}
+                    onChange={(e) => setEditorTrade(e.target.value)}
+                    placeholder="e.g. Excavation & Earthwork"
+                    className="rounded-xl text-xs h-10"
+                  />
+                </div>
 
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                      <span>{template.hazards.length} Hazards</span>
-                      <span>•</span>
-                      <span>{template.controlMeasures.length} Controls</span>
-                      <span>•</span>
-                      <span>{template.requiredPPE.length} PPE Matrix</span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+                <div className="space-y-1.5">
+                  <label className="font-bold text-foreground">OSHA Standard / Subpart</label>
+                  <Input
+                    value={editorOshaStandard}
+                    onChange={(e) => setEditorOshaStandard(e.target.value)}
+                    placeholder="e.g. Cal/OSHA Title 8 § 1541"
+                    className="rounded-xl text-xs h-10"
+                  />
+                </div>
+              </div>
 
-          {/* JHA Template Details */}
-          <div className="lg:col-span-7">
-            {selectedTemplate ? (
-              <Card className="rounded-3xl border-border/80 shadow-xs h-full flex flex-col justify-between">
-                <CardHeader className="space-y-2 border-b border-border/60 pb-4">
-                  <div className="flex items-center justify-between">
-                    <Badge className="bg-primary text-white font-bold text-xs">
-                      {selectedTemplate.trade}
-                    </Badge>
-                    <Badge variant="outline" className="text-emerald-600 border-emerald-500/20 bg-emerald-500/10 font-bold">
-                      Cal/OSHA Title 8 § 1509
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-base font-bold text-foreground">
-                    {selectedTemplate.activity}
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="space-y-4 pt-4 text-xs">
-                  {/* Required PPE Matrix */}
-                  <div className="space-y-2">
-                    <div className="font-bold text-foreground flex items-center gap-1.5">
-                      <HardHat className="size-4 text-primary" />
-                      <span>Required Personal Protective Equipment (PPE Matrix):</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {selectedTemplate.requiredPPE.map((ppe, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/60 text-[11px]"
-                        >
-                          <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                          <span className="text-foreground font-medium">{ppe}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Potential Hazards */}
-                  <div className="space-y-2 p-3.5 rounded-2xl bg-destructive/5 border border-destructive/20">
-                    <div className="font-bold text-destructive flex items-center gap-1.5">
-                      <AlertTriangle className="size-4" />
-                      <span>Identified High-Risk Activity Hazards:</span>
-                    </div>
-                    <ul className="list-disc list-inside space-y-1.5 text-muted-foreground pl-1 leading-relaxed">
-                      {selectedTemplate.hazards.map((h, i) => (
-                        <li key={i}>{h}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Required Engineering Controls */}
-                  <div className="space-y-2 p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-                    <div className="font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
-                      <CheckCircle2 className="size-4" />
-                      <span>Mandatory Engineering & Work Controls:</span>
-                    </div>
-                    <ul className="list-disc list-inside space-y-1.5 text-muted-foreground pl-1 leading-relaxed">
-                      {selectedTemplate.controlMeasures.map((c, i) => (
-                        <li key={i}>{c}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="flex items-center justify-between border-t border-border/60 pt-3">
-                  <span className="text-[11px] text-muted-foreground font-medium">
-                    Pre-Configured Safe Work Standard
+              {/* Status Switch */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/60">
+                <div>
+                  <span className="font-bold text-foreground block">Active in Mobile App</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    When active, foremen can select this template during pre-task sign-offs.
                   </span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditorStatus((prev) => (prev === "active" ? "inactive" : "active"))}
+                  className={`text-xs font-bold ${
+                    editorStatus === "active"
+                      ? "bg-emerald-500/15 text-emerald-800 border-emerald-500/30"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {editorStatus === "active" ? "Active ✓" : "Inactive (Draft)"}
+                </Button>
+              </div>
+
+              {/* 1. Dynamic Hazards Manager */}
+              <div className="space-y-2 p-3.5 rounded-2xl bg-destructive/5 border border-destructive/20">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-destructive flex items-center gap-1.5">
+                    <AlertTriangle className="size-4" />
+                    <span>Identified Activity Hazards ({editorHazards.length})</span>
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {editorHazards.map((hz, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/60 text-xs"
+                    >
+                      <span className="leading-snug">{hz}</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditorHazards((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="text-muted-foreground hover:text-destructive p-1 shrink-0 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <Input
+                    value={newHazardText}
+                    onChange={(e) => setNewHazardText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        if (newHazardText.trim()) {
+                          setEditorHazards((prev) => [...prev, newHazardText.trim()])
+                          setNewHazardText("")
+                        }
+                      }
+                    }}
+                    placeholder="Add custom hazard..."
+                    className="text-xs h-9 rounded-xl bg-background"
+                  />
                   <Button
+                    type="button"
                     size="sm"
-                    onClick={() => handleDownloadTemplatePdf(selectedTemplate)}
-                    className="text-xs font-bold gap-1.5 bg-primary text-white rounded-xl cursor-pointer"
+                    onClick={() => {
+                      if (newHazardText.trim()) {
+                        setEditorHazards((prev) => [...prev, newHazardText.trim()])
+                        setNewHazardText("")
+                      }
+                    }}
+                    className="h-9 px-3 rounded-xl font-bold cursor-pointer"
                   >
-                    <FileDown className="size-3.5" />
-                    <span>Export Master Template PDF</span>
+                    <Plus className="size-3.5" /> Add
                   </Button>
-                </CardFooter>
-              </Card>
-            ) : null}
+                </div>
+              </div>
+
+              {/* 2. Mandatory Engineering Controls Manager */}
+              <div className="space-y-2 p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-4" />
+                    <span>Mandatory Engineering & Work Controls ({editorControls.length})</span>
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {editorControls.map((ctrl, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/60 text-xs"
+                    >
+                      <span className="leading-snug">{ctrl}</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditorControls((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="text-muted-foreground hover:text-destructive p-1 shrink-0 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <Input
+                    value={newControlText}
+                    onChange={(e) => setNewControlText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        if (newControlText.trim()) {
+                          setEditorControls((prev) => [...prev, newControlText.trim()])
+                          setNewControlText("")
+                        }
+                      }
+                    }}
+                    placeholder="Add mandatory control measure..."
+                    className="text-xs h-9 rounded-xl bg-background"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (newControlText.trim()) {
+                        setEditorControls((prev) => [...prev, newControlText.trim()])
+                        setNewControlText("")
+                      }
+                    }}
+                    className="h-9 px-3 rounded-xl font-bold cursor-pointer"
+                  >
+                    <Plus className="size-3.5" /> Add
+                  </Button>
+                </div>
+              </div>
+
+              {/* 3. Mandatory PPE Matrix Manager */}
+              <div className="space-y-2 p-3.5 rounded-2xl bg-primary/5 border border-primary/20">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-primary flex items-center gap-1.5">
+                    <HardHat className="size-4" />
+                    <span>Mandatory PPE Items ({editorPPE.length})</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {editorPPE.map((ppe, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/60 text-xs"
+                    >
+                      <span className="truncate">{ppe}</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditorPPE((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="text-muted-foreground hover:text-destructive p-1 shrink-0 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <Input
+                    value={newPPEText}
+                    onChange={(e) => setNewPPEText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        if (newPPEText.trim()) {
+                          setEditorPPE((prev) => [...prev, newPPEText.trim()])
+                          setNewPPEText("")
+                        }
+                      }
+                    }}
+                    placeholder="Add PPE requirement..."
+                    className="text-xs h-9 rounded-xl bg-background"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (newPPEText.trim()) {
+                        setEditorPPE((prev) => [...prev, newPPEText.trim()])
+                        setNewPPEText("")
+                      }
+                    }}
+                    className="h-9 px-3 rounded-xl font-bold cursor-pointer"
+                  >
+                    <Plus className="size-3.5" /> Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setIsEditorOpen(false)}
+                className="text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={isSavingTemplate}
+                onClick={handleSaveTemplate}
+                className="text-xs font-bold bg-primary hover:bg-primary/90 text-white rounded-xl px-5 h-10 shadow-xs cursor-pointer"
+              >
+                {isSavingTemplate ? "Publishing to Database..." : "Save & Publish Template"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -443,3 +443,4 @@ export function getJhaPdfDataUri(data: JhaPdfData): string {
   const doc = buildJhaPdfDoc(data)
   return doc.output("datauristring")
 }
+
