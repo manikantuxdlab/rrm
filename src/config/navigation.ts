@@ -67,6 +67,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     description: "Multi-tenant hazard close-call logs, OSHA non-recordable audits & good catch rewards",
   },
   {
+    key: "jha",
+    title: "JHA / Risk",
+    url: "/jha",
+    description: "Activity Hazard Analysis (AHA) master templates, live field crew briefs & compliance sign-offs",
+  },
+  {
     key: "workforce",
     title: "Certificates",
     url: "/workforce",

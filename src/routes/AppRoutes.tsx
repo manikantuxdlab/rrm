@@ -17,6 +17,7 @@ import {
   COIRequestsQueueView,
   IncidentsClaimsView,
   NearMissHazardsView,
+  JhaAssessmentsView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -51,8 +52,10 @@ export function AppRoutes({
             onNavigateModule={(mod) => {
               if (mod === "checklists") {
                 navigate("/checklists")
-              } else if (mod === "toolbox" || mod === "jha") {
-                navigate("/safety-config")
+              } else if (mod === "toolbox") {
+                navigate("/toolbox-talks")
+              } else if (mod === "jha") {
+                navigate("/jha")
               } else if (mod === "fleet") {
                 navigate("/fleet")
               } else if (mod === "incidents" || mod === "coi") {
@@ -94,7 +97,12 @@ export function AppRoutes({
         element={<ToolboxTalksView onSelectSubmission={onSelectSubmission} />}
       />
       <Route path="/toolbox" element={<Navigate to="/toolbox-talks" replace />} />
-      <Route path="/jha" element={<Navigate to="/safety-config" replace />} />
+      {/* 7. Job Hazard Analysis (JHA / Risk & Super Admin Template Manager) */}
+      <Route
+        path="/jha"
+        element={<JhaAssessmentsView onSelectSubmission={onSelectSubmission} />}
+      />
+      <Route path="/jha-library" element={<Navigate to="/jha" replace />} />
 
       {/* Customer COI Underwriter Queue */}
       <Route path="/coi-requests" element={<COIRequestsQueueView />} />

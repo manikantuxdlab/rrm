@@ -28,6 +28,7 @@ import {
   ScrollText,
   AlertTriangle,
   ShieldAlert,
+  ClipboardList,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -50,6 +51,7 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   "coi-requests": <FileCheck2 className="size-5 shrink-0" />,
   claims: <AlertTriangle className="size-5 shrink-0 text-destructive" />,
   "near-miss": <ShieldAlert className="size-5 shrink-0 text-amber-600" />,
+  jha: <ClipboardList className="size-5 shrink-0 text-primary" />,
   workforce: <AwardIcon className="size-5 shrink-0" />,
   faqs: <HelpCircle className="size-5 shrink-0" />,
   tickets: <LifeBuoy className="size-5 shrink-0" />,
