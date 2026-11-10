@@ -1,4 +1,5 @@
 import * as React from "react"
+import { createPortal } from "react-dom"
 import {
   Card,
   CardContent,
@@ -1023,10 +1024,11 @@ export function JhaAssessmentsView({
       )}
 
       {/* ── SUPER ADMIN TEMPLATE EDITOR DRAWER (CREATE & EDIT) ───────── */}
-      {isEditorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="fixed inset-0" onClick={() => setIsEditorOpen(false)} />
-          <div className="relative z-10 w-full max-w-2xl h-full bg-card shadow-2xl border-l border-border p-6 overflow-y-auto space-y-5 animate-in slide-in-from-right duration-200">
+      {isEditorOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="fixed inset-0" onClick={() => setIsEditorOpen(false)} />
+            <div className="relative z-10 w-full max-w-2xl h-full bg-card shadow-2xl border-l border-border p-6 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-5 animate-in slide-in-from-right duration-200">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div>
@@ -1305,14 +1307,16 @@ export function JhaAssessmentsView({
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── JHA AUDIT DOSSIER SIDE DRAWER ──────────────────────────── */}
-      {inspectingJha && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="fixed inset-0" onClick={() => setInspectingJha(null)} />
-          <div className="relative z-10 w-full max-w-2xl h-full bg-card shadow-2xl border-l border-border p-6 overflow-y-auto space-y-5 animate-in slide-in-from-right duration-200">
+      {inspectingJha &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="fixed inset-0" onClick={() => setInspectingJha(null)} />
+            <div className="relative z-10 w-full max-w-2xl h-full bg-card shadow-2xl border-l border-border p-6 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-5 animate-in slide-in-from-right duration-200">
             {/* Drawer Header */}
             <div className="flex items-start justify-between border-b border-border/60 pb-3">
               <div className="space-y-1">
@@ -1507,7 +1511,8 @@ export function JhaAssessmentsView({
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
