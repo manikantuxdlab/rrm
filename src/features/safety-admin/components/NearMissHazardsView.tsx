@@ -37,6 +37,9 @@ import {
   Download,
   RefreshCw,
   HardHat,
+  ZoomIn,
+  ExternalLink,
+  X,
 } from "lucide-react"
 
 // Initial Fallback Records if Supabase is offline or empty
@@ -59,7 +62,9 @@ const INITIAL_NEAR_MISS_DATA: SubmissionRecord[] = [
       description: "Unsecured 3/4-inch plywood cover over 2x2 ft HVAC duct opening was displaced by forklift traffic. Worker almost stepped through.",
       correctiveAction: "Re-centered plywood cover, screwed into concrete deck, painted fluorescent orange with 'HOLE / HOYO' warning label.",
       hasBeforePhoto: true,
+      beforePhotoUrl: "https://images.unsplash.com/photo-1541888946425-d0fbb186c5f8?auto=format&fit=crop&w=800&q=80",
       hasAfterPhoto: true,
+      afterPhotoUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80",
       resolvedInField: true,
       resolutionStatus: "resolved_on_site",
       goodCatchAwarded: true,
@@ -87,6 +92,7 @@ const INITIAL_NEAR_MISS_DATA: SubmissionRecord[] = [
       description: "Temporary power spider box had tripped GFCI taped in closed position. 110V concrete vibrator cord submerged in standing curing water.",
       correctiveAction: "Pending electrical subcontractor repair. Tagged out spider box and disconnected main feeder.",
       hasBeforePhoto: true,
+      beforePhotoUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
       hasAfterPhoto: false,
       resolvedInField: false,
       resolutionStatus: "pending_boss_action",
@@ -117,7 +123,9 @@ const INITIAL_NEAR_MISS_DATA: SubmissionRecord[] = [
       description: "Vertical #6 rebar dowels protruding 3 feet without OSHA protective mushroom caps adjacent to access ladder.",
       correctiveAction: "Crew installed steel-reinforced orange OSHA approved rebar caps across all 18 dowels immediately.",
       hasBeforePhoto: true,
+      beforePhotoUrl: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80",
       hasAfterPhoto: true,
+      afterPhotoUrl: "https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80",
       resolvedInField: true,
       resolutionStatus: "resolved_on_site",
       goodCatchAwarded: false,
@@ -144,7 +152,9 @@ const INITIAL_NEAR_MISS_DATA: SubmissionRecord[] = [
       description: "Tag line caught on exterior structural column during bundle lift. Load stabilized before swing occurred over active laydown area.",
       correctiveAction: "Double tag lines implemented and exclusion zone expanded 20 feet.",
       hasBeforePhoto: true,
+      beforePhotoUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80",
       hasAfterPhoto: true,
+      afterPhotoUrl: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80",
       resolvedInField: false,
       resolutionStatus: "resolved_by_boss",
       bossNotes: "Mandatory crane rigger briefing completed. Certified lead rigger now stationed at laydown gate.",
@@ -171,6 +181,7 @@ export function NearMissHazardsView() {
   const [selectedRecord, setSelectedRecord] = React.useState<SubmissionRecord | null>(null)
   const [adminNotes, setAdminNotes] = React.useState("")
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false)
+  const [enlargedPhoto, setEnlargedPhoto] = React.useState<{ url: string; title: string } | null>(null)
 
   // Load Data
   const loadData = React.useCallback(async () => {
@@ -814,15 +825,37 @@ export function NearMissHazardsView() {
                   <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">
                     Before (Hazard Condition)
                   </span>
-                  <div className="h-28 rounded-xl bg-card border border-rose-200 dark:border-rose-900/40 flex flex-col items-center justify-center p-2 shadow-2xs">
-                    <Camera className="size-5 text-rose-600 mb-1" />
-                    <span className="text-[10px] font-bold text-rose-900 dark:text-rose-300">
-                      Hazard Photo Logged
-                    </span>
-                    <span className="text-[9px] text-muted-foreground font-mono">
-                      GPS Geotag Verified
-                    </span>
-                  </div>
+                  {selectedRecord.data?.beforePhotoUrl ? (
+                    <div
+                      onClick={() =>
+                        setEnlargedPhoto({
+                          url: selectedRecord.data.beforePhotoUrl,
+                          title: `Hazard Condition (Before) - ${selectedRecord.title}`,
+                        })
+                      }
+                      className="h-32 rounded-xl border border-rose-300 dark:border-rose-900/50 overflow-hidden relative group cursor-pointer shadow-2xs"
+                    >
+                      <img
+                        src={selectedRecord.data.beforePhotoUrl}
+                        alt="Hazard Condition Before"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white">
+                        <ZoomIn className="size-4" />
+                        <span className="text-[10px] font-bold">Zoom Photo</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-28 rounded-xl bg-card border border-rose-200 dark:border-rose-900/40 flex flex-col items-center justify-center p-2 shadow-2xs">
+                      <Camera className="size-5 text-rose-600 mb-1" />
+                      <span className="text-[10px] font-bold text-rose-900 dark:text-rose-300">
+                        {selectedRecord.data?.hasBeforePhoto ? "Hazard Photo Attached" : "No Photo Logged"}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground font-mono">
+                        {selectedRecord.data?.hasBeforePhoto ? "GPS Geotag Verified" : "Optional field evidence"}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* After Photo */}
@@ -830,17 +863,39 @@ export function NearMissHazardsView() {
                   <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
                     After (Remediated)
                   </span>
-                  <div className="h-28 rounded-xl bg-card border border-emerald-200 dark:border-emerald-900/40 flex flex-col items-center justify-center p-2 shadow-2xs">
-                    <Wrench className="size-5 text-emerald-600 mb-1" />
-                    <span className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
-                      {selectedRecord.data?.hasAfterPhoto || selectedRecord.data?.resolvedInField
-                        ? "Corrected Photo Logged"
-                        : "Pending Remediation"}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground font-mono">
-                      Field Neutralized
-                    </span>
-                  </div>
+                  {selectedRecord.data?.afterPhotoUrl ? (
+                    <div
+                      onClick={() =>
+                        setEnlargedPhoto({
+                          url: selectedRecord.data.afterPhotoUrl,
+                          title: `Remediated Condition (After) - ${selectedRecord.title}`,
+                        })
+                      }
+                      className="h-32 rounded-xl border border-emerald-300 dark:border-emerald-900/50 overflow-hidden relative group cursor-pointer shadow-2xs"
+                    >
+                      <img
+                        src={selectedRecord.data.afterPhotoUrl}
+                        alt="Remediated Condition After"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white">
+                        <ZoomIn className="size-4" />
+                        <span className="text-[10px] font-bold">Zoom Photo</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-28 rounded-xl bg-card border border-emerald-200 dark:border-emerald-900/40 flex flex-col items-center justify-center p-2 shadow-2xs">
+                      <Wrench className="size-5 text-emerald-600 mb-1" />
+                      <span className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
+                        {selectedRecord.data?.hasAfterPhoto || selectedRecord.data?.resolvedInField
+                          ? "Corrected Photo Logged"
+                          : "Pending Remediation"}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground font-mono">
+                        Field Neutralized
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -913,6 +968,59 @@ export function NearMissHazardsView() {
             </SheetFooter>
           </SheetContent>
         </Sheet>
+      )}
+
+      {/* Fullscreen Photo Enlargement Modal */}
+      {enlargedPhoto && (
+        <div
+          onClick={() => setEnlargedPhoto(null)}
+          className="fixed inset-0 z-60 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-xl w-full bg-card rounded-3xl overflow-hidden border border-border shadow-2xl space-y-3 p-5"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border/60">
+              <span className="text-xs font-bold text-foreground truncate pr-2">
+                {enlargedPhoto.title}
+              </span>
+              <button
+                type="button"
+                onClick={() => setEnlargedPhoto(null)}
+                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="max-h-[70vh] rounded-2xl overflow-hidden bg-black/10 flex items-center justify-center">
+              <img
+                src={enlargedPhoto.url}
+                alt={enlargedPhoto.title}
+                className="w-full h-auto max-h-[68vh] object-contain"
+              />
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <a
+                href={enlargedPhoto.url}
+                download="osha_hazard_evidence.jpg"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-primary hover:underline font-bold flex items-center gap-1.5"
+              >
+                <ExternalLink className="size-3.5" />
+                <span>Open in full resolution</span>
+              </a>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEnlargedPhoto(null)}
+                className="rounded-xl h-8 text-xs cursor-pointer"
+              >
+                Close Preview
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
