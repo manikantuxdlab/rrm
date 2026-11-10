@@ -121,6 +121,48 @@ export const submissionsService = {
   },
 
   /**
+   * Update arbitrary partial data in the submission JSONB payload
+   */
+  async updateSubmissionData(
+    id: string,
+    partialData: Record<string, any>
+  ): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
+    try {
+      const { data: row, error: fetchErr } = await supabase
+        .from("submissions")
+        .select("data")
+        .eq("id", id)
+        .single()
+
+      if (fetchErr || !row) {
+        console.error("[submissionsService] Error fetching submission for data update:", fetchErr?.message)
+        return false
+      }
+
+      const updatedData = {
+        ...(row.data || {}),
+        ...partialData,
+      }
+
+      const { error: updateErr } = await supabase
+        .from("submissions")
+        .update({ data: updatedData })
+        .eq("id", id)
+
+      if (updateErr) {
+        console.error("[submissionsService] Error updating submission data:", updateErr.message)
+        return false
+      }
+
+      return true
+    } catch (err) {
+      console.error("[submissionsService] Unexpected error updating submission data:", err)
+      return false
+    }
+  },
+
+  /**
    * Toggle archive status for a submission
    */
   async toggleArchive(id: string, currentArchived: boolean): Promise<boolean> {

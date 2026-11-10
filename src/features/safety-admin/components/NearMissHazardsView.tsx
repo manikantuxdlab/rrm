@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select"
 import { submissionsService } from "@/services/submissionsService"
 import { jobsitesService } from "@/services/jobsitesService"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 import type { SubmissionRecord, JobSite } from "@/types"
 import {
   AlertTriangle,
@@ -40,133 +41,8 @@ import {
   ZoomIn,
   ExternalLink,
   X,
+  Loader2,
 } from "lucide-react"
-
-// Initial Fallback Records if Supabase is offline or empty
-const INITIAL_NEAR_MISS_DATA: SubmissionRecord[] = [
-  {
-    id: "sub-nm-101",
-    moduleType: "near_miss",
-    title: "Near-Miss: Unprotected Deck Opening (Sunset Ridge)",
-    companyName: "Titan Construction & Safety",
-    foremanName: "Diego Morales",
-    foremanEmail: "dmorales@titanconcrete-ca.com",
-    jobSiteId: "job-101",
-    jobSiteName: "Sunset Ridge Medical Center - Phase 2",
-    timestamp: "Nov 6, 2026, 09:30 AM",
-    syncStatus: "synced",
-    severity: "high",
-    data: {
-      category: "Fall Hazard / Unprotected Opening",
-      severity: "high",
-      description: "Unsecured 3/4-inch plywood cover over 2x2 ft HVAC duct opening was displaced by forklift traffic. Worker almost stepped through.",
-      correctiveAction: "Re-centered plywood cover, screwed into concrete deck, painted fluorescent orange with 'HOLE / HOYO' warning label.",
-      hasBeforePhoto: true,
-      beforePhotoUrl: "https://images.unsplash.com/photo-1541888946425-d0fbb186c5f8?auto=format&fit=crop&w=800&q=80",
-      hasAfterPhoto: true,
-      afterPhotoUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80",
-      resolvedInField: true,
-      resolutionStatus: "resolved_on_site",
-      goodCatchAwarded: true,
-      goodCatchPoints: 50,
-      reportedByRole: "foreman",
-    },
-    recipients: ["safety@titanconcrete-ca.com", "mvance.boss@titanconcrete-ca.com"],
-    pdfGenerated: true,
-  },
-  {
-    id: "sub-nm-102",
-    moduleType: "near_miss",
-    title: "Near-Miss: Missing GFCI Protection on Wet Slab",
-    companyName: "Apex Steel & Structural LLC",
-    foremanName: "Hector Morales",
-    foremanEmail: "hmorales@apexsteel.com",
-    jobSiteId: "job-103",
-    jobSiteName: "Apex Tower Phase 2 - Downtown High-Rise",
-    timestamp: "Nov 5, 2026, 02:15 PM",
-    syncStatus: "synced",
-    severity: "critical",
-    data: {
-      category: "Electrical / GFCI / Cord Damage",
-      severity: "critical",
-      description: "Temporary power spider box had tripped GFCI taped in closed position. 110V concrete vibrator cord submerged in standing curing water.",
-      correctiveAction: "Pending electrical subcontractor repair. Tagged out spider box and disconnected main feeder.",
-      hasBeforePhoto: true,
-      beforePhotoUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
-      hasAfterPhoto: false,
-      resolvedInField: false,
-      resolutionStatus: "pending_boss_action",
-      bossNotes: "Dispatched Spark Electric LLC work order. Replaced entire distribution box with NEMA 4X rated enclosure.",
-      assignedSubcontractor: "Spark Electric LLC",
-      goodCatchAwarded: true,
-      goodCatchPoints: 50,
-      reportedByRole: "foreman",
-    },
-    recipients: ["safety@apexsteel.com", "boss@apexsteel.com"],
-    pdfGenerated: true,
-  },
-  {
-    id: "sub-nm-103",
-    moduleType: "near_miss",
-    title: "Near-Miss: Rebar Impalement Hazard on Footing Trench",
-    companyName: "Pacific Commercial Paving",
-    foremanName: "Dave Kowalski",
-    foremanEmail: "dkowalski@pacificpaving.com",
-    jobSiteId: "job-104",
-    jobSiteName: "South Waterfront Promenade & Bulkhead",
-    timestamp: "Nov 4, 2026, 11:45 AM",
-    syncStatus: "synced",
-    severity: "medium",
-    data: {
-      category: "Housekeeping / Trip & Impalement",
-      severity: "medium",
-      description: "Vertical #6 rebar dowels protruding 3 feet without OSHA protective mushroom caps adjacent to access ladder.",
-      correctiveAction: "Crew installed steel-reinforced orange OSHA approved rebar caps across all 18 dowels immediately.",
-      hasBeforePhoto: true,
-      beforePhotoUrl: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80",
-      hasAfterPhoto: true,
-      afterPhotoUrl: "https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80",
-      resolvedInField: true,
-      resolutionStatus: "resolved_on_site",
-      goodCatchAwarded: false,
-      reportedByRole: "foreman",
-    },
-    recipients: ["safety@pacificpaving.com"],
-    pdfGenerated: true,
-  },
-  {
-    id: "sub-nm-104",
-    moduleType: "near_miss",
-    title: "Near-Miss: Crane Rigging Tag Line Snag",
-    companyName: "Pacific Rebar Ironworks LLC",
-    foremanName: "Gary Simmons",
-    foremanEmail: "compliance@pacificrebar.com",
-    jobSiteId: "job-102",
-    jobSiteName: "Westfield Logistics Distribution Hub",
-    timestamp: "Oct 28, 2026, 10:20 AM",
-    syncStatus: "synced",
-    severity: "high",
-    data: {
-      category: "Struck-by / Heavy Equipment",
-      severity: "high",
-      description: "Tag line caught on exterior structural column during bundle lift. Load stabilized before swing occurred over active laydown area.",
-      correctiveAction: "Double tag lines implemented and exclusion zone expanded 20 feet.",
-      hasBeforePhoto: true,
-      beforePhotoUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80",
-      hasAfterPhoto: true,
-      afterPhotoUrl: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80",
-      resolvedInField: false,
-      resolutionStatus: "resolved_by_boss",
-      bossNotes: "Mandatory crane rigger briefing completed. Certified lead rigger now stationed at laydown gate.",
-      assignedSubcontractor: "Riggers Local 433",
-      goodCatchAwarded: true,
-      goodCatchPoints: 50,
-      reportedByRole: "foreman",
-    },
-    recipients: ["compliance@pacificrebar.com", "losscontrol@reliableriskmgmt.com"],
-    pdfGenerated: true,
-  },
-]
 
 export function NearMissHazardsView() {
   const [records, setRecords] = React.useState<SubmissionRecord[]>([])
@@ -183,7 +59,7 @@ export function NearMissHazardsView() {
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false)
   const [enlargedPhoto, setEnlargedPhoto] = React.useState<{ url: string; title: string } | null>(null)
 
-  // Load Data
+  // Load Real Data from Supabase
   const loadData = React.useCallback(async () => {
     setIsLoading(true)
     try {
@@ -192,25 +68,53 @@ export function NearMissHazardsView() {
         jobsitesService.fetchAll(),
       ])
 
-      if (cloudRecords && cloudRecords.length > 0) {
-        setRecords(cloudRecords)
-      } else {
-        setRecords(INITIAL_NEAR_MISS_DATA)
-      }
+      setRecords(cloudRecords || [])
 
       if (cloudJobsites && cloudJobsites.length > 0) {
         setJobsites(cloudJobsites)
       }
     } catch (err) {
-      console.warn("[NearMissHazardsView] Fetch fallback to mock:", err)
-      setRecords(INITIAL_NEAR_MISS_DATA)
+      console.error("[NearMissHazardsView] Fetch error:", err)
+      setRecords([])
     } finally {
       setIsLoading(false)
     }
   }, [])
 
+  // Initial Load + Realtime Supabase Channel Subscription
   React.useEffect(() => {
     loadData()
+
+    if (!isSupabaseConfigured) return
+
+    // Live subscription for incoming hazard reports & boss work order actions
+    const channel = supabase
+      .channel("realtime_near_miss_dashboard")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "submissions",
+        },
+        () => {
+          loadData()
+        }
+      )
+      .subscribe()
+
+    // Cross-tab sync for local testing
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "service_safety_submissions" || e.key === "rrm_submissions_cache") {
+        loadData()
+      }
+    }
+    window.addEventListener("storage", handleStorageChange)
+
+    return () => {
+      supabase.removeChannel(channel)
+      window.removeEventListener("storage", handleStorageChange)
+    }
   }, [loadData])
 
   // Filtered Records
@@ -247,7 +151,7 @@ export function NearMissHazardsView() {
     })
   }, [records, activeTab, selectedJobsiteId, selectedCategory, searchQuery])
 
-  // KPIs
+  // Dynamic Real KPIs
   const totalCount = records.length
   const needsActionCount = records.filter(
     (r) => (r.data?.resolutionStatus === "pending_boss_action" || (!r.data?.resolvedInField && r.data?.resolutionStatus !== "resolved_by_boss" && r.data?.resolutionStatus !== "closed_by_admin"))
@@ -257,43 +161,39 @@ export function NearMissHazardsView() {
   const goodCatchCount = records.filter((r) => r.data?.goodCatchAwarded).length
 
   // Field Resolution Rate %
-  const onSiteRate = totalCount > 0 ? Math.round((resolvedFieldCount / totalCount) * 100) : 100
+  const onSiteRate = totalCount > 0 ? Math.round((resolvedFieldCount / totalCount) * 100) : 0
 
-  // Admin Actions
+  // Real Avoided Loss Valuation ($4,200 per OSHA documented incident prevention baseline)
+  const avoidedLossDollars = totalCount * 4200
+  const avoidedLossDisplay =
+    totalCount === 0
+      ? "$0"
+      : avoidedLossDollars >= 1000
+      ? `$${(avoidedLossDollars / 1000).toFixed(0)}k`
+      : `$${avoidedLossDollars}`
+
+  // Real Super Admin Actions synced to Supabase Cloud
   const handleAdminCloseout = async (record: SubmissionRecord) => {
     setIsUpdatingStatus(true)
     try {
-      await submissionsService.updateApprovalStatus(record.id, "approved", {
-        reviewerName: "Super Admin",
-        notes: adminNotes || "Verified OSHA 300 non-recordable proactive hazard resolution.",
+      const success = await submissionsService.updateSubmissionData(record.id, {
+        resolutionStatus: "closed_by_admin",
+        adminClosedAt: new Date().toISOString(),
+        adminClosedBy: "Super Admin",
+        adminNotes: adminNotes.trim() || "Verified OSHA 300 non-recordable proactive hazard resolution.",
+        approvalStatus: "approved",
       })
 
-      // Also update local record state
-      setRecords((prev) =>
-        prev.map((r) =>
-          r.id === record.id
-            ? {
-                ...r,
-                approvalStatus: "approved",
-                data: {
-                  ...(r.data || {}),
-                  resolutionStatus: "closed_by_admin",
-                  adminClosedAt: new Date().toISOString(),
-                  adminNotes: adminNotes || "Verified OSHA 300 non-recordable proactive hazard resolution.",
-                },
-              }
-            : r
-        )
-      )
-
-      toast.success(
-        "Hazard Certified & Closed by Admin",
-        {
-          description: `Near-miss #${record.id.slice(0, 10)} archived as OSHA non-recordable compliant intervention.`,
-        }
-      )
-      setSelectedRecord(null)
-      setAdminNotes("")
+      if (success) {
+        toast.success("Hazard Certified & Closed by Admin", {
+          description: `Near-miss #${record.id.replace("sub-", "").slice(0, 10)} certified as OSHA non-recordable.`,
+        })
+        await loadData()
+        setSelectedRecord(null)
+        setAdminNotes("")
+      } else {
+        toast.error("Cloud Update Failed", { description: "Could not persist status to database." })
+      }
     } catch (err: any) {
       toast.error("Failed to close record", { description: err?.message })
     } finally {
@@ -301,10 +201,11 @@ export function NearMissHazardsView() {
     }
   }
 
-  const handleToggleGoodCatch = (record: SubmissionRecord) => {
+  const handleToggleGoodCatch = async (record: SubmissionRecord) => {
     const isAwarded = Boolean(record.data?.goodCatchAwarded)
     const newAward = !isAwarded
 
+    // Optimistic UI update
     setRecords((prev) =>
       prev.map((r) =>
         r.id === record.id
@@ -320,15 +221,28 @@ export function NearMissHazardsView() {
       )
     )
 
-    if (newAward) {
-      toast.success(
-        "Good Catch Recognition Awarded!",
-        {
-          description: `+50 safety performance points credited to ${record.foremanName} (${record.companyName}).`,
-        }
-      )
-    } else {
-      toast.info("Good Catch Recognition Revoked")
+    try {
+      const success = await submissionsService.updateSubmissionData(record.id, {
+        goodCatchAwarded: newAward,
+        goodCatchPoints: newAward ? 50 : 0,
+        goodCatchAwardedAt: new Date().toISOString(),
+        goodCatchAwardedBy: "Super Admin",
+      })
+
+      if (success) {
+        toast.success(
+          newAward ? "Good Catch Recognition Awarded!" : "Good Catch Award Removed",
+          {
+            description: newAward
+              ? `+50 safety performance points credited to ${record.foremanName || "Foreman"}.`
+              : `Recognition points reset for this submission.`,
+          }
+        )
+      } else {
+        await loadData()
+      }
+    } catch {
+      await loadData()
     }
   }
 
@@ -429,7 +343,7 @@ export function NearMissHazardsView() {
             Avoided Loss Valuation
           </span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-black text-primary">${totalCount * 30}k</span>
+            <span className="text-2xl font-black text-primary">{avoidedLossDisplay}</span>
             <span className="text-[10px] text-muted-foreground">OSHA Est.</span>
           </div>
         </Card>
@@ -727,15 +641,30 @@ export function NearMissHazardsView() {
                 )
               })}
 
-              {filteredRecords.length === 0 && (
+              {isLoading && records.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-xs text-muted-foreground">
-                    <ShieldCheck className="size-8 mx-auto text-primary opacity-60 mb-2" />
-                    <p className="font-bold text-foreground">No near-miss records match your filters.</p>
-                    <p className="text-[11px] mt-0.5">Try selecting "All Hazards" or adjusting your search criteria.</p>
+                  <td colSpan={9} className="py-16 text-center text-xs text-muted-foreground">
+                    <Loader2 className="size-7 mx-auto text-primary animate-spin mb-2" />
+                    <p className="font-bold text-foreground">Syncing live hazard records from Supabase...</p>
                   </td>
                 </tr>
-              )}
+              ) : filteredRecords.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-16 text-center text-xs text-muted-foreground">
+                    <ShieldCheck className="size-9 mx-auto text-primary opacity-60 mb-2" />
+                    <p className="font-bold text-foreground text-sm">
+                      {records.length === 0
+                        ? "No near-miss hazards recorded in Supabase yet"
+                        : "No near-miss records match your filters"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                      {records.length === 0
+                        ? "Real hazard logs submitted from the field mobile app or boss console will sync and appear here automatically."
+                        : "Try selecting 'All Hazards' or clearing your search criteria."}
+                    </p>
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
