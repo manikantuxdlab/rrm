@@ -206,19 +206,37 @@ export function buildJhaPdfDoc(data: JhaPdfData): jsPDF {
   doc.setFillColor(254, 242, 242)
   doc.setDrawColor(254, 205, 211)
   doc.roundedRect(marginX, currentY, splitColW, 20, 3, 3, "FD")
+
+  // Clean alert badge
+  doc.setFillColor(225, 29, 72)
+  doc.roundedRect(marginX + 8, currentY + 5, 10, 10, 2, 2, "F")
+  doc.setTextColor(255, 255, 255)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(6.5)
+  doc.text("!", marginX + 13, currentY + 12.5, { align: "center" })
+
   doc.setTextColor(159, 18, 57)
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(7.5)
-  doc.text("⚠️ 1. IDENTIFIED ACTIVITY HAZARDS", marginX + 8, currentY + 13)
+  doc.setFontSize(7.2)
+  doc.text("1. IDENTIFIED ACTIVITY HAZARDS", marginX + 22, currentY + 12.5)
 
   // Right Header: Engineering Controls
   doc.setFillColor(236, 253, 245)
   doc.setDrawColor(167, 243, 208)
   doc.roundedRect(rightColX, currentY, splitColW, 20, 3, 3, "FD")
+
+  // Clean safeguard badge
+  doc.setFillColor(16, 185, 129)
+  doc.roundedRect(rightColX + 8, currentY + 5, 10, 10, 2, 2, "F")
+  doc.setTextColor(255, 255, 255)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(6)
+  doc.text("OK", rightColX + 13, currentY + 12.5, { align: "center" })
+
   doc.setTextColor(6, 95, 70)
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(7.5)
-  doc.text("🛡️ 2. MANDATORY ENGINEERING & WORK CONTROLS", rightColX + 8, currentY + 13)
+  doc.setFontSize(7.2)
+  doc.text("2. MANDATORY ENGINEERING & WORK CONTROLS", rightColX + 22, currentY + 12.5)
 
   currentY += 24
 
@@ -266,10 +284,19 @@ export function buildJhaPdfDoc(data: JhaPdfData): jsPDF {
   doc.setFillColor(255, 247, 237)
   doc.setDrawColor(254, 215, 170)
   doc.roundedRect(marginX, currentY, contentWidth, 18, 3, 3, "FD")
+
+  // Clean PPE badge
+  doc.setFillColor(234, 88, 12)
+  doc.roundedRect(marginX + 8, currentY + 4, 16, 10, 2, 2, "F")
+  doc.setTextColor(255, 255, 255)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(5.5)
+  doc.text("PPE", marginX + 16, currentY + 11, { align: "center" })
+
   doc.setTextColor(194, 65, 12)
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(7.5)
-  doc.text("🦺 3. MANDATORY PERSONAL PROTECTIVE EQUIPMENT (PPE) ZERO-TOLERANCE", marginX + 8, currentY + 12)
+  doc.setFontSize(7.2)
+  doc.text("3. MANDATORY PERSONAL PROTECTIVE EQUIPMENT (PPE) ZERO-TOLERANCE", marginX + 28, currentY + 11.5)
 
   currentY += 22
 
@@ -284,16 +311,17 @@ export function buildJhaPdfDoc(data: JhaPdfData): jsPDF {
     doc.setDrawColor(226, 232, 240)
     doc.roundedRect(pX, pY, ppeColW, 14, 2, 2, "FD")
 
-    doc.setTextColor(22, 101, 52)
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(7)
-    doc.text("✓", pX + 6, pY + 10)
+    // Crisp Vector Checkmark
+    doc.setDrawColor(22, 101, 52)
+    doc.setLineWidth(1)
+    doc.line(pX + 6, pY + 8, pX + 8, pY + 10.5)
+    doc.line(pX + 8, pY + 10.5, pX + 12, pY + 5)
 
     doc.setTextColor(15, 23, 42)
     doc.setFont("helvetica", "normal")
     doc.setFontSize(6.5)
     const ppeLine = doc.splitTextToSize(ppe, ppeColW - 22)
-    doc.text(ppeLine, pX + 16, pY + 10)
+    doc.text(ppeLine, pX + 16, pY + 9.5)
   })
 
   currentY += Math.ceil(data.ppeList.length / 2) * 16 + 6
@@ -304,10 +332,19 @@ export function buildJhaPdfDoc(data: JhaPdfData): jsPDF {
   doc.setFillColor(241, 245, 249)
   doc.setDrawColor(203, 213, 225)
   doc.roundedRect(marginX, currentY, contentWidth, 18, 3, 3, "FD")
+
+  // Crew badge
+  doc.setFillColor(71, 85, 105)
+  doc.roundedRect(marginX + 8, currentY + 4, 18, 10, 2, 2, "F")
+  doc.setTextColor(255, 255, 255)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(5.2)
+  doc.text("CREW", marginX + 17, currentY + 11, { align: "center" })
+
   doc.setTextColor(30, 41, 59)
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(7.5)
-  doc.text(`👥 4. ON-SITE CREW ROSTER & ATTENDANCE ACKNOWLEDGMENT (${data.acknowledgedCrew.length} WORKERS SIGNED)`, marginX + 8, currentY + 12)
+  doc.setFontSize(7.2)
+  doc.text(`4. ON-SITE CREW ROSTER & ATTENDANCE ACKNOWLEDGMENT (${data.acknowledgedCrew.length} WORKERS SIGNED)`, marginX + 30, currentY + 11.5)
 
   currentY += 22
 
@@ -326,18 +363,22 @@ export function buildJhaPdfDoc(data: JhaPdfData): jsPDF {
     doc.setTextColor(100, 116, 139)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(6)
-    doc.text(`#${i + 1}`, cX + 6, cY + 10)
+    doc.text(`#${i + 1}`, cX + 6, cY + 9.5)
 
     doc.setTextColor(15, 23, 42)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(6.8)
-    doc.text(member, cX + 22, cY + 10)
+    doc.text(member, cX + 20, cY + 9.5)
 
     // Verification Pill
+    doc.setFillColor(240, 253, 244)
+    doc.setDrawColor(187, 247, 208)
+    doc.setLineWidth(0.6)
+    doc.roundedRect(cX + crewColW - 74, cY + 3, 68, 8, 2, 2, "FD")
     doc.setTextColor(22, 101, 52)
     doc.setFont("helvetica", "bold")
-    doc.setFontSize(5.8)
-    doc.text("SIGNED ON-SITE ✓", cX + crewColW - 6, cY + 10, { align: "right" })
+    doc.setFontSize(5.2)
+    doc.text("SIGNED ON-SITE", cX + crewColW - 40, cY + 8.8, { align: "center" })
   })
 
   currentY += Math.ceil(data.acknowledgedCrew.length / 2) * 16 + 8
