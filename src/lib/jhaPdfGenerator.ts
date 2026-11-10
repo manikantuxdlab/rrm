@@ -513,20 +513,20 @@ function drawCursiveSignature(doc: jsPDF, name: string, x: number, y: number) {
 
   // Fluid signature initial letter flourish
   doc.line(x + 4, y + 6, x + 8, y + 36)
-  doc.bezierCurveTo(x + 12, y + 4, x + 34, y + 8, x + 30, y + 22)
-  doc.bezierCurveTo(x + 26, y + 34, x + 10, y + 36, x + 6, y + 36)
+  doc.curveTo(x + 12, y + 4, x + 34, y + 8, x + 30, y + 22)
+  doc.curveTo(x + 26, y + 34, x + 10, y + 36, x + 6, y + 36)
 
   // Flowing cursive loops
   doc.setLineWidth(1.2)
-  doc.bezierCurveTo(x + 35, y + 30, x + 45, y + 16, x + 55, y + 26)
-  doc.bezierCurveTo(x + 60, y + 34, x + 70, y + 18, x + 80, y + 28)
-  doc.bezierCurveTo(x + 90, y + 38, x + 100, y + 14, x + 115, y + 25)
-  doc.bezierCurveTo(x + 125, y + 32, x + 140, y + 16, x + 155, y + 28)
+  doc.curveTo(x + 35, y + 30, x + 45, y + 16, x + 55, y + 26)
+  doc.curveTo(x + 60, y + 34, x + 70, y + 18, x + 80, y + 28)
+  doc.curveTo(x + 90, y + 38, x + 100, y + 14, x + 115, y + 25)
+  doc.curveTo(x + 125, y + 32, x + 140, y + 16, x + 155, y + 28)
 
   // Dynamic ink underline flourish
   doc.setLineWidth(1.4)
-  doc.bezierCurveTo(x + 160, y + 34, x + 120, y + 44, x + 40, y + 42)
-  doc.bezierCurveTo(x + 15, y + 41, x + 80, y + 38, x + 175, y + 36)
+  doc.curveTo(x + 160, y + 34, x + 120, y + 44, x + 40, y + 42)
+  doc.curveTo(x + 15, y + 41, x + 80, y + 38, x + 175, y + 36)
 
   // Printed clean name underneath
   doc.setFont("helvetica", "bold")
