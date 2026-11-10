@@ -157,11 +157,20 @@ export const jhaTemplateService = {
         return seeded
       }
 
-      return data.map((row: any) => {
+      const seenActivities = new Set<string>()
+      const templates: DynamicJHATemplate[] = []
+
+      for (const row of data) {
         const d = row.data || {}
-        return {
+        const activity = (d.activity || row.title || "").trim()
+        if (!activity || seenActivities.has(activity.toLowerCase())) {
+          continue
+        }
+        seenActivities.add(activity.toLowerCase())
+
+        templates.push({
           id: row.id,
-          activity: d.activity || row.title,
+          activity,
           trade: d.trade || "Specialty Construction",
           oshaStandard: d.oshaStandard || "Cal/OSHA Title 8",
           hazards: Array.isArray(d.hazards) ? d.hazards : [],
@@ -171,8 +180,10 @@ export const jhaTemplateService = {
           createdAt: row.created_at,
           updatedAt: d.updatedAt,
           createdBy: row.foreman_name,
-        }
-      })
+        })
+      }
+
+      return templates
     } catch (err) {
       console.error("[jhaTemplateService] Exception in fetchAll:", err)
       return MOCK_JHA_TEMPLATES.map((t) => ({ ...t, status: "active" as const }))
@@ -298,14 +309,24 @@ export const jhaTemplateService = {
     if (!isSupabaseConfigured) return false
 
     try {
+      // First attempt hard delete
       const { error } = await supabase
         .from("submissions")
         .delete()
         .eq("id", id)
 
       if (error) {
-        console.error("[jhaTemplateService] Error deleting template:", error.message)
-        return false
+        console.warn("[jhaTemplateService] Hard delete restricted by policy, archiving:", error.message)
+        // Archive so it is removed from active template queries
+        const { error: archiveErr } = await supabase
+          .from("submissions")
+          .update({ module_type: "jha_template_archived" })
+          .eq("id", id)
+
+        if (archiveErr) {
+          console.error("[jhaTemplateService] Error archiving template:", archiveErr.message)
+          return false
+        }
       }
 
       return true
@@ -327,3 +348,4 @@ export const jhaTemplateService = {
     return results
   },
 }
+
