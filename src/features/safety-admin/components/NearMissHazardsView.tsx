@@ -175,22 +175,53 @@ export function NearMissHazardsView() {
   // Real Super Admin Actions synced to Supabase Cloud
   const handleAdminCloseout = async (record: SubmissionRecord) => {
     setIsUpdatingStatus(true)
+    const notesToSave = adminNotes.trim() || "Verified OSHA 300 non-recordable proactive hazard resolution."
+    const nowIso = new Date().toISOString()
+    const updatePayload = {
+      resolutionStatus: "closed_by_admin",
+      adminClosedAt: nowIso,
+      adminClosedBy: "Super Admin",
+      adminNotes: notesToSave,
+      approvalStatus: "approved",
+    }
+
     try {
-      const success = await submissionsService.updateSubmissionData(record.id, {
-        resolutionStatus: "closed_by_admin",
-        adminClosedAt: new Date().toISOString(),
-        adminClosedBy: "Super Admin",
-        adminNotes: adminNotes.trim() || "Verified OSHA 300 non-recordable proactive hazard resolution.",
-        approvalStatus: "approved",
-      })
+      const success = await submissionsService.updateSubmissionData(record.id, updatePayload)
 
       if (success) {
         toast.success("Hazard Certified & Closed by Admin", {
           description: `Near-miss #${record.id.replace("sub-", "").slice(0, 10)} certified as OSHA non-recordable.`,
         })
-        await loadData()
-        setSelectedRecord(null)
-        setAdminNotes("")
+
+        // Update active record in drawer immediately so UI reflects certification
+        setSelectedRecord((prev) =>
+          prev
+            ? {
+                ...prev,
+                approvalStatus: "approved",
+                data: {
+                  ...(prev.data || {}),
+                  ...updatePayload,
+                },
+              }
+            : null
+        )
+
+        // Update list in table
+        setRecords((prev) =>
+          prev.map((r) =>
+            r.id === record.id
+              ? {
+                  ...r,
+                  approvalStatus: "approved",
+                  data: {
+                    ...(r.data || {}),
+                    ...updatePayload,
+                  },
+                }
+              : r
+          )
+        )
       } else {
         toast.error("Cloud Update Failed", { description: "Could not persist status to database." })
       }
@@ -484,7 +515,10 @@ export function NearMissHazardsView() {
                 return (
                   <tr
                     key={item.id}
-                    onClick={() => setSelectedRecord(item)}
+                    onClick={() => {
+                      setSelectedRecord(item)
+                      setAdminNotes(item.data?.adminNotes || "")
+                    }}
                     className="hover:bg-muted/30 transition-colors cursor-pointer group"
                   >
                     {/* Index */}
@@ -613,6 +647,7 @@ export function NearMissHazardsView() {
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedRecord(item)
+                            setAdminNotes(item.data?.adminNotes || "")
                           }}
                           className="size-7 p-0 text-primary hover:bg-primary/10 rounded-lg cursor-pointer"
                           title="View Incident Dossier"
@@ -683,11 +718,15 @@ export function NearMissHazardsView() {
                   className={`text-xs font-bold ${
                     selectedRecord.data?.resolutionStatus === "pending_boss_action"
                       ? "bg-rose-500 text-white"
+                      : selectedRecord.data?.resolutionStatus === "closed_by_admin"
+                      ? "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30"
                       : "bg-emerald-500/15 text-emerald-800 border-emerald-500/30"
                   }`}
                 >
                   {selectedRecord.data?.resolutionStatus === "pending_boss_action"
                     ? "Action Needed"
+                    : selectedRecord.data?.resolutionStatus === "closed_by_admin"
+                    ? "OSHA Certified & Closed ✓"
                     : "Remediated & Verified"}
                 </Badge>
               </div>
@@ -847,18 +886,34 @@ export function NearMissHazardsView() {
               </div>
             )}
 
-            {/* Super Admin Audit Notes Input */}
-            <div className="space-y-1.5 pt-2">
-              <label className="text-xs font-bold text-foreground">
-                Super Admin Closeout & OSHA 300 Non-Recordable Certification Notes:
-              </label>
-              <Input
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="Confirm that no injury occurred and hazard is permanently neutralized..."
-                className="h-9 text-xs rounded-xl"
-              />
-            </div>
+            {/* Super Admin Audit Notes / Certification Status */}
+            {selectedRecord.data?.resolutionStatus === "closed_by_admin" ? (
+              <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/25 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-purple-700 dark:text-purple-300">
+                  <ShieldCheck className="size-4.5" />
+                  <span>OSHA 300 Non-Recordable Closeout Certified</span>
+                </div>
+                <p className="text-xs text-foreground leading-relaxed">
+                  {selectedRecord.data?.adminNotes || "Verified proactive field remediation. Certified zero lost time and zero recordable illness/injury."}
+                </p>
+                <div className="flex items-center justify-between text-[10.5px] text-muted-foreground pt-1 border-t border-purple-500/20">
+                  <span>Certified By: <strong>{selectedRecord.data?.adminClosedBy || "Super Admin"}</strong></span>
+                  <span className="font-mono">{selectedRecord.data?.adminClosedAt ? new Date(selectedRecord.data.adminClosedAt).toLocaleString() : "Recently"}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5 pt-2">
+                <label className="text-xs font-bold text-foreground">
+                  Super Admin Closeout & OSHA 300 Non-Recordable Certification Notes:
+                </label>
+                <Input
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Confirm that no injury occurred and hazard is permanently neutralized..."
+                  className="h-9 text-xs rounded-xl"
+                />
+              </div>
+            )}
 
             <SheetFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-border/60 pt-4">
               <Button
@@ -884,15 +939,26 @@ export function NearMissHazardsView() {
                 >
                   Close Drawer
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleAdminCloseout(selectedRecord)}
-                  disabled={isUpdatingStatus}
-                  className="text-xs h-9 font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <CheckCircle2 className="size-3.5" />
-                  <span>{isUpdatingStatus ? "Certifying..." : "Certify & Close Hazard"}</span>
-                </Button>
+                {selectedRecord.data?.resolutionStatus === "closed_by_admin" ? (
+                  <Button
+                    size="sm"
+                    disabled
+                    className="text-xs h-9 font-bold bg-purple-600/80 text-white rounded-xl gap-1.5 cursor-default shadow-2xs opacity-90"
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    <span>Certified & Closed (OSHA 300)</span>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => handleAdminCloseout(selectedRecord)}
+                    disabled={isUpdatingStatus}
+                    className="text-xs h-9 font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    <span>{isUpdatingStatus ? "Certifying..." : "Certify & Close Hazard"}</span>
+                  </Button>
+                )}
               </div>
             </SheetFooter>
           </SheetContent>
