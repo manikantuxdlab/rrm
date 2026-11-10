@@ -534,7 +534,6 @@ function drawCursiveSignature(doc: jsPDF, name: string, x: number, y: number) {
   doc.setTextColor(30, 41, 59)
   doc.text(name, x + 8, y + 50)
 }
-}
 
 /**
  * Downloads the signed JHA PDF directly and optionally opens it in a new browser tab.
