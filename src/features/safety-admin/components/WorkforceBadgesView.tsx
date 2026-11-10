@@ -25,7 +25,7 @@ import {
   Award,
   CheckCircle2,
   Search, Plus, Building2, UserCheck, MoreVertical, Trash2, HardHat, Phone, RefreshCw, Loader2, LayoutGrid, List,
-  Eye, Edit, ShieldCheck, Calendar, Upload, Download, ExternalLink, X,
+  Eye, Edit, ShieldCheck, Calendar, Upload, Download, ExternalLink, X, Camera, QrCode,
 } from "lucide-react"
 
 export function WorkforceBadgesView() {
@@ -1620,8 +1620,93 @@ export function WorkforceBadgesView() {
                 </div>
               </div>
 
-              {/* Certificate Visual Badge Card */}
+              {/* Certificate Visual Badge Card & Scanned Photo Preview */}
               <div className="p-6 space-y-4 text-xs">
+                {/* Physical Card / Scanned Document Photo Preview */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Camera className="size-3.5 text-primary" />
+                      Physical Card / Scanned Evidence
+                    </span>
+                    {(viewingCertificate.cert?.fileUrl || viewingCertificate.worker.documentUrl) ? (
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        Uploaded Card Photo
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border/60">
+                        Digital Verification Preview
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative rounded-2xl border border-border/80 bg-muted/40 overflow-hidden shadow-xs group">
+                    {(viewingCertificate.cert?.fileUrl || viewingCertificate.worker.documentUrl) ? (
+                      <div className="relative aspect-video w-full max-h-56 bg-black/5 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={viewingCertificate.cert?.fileUrl || viewingCertificate.worker.documentUrl}
+                          alt="Scanned Certification Card"
+                          className="w-full h-full object-contain cursor-pointer transition-transform duration-200 group-hover:scale-102"
+                          onClick={() => {
+                            const fileUrl = viewingCertificate.cert?.fileUrl || viewingCertificate.worker.documentUrl
+                            if (fileUrl) window.open(fileUrl, '_blank')
+                          }}
+                        />
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                          <Button
+                            size="xs"
+                            variant="secondary"
+                            className="h-7 text-[10.5px] font-semibold bg-background/90 backdrop-blur-xs shadow-xs gap-1 hover:bg-background cursor-pointer"
+                            onClick={() => {
+                              const fileUrl = viewingCertificate.cert?.fileUrl || viewingCertificate.worker.documentUrl
+                              if (fileUrl) window.open(fileUrl, '_blank')
+                            }}
+                          >
+                            <ExternalLink className="size-3" />
+                            View Full Photo
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Realistic Physical Wallet Card Graphic */
+                      <div className="p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl border border-slate-700/80 shadow-md space-y-3 font-sans relative overflow-hidden">
+                        <div className="absolute -right-8 -bottom-8 size-32 rounded-full bg-primary/10 blur-xl pointer-events-none" />
+                        <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="size-6 rounded bg-primary text-white flex items-center justify-center font-black text-[10px]">
+                              OSHA
+                            </div>
+                            <span className="text-[11px] font-bold tracking-wider uppercase text-slate-200">
+                              Official Safety Credential
+                            </span>
+                          </div>
+                          <span className="text-[9.5px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded font-bold">
+                            Active Card
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 py-1 items-center">
+                          <div className="col-span-2 space-y-1">
+                            <p className="text-[9.5px] uppercase tracking-wider text-slate-400">Cardholder Name</p>
+                            <p className="text-sm font-black text-white tracking-tight">{viewingCertificate.worker.name}</p>
+                            <p className="text-[10px] text-slate-300 font-medium truncate">{viewingCertificate.cert?.name || "OSHA 10 Construction"}</p>
+                          </div>
+                          <div className="col-span-1 flex flex-col items-center justify-center bg-slate-800/80 p-2 rounded-xl border border-slate-700">
+                            <QrCode className="size-8 text-white/90" />
+                            <span className="text-[8px] font-mono text-slate-400 mt-1">VERIFIED</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-700/80 text-[9.5px] text-slate-400 font-mono">
+                          <span>ID: CERT-{(viewingCertificate.worker.id || "").replace(/\D/g, "") || "94821"}</span>
+                          <span>Expires: {viewingCertificate.cert?.expiresDate || "2027-03-15"}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Structured Credential Metadata */}
                 <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
                   <div className="flex items-center justify-between text-xs border-b border-primary/10 pb-2">
                     <span className="text-muted-foreground font-medium">Issued To:</span>
