@@ -25,7 +25,7 @@ import {
   Award,
   CheckCircle2,
   Search, Plus, Building2, UserCheck, MoreVertical, Trash2, HardHat, Phone, RefreshCw, Loader2, LayoutGrid, List,
-  Eye, Edit, ShieldCheck, Calendar, Upload, Download, ExternalLink, X, Camera, QrCode,
+  Eye, Edit, ShieldCheck, Calendar, Upload, ExternalLink, X, Camera, QrCode,
 } from "lucide-react"
 
 export function WorkforceBadgesView() {
@@ -496,6 +496,8 @@ export function WorkforceBadgesView() {
                   <div className="flex flex-wrap gap-1">
                     {worker.certifications && worker.certifications.length > 0 ? (
                       worker.certifications.map((cert: any, i: number) => {
+                        const isPending = cert.status === "pending_verification" || cert.verificationStatus === "pending"
+                        const isRejected = cert.status === "rejected" || cert.verificationStatus === "rejected"
                         const isValid = cert.status === "valid"
                         const isExpiring = cert.status === "expiring_soon"
                         return (
@@ -506,14 +508,24 @@ export function WorkforceBadgesView() {
                               e.stopPropagation()
                               setViewingCertificate({ worker, cert })
                             }}
-                            title="Click to view verified certificate credential"
+                            title={
+                              isPending
+                                ? "Pending Admin/Boss verification review"
+                                : isRejected
+                                ? `Rejected: ${cert.rejectionReason || "Audit issue"}`
+                                : "Click to view verified certificate credential"
+                            }
                             className="inline-flex cursor-pointer transition-transform hover:scale-105"
                           >
                             <Badge
                               variant="outline"
                               className={
                                 "text-[10px] cursor-pointer inline-flex items-center gap-1 hover:border-primary/60 " +
-                                (isValid
+                                (isRejected
+                                  ? "text-rose-700 border-rose-500/50 bg-rose-500/15"
+                                  : isPending
+                                  ? "text-amber-700 border-amber-500/50 bg-amber-500/15 animate-pulse"
+                                  : isValid
                                   ? "text-emerald-600 border-emerald-500/30 bg-emerald-500/10"
                                   : isExpiring
                                   ? "text-amber-600 border-amber-500/30 bg-amber-500/10"
@@ -521,7 +533,9 @@ export function WorkforceBadgesView() {
                               }
                             >
                               <ShieldCheck className="size-2.5" />
-                              {cert.name}
+                              <span>{cert.name}</span>
+                              {isPending && <span className="font-bold text-[9px] uppercase tracking-wider text-amber-600 dark:text-amber-400"> (Review)</span>}
+                              {isRejected && <span className="font-bold text-[9px] uppercase tracking-wider text-rose-600 dark:text-rose-400"> (Rejected)</span>}
                             </Badge>
                           </button>
                         )
@@ -1614,8 +1628,21 @@ export function WorkforceBadgesView() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10 text-[10px]">
-                    Verified
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      viewingCertificate.cert?.status === "rejected"
+                        ? "text-rose-600 border-rose-500/30 bg-rose-500/10"
+                        : viewingCertificate.cert?.status === "pending_verification"
+                        ? "text-amber-600 border-amber-500/30 bg-amber-500/10 animate-pulse"
+                        : "text-emerald-600 border-emerald-500/30 bg-emerald-500/10"
+                    }`}
+                  >
+                    {viewingCertificate.cert?.status === "rejected"
+                      ? "Rejected"
+                      : viewingCertificate.cert?.status === "pending_verification"
+                      ? "Pending Review"
+                      : "Verified"}
                   </Badge>
                 </div>
               </div>
@@ -1743,8 +1770,8 @@ export function WorkforceBadgesView() {
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <DialogFooter className="p-4 px-6 border-t border-border/70 bg-muted/20 flex items-center justify-between">
+              {/* Modal Footer with Verification and Review Controls */}
+              <DialogFooter className="p-4 px-6 border-t border-border/70 bg-muted/20 flex items-center justify-between gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -1754,6 +1781,64 @@ export function WorkforceBadgesView() {
                   Close
                 </Button>
                 <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5 cursor-pointer shadow-xs"
+                    onClick={async () => {
+                      try {
+                        const targetWorker = viewingCertificate.worker
+                        const certName = viewingCertificate.cert?.name
+                        const updatedCerts = (targetWorker.certifications || []).map((c: any) => {
+                          if (c.name === certName) {
+                            return { ...c, status: "valid", verificationStatus: "verified", verifiedBy: "Admin", verifiedAt: new Date().toISOString() }
+                          }
+                          return c
+                        })
+                        await crewAdminService.updateWorker({
+                          ...targetWorker,
+                          certifications: updatedCerts,
+                        })
+                        loadData()
+                        setViewingCertificate(null)
+                      } catch (e) {
+                        console.error(e)
+                      }
+                    }}
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    Approve & Verify
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-8 text-rose-600 border-rose-500/40 hover:bg-rose-500/10 font-semibold gap-1.5 cursor-pointer"
+                    onClick={async () => {
+                      const reason = window.prompt("Enter rejection reason (e.g. Card expired, photo blurry):", "Card photo blurry or illegible")
+                      if (reason !== null) {
+                        try {
+                          const targetWorker = viewingCertificate.worker
+                          const certName = viewingCertificate.cert?.name
+                          const updatedCerts = (targetWorker.certifications || []).map((c: any) => {
+                            if (c.name === certName) {
+                              return { ...c, status: "rejected", verificationStatus: "rejected", rejectionReason: reason, verifiedBy: "Admin", verifiedAt: new Date().toISOString() }
+                            }
+                            return c
+                          })
+                          await crewAdminService.updateWorker({
+                            ...targetWorker,
+                            certifications: updatedCerts,
+                          })
+                          loadData()
+                          setViewingCertificate(null)
+                        } catch (e) {
+                          console.error(e)
+                        }
+                      }
+                    }}
+                  >
+                    <X className="size-3.5" />
+                    Reject
+                  </Button>
                   {(viewingCertificate.cert?.fileUrl || viewingCertificate.worker.documentUrl) && (
                     <Button
                       size="sm"
@@ -1767,31 +1852,9 @@ export function WorkforceBadgesView() {
                       }}
                     >
                       <ExternalLink className="size-3.5" />
-                      Open Document
+                      Open Full
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    className="text-xs h-8 bg-primary text-primary-foreground font-semibold gap-1.5 cursor-pointer shadow-xs"
-                    onClick={() => {
-                      const fileUrl = viewingCertificate.cert?.fileUrl || viewingCertificate.worker.documentUrl
-                      if (fileUrl) {
-                        const link = document.createElement('a')
-                        link.href = fileUrl
-                        link.target = '_blank'
-                        link.download = `${viewingCertificate.worker.name.replace(/\s+/g, '_')}_${viewingCertificate.cert?.name || 'Certificate'}.pdf`
-                        document.body.appendChild(link)
-                        link.click()
-                        document.body.removeChild(link)
-                      } else {
-                        // Print/save card preview as fallback
-                        window.print()
-                      }
-                    }}
-                  >
-                    <Download className="size-3.5" />
-                    Download {(viewingCertificate.cert?.fileUrl || viewingCertificate.worker.documentUrl) ? "Document" : "OSHA Card"}
-                  </Button>
                 </div>
               </DialogFooter>
             </div>
