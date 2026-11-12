@@ -51,6 +51,50 @@ export const coiService = {
             createdAt: row.created_at,
           }))
         }
+
+        // Also fetch any live submissions from Field App for subcontractor COIs
+        const { data: subRows } = await supabase
+          .from("submissions")
+          .select("*")
+          .eq("module_type", "subcontractor_coi")
+          .order("created_at", { ascending: false })
+
+        if (Array.isArray(subRows) && subRows.length > 0) {
+          const subItems: CoiRequestRecord[] = subRows.map((r: any) => {
+            const data = r.data || {}
+            return {
+              id: r.id,
+              companyName: r.company_name || "General Contractor",
+              jobSiteId: r.job_site_id,
+              jobSiteName: r.job_site_name || "Active Project",
+              jobNumber: "SUB-COI",
+              requestedByName: r.foreman_name || "Field Foreman",
+              requestedByRole: "foreman",
+              holderName: data.subcontractorName || r.title || "Subcontractor Vendor",
+              holderAddress: "Jobsite Location",
+              holderContactName: data.contactPerson || "Lead Rep",
+              holderEmail: data.email || "",
+              ccEmails: r.recipients || [],
+              coverages: {
+                gl: Boolean(data.requiredCoverages?.generalLiability && data.requiredCoverages?.generalLiability !== "No"),
+                auto: Boolean(data.requiredCoverages?.autoLiability && data.requiredCoverages?.autoLiability !== "No"),
+                wc: Boolean(data.requiredCoverages?.workersComp && data.requiredCoverages?.workersComp !== "No"),
+                umbrella: Boolean(data.requiredCoverages?.umbrella && data.requiredCoverages?.umbrella !== "No"),
+              },
+              endorsements: {
+                additionalInsured: true,
+                waiverSubrogation: true,
+                primaryNonContributory: true,
+              },
+              urgency: "normal",
+              notes: `Trade: ${data.trade || "Specialty Trade"} • Status: ${data.complianceStatus || "Pending Underwriter Audit"}`,
+              contractDocUrl: data.documentUrl || null,
+              status: data.complianceStatus === "verified" ? "issued" : "pending_underwriter",
+              createdAt: r.created_at,
+            }
+          })
+          list = [...subItems, ...list]
+        }
       } catch (err) {
         console.warn("[coiService] Table fetch failed, falling back to sync bus:", err)
       }

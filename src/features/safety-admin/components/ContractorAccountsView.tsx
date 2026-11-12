@@ -270,10 +270,10 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
       <div>
         <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
           <Building className="size-6 text-primary" />
-          Contractor Accounts & Policy Entities
+          Subcontractors & Trade Vendor Accounts
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Section 7 Requirement: Onboard and deactivate customer companies, maintain policy schedules and routing destinations
+          Onboard and manage subcontractor trade companies, maintain ACORD 25 insurance policies, and routing destinations
         </p>
       </div>
       <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
           className="h-10 px-4 text-sm font-semibold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow transition-all cursor-pointer rounded-lg"
         >
           <Plus className="size-4 shrink-0" />
-          <span>Onboard Contractor Entity</span>
+          <span>Onboard Subcontractor</span>
         </Button>
       </div>
     </div>
@@ -518,7 +518,7 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
         columns={[
           {
             key: "name",
-            header: "Company Name",
+            header: "Subcontractor Name",
             className: "min-w-[180px]",
             cell: (comp) => (
               <div>
@@ -855,10 +855,10 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
                 </div>
                 <div>
                   <SheetTitle className="text-base font-bold text-foreground">
-                    {isCreating ? "Onboard Contractor Entity" : "Edit Contractor Entity"}
+                    {isCreating ? "Onboard Subcontractor" : "Edit Subcontractor"}
                   </SheetTitle>
                   <SheetDescription className="text-xs text-muted-foreground mt-0.5">
-                    Update company profile, safety contacts, policy details and routing dispatch.
+                    Update subcontractor vendor profile, safety contacts, policy details and routing dispatch.
                   </SheetDescription>
                 </div>
               </div>
@@ -866,9 +866,9 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
 
             {/* Form Body */}
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 text-xs">
-              {/* Company Name */}
+              {/* Subcontractor Name */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Company Name</Label>
+                <Label className="text-xs font-semibold">Subcontractor Name</Label>
                 <Input
                   required
                   value={editName}
@@ -908,25 +908,25 @@ const handleDeleteCompany = async (comp: ClientCompany) => {
                 </div>
               </div>
 
-              {/* Contact Person & Phone */}
+              {/* Subcontractor Contact Person & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Safety Lead / Contact</Label>
+                  <Label className="text-xs font-semibold">Subcontractor Contact Person</Label>
                   <Input
                     required
                     value={editContactPerson}
                     onChange={(e) => setEditContactPerson(e.target.value)}
-                    placeholder="e.g. Marcus Vance"
+                    placeholder="e.g. Gary Simmons (Project Lead)"
                     className="h-9 text-xs"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Contact Phone</Label>
+                  <Label className="text-xs font-semibold">Contact Phone Number</Label>
                   <Input
                     required
                     value={editContactPhone}
                     onChange={(e) => setEditContactPhone(e.target.value)}
-                    placeholder="e.g. (213) 555-0142"
+                    placeholder="e.g. (562) 555-3921"
                     className="h-9 text-xs"
                   />
                 </div>

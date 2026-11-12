@@ -21,11 +21,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { GlobalDataTable, DataTablePagination } from "@/components/ui/data-table-global"
+import { toast } from "sonner"
 import {
   Award,
   CheckCircle2,
   Search, Plus, Building2, UserCheck, MoreVertical, Trash2, HardHat, Phone, RefreshCw, Loader2, LayoutGrid, List,
-  Eye, Edit, ShieldCheck, Calendar, Upload, ExternalLink, X, Camera, QrCode,
+  Eye, Edit, ShieldCheck, Calendar, Upload, ExternalLink, X, Camera, QrCode, Clock, AlertTriangle,
 } from "lucide-react"
 
 export function WorkforceBadgesView() {
@@ -35,6 +36,7 @@ export function WorkforceBadgesView() {
   const [foremenList, setForemenList] = React.useState<any[]>([])
   const [companyFilter, setCompanyFilter] = React.useState('all')
   const [siteFilter, setSiteFilter] = React.useState('all')
+  const [certFilter, setCertFilter] = React.useState<'all' | 'pending' | 'expiring' | 'rejected' | 'valid'>('all')
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
@@ -58,6 +60,14 @@ export function WorkforceBadgesView() {
     worker: any
     cert: any
   } | null>(null)
+
+  // Rejection Dialog state
+  const [rejectingTarget, setRejectingTarget] = React.useState<{
+    worker: any
+    cert: any
+  } | null>(null)
+  const [rejectionReasonText, setRejectionReasonText] = React.useState("Card photo blurry or illegible")
+  const [isRejectingSubmitting, setIsRejectingSubmitting] = React.useState(false)
 
   // Delete confirmation state
   const [deletingWorker, setDeletingWorker] = React.useState<any | null>(null)
@@ -132,7 +142,7 @@ export function WorkforceBadgesView() {
   // Reset selection on filter change
   React.useEffect(() => {
     setSelectedWorkerIds([])
-  }, [searchQuery, companyFilter, siteFilter, currentPage, pageSize])
+  }, [searchQuery, companyFilter, siteFilter, certFilter, currentPage, pageSize])
 
   const filteredWorkers = React.useMemo(() => {
     return workers.filter((w) => {
@@ -143,9 +153,21 @@ export function WorkforceBadgesView() {
         (w.foremanName && w.foremanName.toLowerCase().includes(searchQuery.toLowerCase()))
       const matchesCompany = companyFilter === 'all' || w.companyName === companyFilter
       const matchesSite = siteFilter === 'all' || w.jobSiteId === siteFilter
-      return matchesSearch && matchesCompany && matchesSite
+      
+      let matchesCert = true
+      if (certFilter === 'pending') {
+        matchesCert = (w.certifications || []).some((c: any) => c.status === "pending_verification" || c.verificationStatus === "pending")
+      } else if (certFilter === 'expiring') {
+        matchesCert = (w.certifications || []).some((c: any) => c.status === "expiring_soon" || c.status === "expired")
+      } else if (certFilter === 'rejected') {
+        matchesCert = (w.certifications || []).some((c: any) => c.status === "rejected" || c.verificationStatus === "rejected")
+      } else if (certFilter === 'valid') {
+        matchesCert = (w.certifications || []).some((c: any) => c.status === "valid" || c.verificationStatus === "verified")
+      }
+
+      return matchesSearch && matchesCompany && matchesSite && matchesCert
     })
-  }, [workers, searchQuery, companyFilter, siteFilter])
+  }, [workers, searchQuery, companyFilter, siteFilter, certFilter])
 
   const paginatedWorkers = React.useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize
@@ -336,6 +358,24 @@ export function WorkforceBadgesView() {
     (c) => c.status === "expiring_soon" || c.status === "expired"
   ).length
 
+  const pendingVerificationCount = React.useMemo(() => {
+    return workers.reduce((acc, w) => {
+      const pendingCerts = (w.certifications || []).filter(
+        (c: any) => c.status === "pending_verification" || c.verificationStatus === "pending"
+      )
+      return acc + pendingCerts.length
+    }, 0)
+  }, [workers])
+
+  const rejectedCount = React.useMemo(() => {
+    return workers.reduce((acc, w) => {
+      const rejCerts = (w.certifications || []).filter(
+        (c: any) => c.status === "rejected" || c.verificationStatus === "rejected"
+      )
+      return acc + rejCerts.length
+    }, 0)
+  }, [workers])
+
   return (
     <div className="space-y-6">
       {/* Header Bar */}
@@ -357,8 +397,11 @@ export function WorkforceBadgesView() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <Card 
+          className={"cursor-pointer transition-all " + (certFilter === "all" ? "ring-2 ring-primary" : "hover:border-primary/50")}
+          onClick={() => setCertFilter("all")}
+        >
           <CardHeader className="pb-2">
             <CardDescription>Active Certified Tradesmen</CardDescription>
             <CardTitle className="text-2xl font-bold">{workers.length} Workers</CardTitle>
@@ -368,15 +411,38 @@ export function WorkforceBadgesView() {
           </CardFooter>
         </Card>
 
-        <Card>
+        <Card 
+          className={"cursor-pointer transition-all " + (certFilter === "pending" ? "ring-2 ring-amber-500 bg-amber-500/5" : "hover:border-amber-500/50")}
+          onClick={() => setCertFilter(certFilter === "pending" ? "all" : "pending")}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardDescription>Pending Verifications</CardDescription>
+              {pendingVerificationCount > 0 && (
+                <span className="flex size-2 rounded-full bg-amber-500 animate-ping" />
+              )}
+            </div>
+            <CardTitle className="text-2xl font-bold text-amber-600 flex items-center gap-2">
+              {pendingVerificationCount} Due Review
+            </CardTitle>
+          </CardHeader>
+          <CardFooter className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+            {pendingVerificationCount > 0 ? "Click to view queue awaiting sign-off" : "All credentials up to date"}
+          </CardFooter>
+        </Card>
+
+        <Card 
+          className={"cursor-pointer transition-all " + (certFilter === "expiring" ? "ring-2 ring-rose-500" : "hover:border-rose-500/50")}
+          onClick={() => setCertFilter(certFilter === "expiring" ? "all" : "expiring")}
+        >
           <CardHeader className="pb-2">
             <CardDescription>Certifications Expiring / Due</CardDescription>
-            <CardTitle className="text-2xl font-bold text-amber-600">
+            <CardTitle className="text-2xl font-bold text-rose-600">
               {expiringCount} Renewal Actions
             </CardTitle>
           </CardHeader>
           <CardFooter className="text-xs text-muted-foreground">
-            Scaffold Competent Person & Fall Protection recertification pending
+            Scaffold Competent Person & Fall Protection
           </CardFooter>
         </Card>
 
@@ -386,24 +452,64 @@ export function WorkforceBadgesView() {
             <CardTitle className="text-2xl font-bold text-emerald-600">100% Coverage</CardTitle>
           </CardHeader>
           <CardFooter className="text-xs text-muted-foreground">
-            Designated first-aid responders on every active deck
+            Designated first-aid responders on every deck
           </CardFooter>
         </Card>
       </div>
 
-      {/* Search & Filter Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/30 p-3 rounded-lg border border-border/60">
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
-          <div className="relative flex-1 max-w-xs"><Search className="size-3.5 absolute left-3 top-2.5 text-muted-foreground" /><Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search worker name, role, trade, foreman..." className="pl-8 text-xs h-9 bg-background" /></div>
-          <Select value={companyFilter} onValueChange={setCompanyFilter}><SelectTrigger className="h-9 text-xs w-[180px] bg-background"><SelectValue placeholder="Filter Company" /></SelectTrigger><SelectContent><SelectItem value="all">All Contractors</SelectItem>{MOCK_COMPANIES.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))}</SelectContent></Select>
-          <Select value={siteFilter} onValueChange={setSiteFilter}><SelectTrigger className="h-9 text-xs w-[180px] bg-background"><SelectValue placeholder="Filter Jobsite" /></SelectTrigger><SelectContent><SelectItem value="all">All Jobsites</SelectItem>{MOCK_JOBSITES.map((j) => (<SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>))}</SelectContent></Select>
+      {/* Filter Tabs & Search Controls */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <Button
+            size="sm"
+            variant={certFilter === "all" ? "default" : "outline"}
+            className="text-xs h-7 px-3 rounded-full cursor-pointer"
+            onClick={() => setCertFilter("all")}
+          >
+            All Tradesmen ({workers.length})
+          </Button>
+          <Button
+            size="sm"
+            variant={certFilter === "pending" ? "default" : "outline"}
+            className={"text-xs h-7 px-3 rounded-full cursor-pointer " + (certFilter === "pending" ? "bg-amber-600 hover:bg-amber-700 text-white" : "border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10")}
+            onClick={() => setCertFilter("pending")}
+          >
+            <Clock className="size-3 mr-1" />
+            Pending Review ({pendingVerificationCount})
+          </Button>
+          <Button
+            size="sm"
+            variant={certFilter === "valid" ? "default" : "outline"}
+            className="text-xs h-7 px-3 rounded-full cursor-pointer"
+            onClick={() => setCertFilter("valid")}
+          >
+            <CheckCircle2 className="size-3 mr-1 text-emerald-500" />
+            Verified
+          </Button>
+          <Button
+            size="sm"
+            variant={certFilter === "rejected" ? "default" : "outline"}
+            className={"text-xs h-7 px-3 rounded-full cursor-pointer " + (certFilter === "rejected" ? "bg-rose-600 hover:bg-rose-700 text-white" : "border-rose-500/40 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10")}
+            onClick={() => setCertFilter("rejected")}
+          >
+            <AlertTriangle className="size-3 mr-1" />
+            Rejected ({rejectedCount})
+          </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-border bg-muted p-1 text-xs">
-            <button type="button" onClick={() => setViewMode("table")} className={"p-1.5 rounded-md flex items-center justify-center transition-all cursor-pointer " + (viewMode === "table" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground")} title="Table View"><List className="size-3.5" /></button>
-            <button type="button" onClick={() => setViewMode("grid")} className={"p-1.5 rounded-md flex items-center justify-center transition-all cursor-pointer " + (viewMode === "grid" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground")} title="Cards / Grid View"><LayoutGrid className="size-3.5" /></button>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/30 p-3 rounded-lg border border-border/60">
+          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+            <div className="relative flex-1 max-w-xs"><Search className="size-3.5 absolute left-3 top-2.5 text-muted-foreground" /><Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search worker name, role, trade, foreman..." className="pl-8 text-xs h-9 bg-background" /></div>
+            <Select value={companyFilter} onValueChange={setCompanyFilter}><SelectTrigger className="h-9 text-xs w-[180px] bg-background"><SelectValue placeholder="Filter Company" /></SelectTrigger><SelectContent><SelectItem value="all">All Contractors</SelectItem>{MOCK_COMPANIES.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))}</SelectContent></Select>
+            <Select value={siteFilter} onValueChange={setSiteFilter}><SelectTrigger className="h-9 text-xs w-[180px] bg-background"><SelectValue placeholder="Filter Jobsite" /></SelectTrigger><SelectContent><SelectItem value="all">All Jobsites</SelectItem>{MOCK_JOBSITES.map((j) => (<SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>))}</SelectContent></Select>
           </div>
-          <div className="text-xs text-muted-foreground font-mono hidden sm:block">{filteredWorkers.length} workers</div>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-lg border border-border bg-muted p-1 text-xs">
+              <button type="button" onClick={() => setViewMode("table")} className={"p-1.5 rounded-md flex items-center justify-center transition-all cursor-pointer " + (viewMode === "table" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground")} title="Table View"><List className="size-3.5" /></button>
+              <button type="button" onClick={() => setViewMode("grid")} className={"p-1.5 rounded-md flex items-center justify-center transition-all cursor-pointer " + (viewMode === "grid" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground")} title="Cards / Grid View"><LayoutGrid className="size-3.5" /></button>
+            </div>
+            <div className="text-xs text-muted-foreground font-mono hidden sm:block">{filteredWorkers.length} workers</div>
+          </div>
         </div>
       </div>
 
@@ -1330,53 +1436,139 @@ export function WorkforceBadgesView() {
                   <div className="space-y-2.5 pt-1">
                     {viewingWorker.certifications && viewingWorker.certifications.length > 0 ? (
                       viewingWorker.certifications.map((cert: any, i: number) => {
+                        const isPending = cert.status === "pending_verification" || cert.verificationStatus === "pending"
+                        const isRejected = cert.status === "rejected" || cert.verificationStatus === "rejected"
                         const isValid = cert.status === "valid"
                         const isExpiring = cert.status === "expiring_soon"
 
                         return (
                           <div
                             key={i}
-                            className="p-3 rounded-lg border border-border/60 bg-muted/30 flex items-center justify-between gap-3 hover:border-primary/50 transition-colors"
+                            className={`p-3 rounded-lg border transition-colors ${
+                              isPending
+                                ? "border-amber-500/50 bg-amber-500/5"
+                                : isRejected
+                                ? "border-rose-500/50 bg-rose-500/5"
+                                : "border-border/60 bg-muted/30 hover:border-primary/50"
+                            }`}
                           >
-                            <div className="space-y-1">
-                              <div className="font-semibold text-foreground flex items-center gap-1.5">
-                                <ShieldCheck className="size-3.5 text-primary shrink-0" />
-                                {cert.name}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-1 flex-1">
+                                <div className="font-semibold text-foreground flex items-center gap-1.5">
+                                  <ShieldCheck className="size-3.5 text-primary shrink-0" />
+                                  <span>{cert.name}</span>
+                                </div>
+                                <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
+                                  <span className="flex items-center gap-1 font-mono">
+                                    <Calendar className="size-3 text-muted-foreground" />
+                                    Exp: {cert.expiresDate || "2028-12-31"}
+                                  </span>
+                                  {isPending ? (
+                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
+                                      <Clock className="size-3" /> Awaiting Admin Approval
+                                    </span>
+                                  ) : isRejected ? (
+                                    <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
+                                      <AlertTriangle className="size-3" /> Rejected
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                                      <CheckCircle2 className="size-3" /> Digitally Verified
+                                    </span>
+                                  )}
+                                </div>
+                                {isRejected && cert.rejectionReason && (
+                                  <div className="mt-1 text-[11px] text-rose-600/90 dark:text-rose-400/90 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                                    Reason: {cert.rejectionReason}
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-[11px] text-muted-foreground flex items-center gap-3">
-                                <span className="flex items-center gap-1 font-mono">
-                                  <Calendar className="size-3 text-muted-foreground" />
-                                  Exp: {cert.expiresDate || "2028-12-31"}
-                                </span>
-                                <span>•</span>
-                                <span className="text-[10px] text-emerald-600 font-semibold">
-                                  Digitally Verified
-                                </span>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isPending ? (
+                                  <Badge variant="outline" className="text-amber-600 border-amber-500/40 bg-amber-500/15 text-[10px] animate-pulse">
+                                    Pending Review
+                                  </Badge>
+                                ) : isRejected ? (
+                                  <Badge variant="outline" className="text-rose-600 border-rose-500/40 bg-rose-500/15 text-[10px]">
+                                    Rejected
+                                  </Badge>
+                                ) : isValid ? (
+                                  <Badge variant="outline" className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10 text-[10px]">
+                                    Valid
+                                  </Badge>
+                                ) : isExpiring ? (
+                                  <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px]">
+                                    Due Soon
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="text-[10px]">
+                                    Expired
+                                  </Badge>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-[10px] cursor-pointer"
+                                  onClick={() => setViewingCertificate({ worker: viewingWorker, cert })}
+                                >
+                                  View / Audit
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {isValid ? (
-                                <Badge variant="outline" className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10 text-[10px]">
-                                  Valid
-                                </Badge>
-                              ) : isExpiring ? (
-                                <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px]">
-                                  Due Soon
-                                </Badge>
-                              ) : (
-                                <Badge variant="destructive" className="text-[10px]">
-                                  Expired
-                                </Badge>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 px-2 text-[10px] cursor-pointer"
-                                onClick={() => setViewingCertificate({ worker: viewingWorker, cert })}
-                              >
-                                View Card
-                              </Button>
-                            </div>
+
+                            {/* Direct Quick Approve/Reject Action Buttons inside View Sheet */}
+                            {isPending && (
+                              <div className="mt-2.5 pt-2 border-t border-amber-500/20 flex items-center justify-end gap-2">
+                                <Button
+                                  size="xs"
+                                  className="h-6 px-2.5 text-[10px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1 cursor-pointer"
+                                  onClick={async (e) => {
+                                    e.stopPropagation()
+                                    try {
+                                      const updatedCerts = (viewingWorker.certifications || []).map((c: any) => {
+                                        if (c.name === cert.name) {
+                                          return {
+                                            ...c,
+                                            status: "valid",
+                                            verificationStatus: "verified",
+                                            verifiedBy: "Admin",
+                                            verifiedAt: new Date().toISOString(),
+                                          }
+                                        }
+                                        return c
+                                      })
+                                      const updatedWorker = { ...viewingWorker, certifications: updatedCerts }
+                                      await crewAdminService.updateWorker(updatedWorker)
+                                      setWorkers((prev) => prev.map((w) => (w.id === viewingWorker.id ? updatedWorker : w)))
+                                      setViewingWorker(updatedWorker)
+                                      toast.success("Certificate Approved", {
+                                        description: `${cert.name} verified for ${viewingWorker.name}`
+                                      })
+                                    } catch (err) {
+                                      console.error(err)
+                                      toast.error("Failed to approve certificate")
+                                    }
+                                  }}
+                                >
+                                  <CheckCircle2 className="size-3" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="xs"
+                                  variant="outline"
+                                  className="h-6 px-2.5 text-[10px] font-semibold text-rose-600 border-rose-500/40 hover:bg-rose-500/10 gap-1 cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setRejectingTarget({ worker: viewingWorker, cert })
+                                    setRejectionReasonText("Card photo blurry or illegible")
+                                  }}
+                                >
+                                  <X className="size-3" />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         )
                       })
@@ -1798,10 +1990,14 @@ export function WorkforceBadgesView() {
                           ...targetWorker,
                           certifications: updatedCerts,
                         })
+                        toast.success("Certificate Approved", {
+                          description: `${certName} for ${targetWorker.name} has been verified.`
+                        })
                         loadData()
                         setViewingCertificate(null)
                       } catch (e) {
                         console.error(e)
+                        toast.error("Failed to approve certificate")
                       }
                     }}
                   >
@@ -1812,28 +2008,12 @@ export function WorkforceBadgesView() {
                     size="sm"
                     variant="outline"
                     className="text-xs h-8 text-rose-600 border-rose-500/40 hover:bg-rose-500/10 font-semibold gap-1.5 cursor-pointer"
-                    onClick={async () => {
-                      const reason = window.prompt("Enter rejection reason (e.g. Card expired, photo blurry):", "Card photo blurry or illegible")
-                      if (reason !== null) {
-                        try {
-                          const targetWorker = viewingCertificate.worker
-                          const certName = viewingCertificate.cert?.name
-                          const updatedCerts = (targetWorker.certifications || []).map((c: any) => {
-                            if (c.name === certName) {
-                              return { ...c, status: "rejected", verificationStatus: "rejected", rejectionReason: reason, verifiedBy: "Admin", verifiedAt: new Date().toISOString() }
-                            }
-                            return c
-                          })
-                          await crewAdminService.updateWorker({
-                            ...targetWorker,
-                            certifications: updatedCerts,
-                          })
-                          loadData()
-                          setViewingCertificate(null)
-                        } catch (e) {
-                          console.error(e)
-                        }
-                      }
+                    onClick={() => {
+                      setRejectingTarget({
+                        worker: viewingCertificate.worker,
+                        cert: viewingCertificate.cert,
+                      })
+                      setRejectionReasonText("Card photo blurry or illegible")
                     }}
                   >
                     <X className="size-3.5" />
@@ -1859,6 +2039,119 @@ export function WorkforceBadgesView() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= REJECT CERTIFICATE DIALOG ================= */}
+      <Dialog open={Boolean(rejectingTarget)} onOpenChange={(open) => !open && setRejectingTarget(null)}>
+        <DialogContent className="sm:max-w-[460px] p-6 space-y-4">
+          <DialogHeader className="text-left space-y-2">
+            <div className="size-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center">
+              <AlertTriangle className="size-5" />
+            </div>
+            <DialogTitle className="text-base font-bold text-foreground">
+              Reject Certification Credential
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              State the reason for rejecting <strong>{rejectingTarget?.cert?.name}</strong> for <strong>{rejectingTarget?.worker?.name}</strong>. The worker will see this reason in their app to prompt a rescan.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-1">
+            <Label className="text-xs font-semibold">Common Rejection Reasons</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "Card photo blurry or illegible",
+                "Certificate is expired",
+                "Name does not match worker profile",
+                "Course or provider not OSHA accredited",
+                "Partial / incomplete document upload",
+              ].map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => setRejectionReasonText(reason)}
+                  className={`text-[11px] px-2.5 py-1 rounded-md border text-left transition-colors cursor-pointer ${
+                    rejectionReasonText === reason
+                      ? "border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-400 font-medium"
+                      : "border-border/80 hover:bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-1.5 pt-2">
+              <Label className="text-xs font-semibold">Rejection Explanation Notes</Label>
+              <textarea
+                value={rejectionReasonText}
+                onChange={(e) => setRejectionReasonText(e.target.value)}
+                rows={3}
+                className="w-full text-xs rounded-md border border-input bg-background p-2.5 shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="Enter details for the worker or safety manager..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 px-4 text-xs cursor-pointer"
+              onClick={() => setRejectingTarget(null)}
+              disabled={isRejectingSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="h-9 px-4 text-xs font-semibold cursor-pointer gap-1.5"
+              disabled={isRejectingSubmitting || !rejectionReasonText.trim()}
+              onClick={async () => {
+                if (!rejectingTarget) return
+                setIsRejectingSubmitting(true)
+                try {
+                  const targetWorker = rejectingTarget.worker
+                  const certName = rejectingTarget.cert?.name
+                  const updatedCerts = (targetWorker.certifications || []).map((c: any) => {
+                    if (c.name === certName) {
+                      return {
+                        ...c,
+                        status: "rejected",
+                        verificationStatus: "rejected",
+                        rejectionReason: rejectionReasonText.trim(),
+                        verifiedBy: "Admin",
+                        verifiedAt: new Date().toISOString(),
+                      }
+                    }
+                    return c
+                  })
+                  await crewAdminService.updateWorker({
+                    ...targetWorker,
+                    certifications: updatedCerts,
+                  })
+                  toast.error("Certificate Rejected", {
+                    description: `Marked rejected with note: "${rejectionReasonText.trim()}"`
+                  })
+                  loadData()
+                  setRejectingTarget(null)
+                  setViewingCertificate(null)
+                } catch (e) {
+                  console.error(e)
+                  toast.error("Failed to reject certificate")
+                } finally {
+                  setIsRejectingSubmitting(false)
+                }
+              }}
+            >
+              {isRejectingSubmitting && <Loader2 className="size-3.5 animate-spin" />}
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
