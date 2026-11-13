@@ -255,6 +255,28 @@ export const coiService = {
     }
   },
 
+    async uploadScan(dataUrl: string): Promise<string | null> {
+    if (!isSupabaseConfigured) return null
+    const blob = await (await fetch(dataUrl)).blob()
+    const fileName = `coi-scans/${Date.now()}.${blob.type.split("/")[1] || "jpg"}`
+    const { error } = await supabase.storage
+      .from("safety-attachments")
+      .upload(fileName, blob, { contentType: blob.type })
+    if (error) throw error
+    return supabase.storage.from("safety-attachments").getPublicUrl(fileName).data.publicUrl
+  },
+
+  async fetchSavedSubs() {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("name, trade, contact_person, contact_phone, routing_email")
+    if (error) throw error
+    return (data ?? []).map((c: any) => ({
+      name: c.name, trade: c.trade, contact: c.contact_person,
+      phone: c.contact_phone, email: c.routing_email,
+    }))
+  },
+
   /**
    * Update status or issue certificate (Super-Admin / Underwriter)
    */

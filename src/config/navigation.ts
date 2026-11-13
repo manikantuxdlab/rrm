@@ -102,6 +102,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     url: "/settings",
     description: "Weekly briefing schedules, site locking rules and compliance policies",
   },
+   {
+    key: "coi-compliance",
+    title: "Sub COI Log",
+    url: "/coi-compliance",
+    description: "Field-submitted subcontractor COI verifications, deficiencies & expiry tracking",
+  },
   /*
   // Commented out per request:
   {

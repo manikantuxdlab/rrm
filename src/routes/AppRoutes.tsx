@@ -21,6 +21,7 @@ import {
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
+import { COIComplianceLogView } from "@/features/safety-admin/components/COIComplianceLogView"
 
 interface AppRoutesProps {
   onSelectSubmission: (submission: SubmissionRecord) => void
@@ -107,6 +108,8 @@ export function AppRoutes({
       {/* Customer COI Underwriter Queue */}
       <Route path="/coi-requests" element={<COIRequestsQueueView />} />
       <Route path="/certifications/coi-requests" element={<Navigate to="/coi-requests" replace />} />
+      {/* Subcontractor COI Compliance Log */}
+      <Route path="/coi-compliance" element={<COIComplianceLogView />} />
 
       {/* 7. Certifications Tracker */}
       <Route path="/workforce" element={<WorkforceBadgesView />} />

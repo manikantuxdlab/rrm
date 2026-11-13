@@ -30,6 +30,7 @@ import {
   ShieldAlert,
   ClipboardList,
   HardHat,
+  ShieldCheck,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -50,7 +51,8 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   "toolbox-talks": <ScrollText className="size-5 shrink-0" />,
   fleet: <Truck className="size-5 shrink-0" />,
   "coi-requests": <FileCheck2 className="size-5 shrink-0" />,
-  subcontractors: <HardHat className="size-5 shrink-0 text-amber-600" />,
+    subcontractors: <HardHat className="size-5 shrink-0 text-amber-600" />,
+  "coi-compliance": <ShieldCheck className="size-5 shrink-0 text-emerald-600" />,
   claims: <AlertTriangle className="size-5 shrink-0 text-destructive" />,
   "near-miss": <ShieldAlert className="size-5 shrink-0 text-amber-600" />,
   jha: <ClipboardList className="size-5 shrink-0 text-primary" />,
