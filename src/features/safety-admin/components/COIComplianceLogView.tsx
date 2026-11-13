@@ -15,12 +15,17 @@ type CoiRecord = {
   policy_number: string | null
   policy_exp_date: string | null
   deficiencies: string[] | null
+  document_url: string | null
   created_at: string
 }
 
 const displayStatus = (r: CoiRecord) => {
   if (r.status === "verified" && r.policy_exp_date && new Date(r.policy_exp_date) < new Date()) {
     return { label: "Expired", cls: "bg-rose-500/15 text-rose-700 border-rose-500/30" }
+  }
+   if (r.status === "verified" && r.policy_exp_date) {
+    const days = Math.ceil((new Date(r.policy_exp_date).getTime() - Date.now()) / 86400000)
+    if (days <= 30) return { label: `Expiring (${days}d)`, cls: "bg-amber-500/15 text-amber-700 border-amber-500/30" }
   }
   if (r.status === "verified") return { label: "Verified", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" }
   if (r.status === "deficient") return { label: "Deficient", cls: "bg-rose-500/15 text-rose-700 border-rose-500/30" }
@@ -51,7 +56,8 @@ export function COIComplianceLogView() {
               carrier_name: r.data?.carrierName ?? null,
               policy_number: r.data?.policyNumber ?? null,
               policy_exp_date: r.data?.policyExpDate ?? null,
-              deficiencies: r.data?.deficiencies ?? null,
+                   deficiencies: r.data?.deficiencies ?? null,
+              document_url: r.data?.documentUrl ?? null,
               created_at: r.created_at,
             }))
           )
@@ -63,7 +69,20 @@ export function COIComplianceLogView() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold">COI Compliance Log</h2>
+         <h2 className="text-xl font-bold">COI Compliance Log</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Verified", count: rows.filter((r) => displayStatus(r).label === "Verified").length, cls: "text-emerald-600" },
+          { label: "Expiring Soon", count: rows.filter((r) => displayStatus(r).label.startsWith("Expiring")).length, cls: "text-amber-600" },
+          { label: "Deficient / Expired", count: rows.filter((r) => ["Deficient", "Expired"].includes(displayStatus(r).label)).length, cls: "text-rose-600" },
+          { label: "Pending Broker", count: rows.filter((r) => displayStatus(r).label === "Pending Broker").length, cls: "text-muted-foreground" },
+        ].map((k) => (
+          <div key={k.label} className="rounded-lg border border-border px-3.5 py-2.5">
+            <div className="text-[11px] font-medium text-muted-foreground">{k.label}</div>
+            <div className={`text-lg font-bold mt-0.5 ${k.cls}`}>{k.count}</div>
+          </div>
+        ))}
+      </div>
       <GlobalDataTable<CoiRecord>
         data={rows}
         keyExtractor={(r) => r.id}
@@ -99,6 +118,17 @@ export function COIComplianceLogView() {
           {
             key: "def", header: "Deficiencies",
             cell: (r) => (r.deficiencies?.length ? r.deficiencies.join(", ") : "—"),
+          },
+                   {
+            key: "doc", header: "Document",
+            cell: (r) =>
+              r.document_url ? (
+                <a href={r.document_url} target="_blank" rel="noreferrer" className="text-primary text-xs font-semibold hover:underline">
+                  View
+                </a>
+              ) : (
+                "—"
+              ),
           },
           { key: "date", header: "Logged", cell: (r) => new Date(r.created_at).toLocaleDateString() },
         ]}
