@@ -14,6 +14,8 @@ import {
   MOCK_CERTIFICATIONS,
 } from "@/data/safetyMockData"
 import { crewAdminService } from "@/services"
+import { fetchCompanies } from "@/services/companiesService"
+import { jobsitesService } from "@/services/jobsitesService"
 import { MOCK_COMPANIES, MOCK_JOBSITES } from "@/data/safetyMockData"
 import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
@@ -96,6 +98,8 @@ export function WorkforceBadgesView() {
 
   const [availableTrades, setAvailableTrades] = React.useState<string[]>([])
   const [isCustomTrade, setIsCustomTrade] = React.useState(false)
+  const [companiesList, setCompaniesList] = React.useState<any[]>(MOCK_COMPANIES)
+  const [jobsitesList, setJobsitesList] = React.useState<any[]>(MOCK_JOBSITES)
 
   const [formData, setFormData] = React.useState({
     name: '',
@@ -112,14 +116,18 @@ export function WorkforceBadgesView() {
   const loadData = React.useCallback(async () => {
     setIsLoading(true)
     try {
-      const [workersData, foremenData, tradesData] = await Promise.all([
+      const [workersData, foremenData, tradesData, comps, sites] = await Promise.all([
         crewAdminService.fetchAll(),
         crewAdminService.fetchForemenList(),
         crewAdminService.fetchCompanyTrades(companyFilter === 'all' ? 'General Contractor' : companyFilter),
+        fetchCompanies().catch(() => []),
+        jobsitesService.fetchAll().catch(() => []),
       ])
       setWorkers(workersData)
       setForemenList(foremenData)
       setAvailableTrades(tradesData || [])
+      if (comps && comps.length > 0) setCompaniesList(comps)
+      if (sites && sites.length > 0) setJobsitesList(sites)
     } catch (err) {
       console.error(err)
     } finally {
@@ -500,8 +508,8 @@ export function WorkforceBadgesView() {
         <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/30 p-3 rounded-lg border border-border/60">
           <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
             <div className="relative flex-1 max-w-xs"><Search className="size-3.5 absolute left-3 top-2.5 text-muted-foreground" /><Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search worker name, role, trade, foreman..." className="pl-8 text-xs h-9 bg-background" /></div>
-            <Select value={companyFilter} onValueChange={setCompanyFilter}><SelectTrigger className="h-9 text-xs w-[180px] bg-background"><SelectValue placeholder="Filter Company" /></SelectTrigger><SelectContent><SelectItem value="all">All Contractors</SelectItem>{MOCK_COMPANIES.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))}</SelectContent></Select>
-            <Select value={siteFilter} onValueChange={setSiteFilter}><SelectTrigger className="h-9 text-xs w-[180px] bg-background"><SelectValue placeholder="Filter Jobsite" /></SelectTrigger><SelectContent><SelectItem value="all">All Jobsites</SelectItem>{MOCK_JOBSITES.map((j) => (<SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>))}</SelectContent></Select>
+            <Select value={companyFilter} onValueChange={setCompanyFilter}><SelectTrigger className="h-9 text-xs w-[180px] bg-background"><SelectValue placeholder="Filter Company" /></SelectTrigger><SelectContent><SelectItem value="all">All Contractors</SelectItem>{companiesList.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))}</SelectContent></Select>
+            <Select value={siteFilter} onValueChange={setSiteFilter}><SelectTrigger className="h-9 text-xs w-[180px] bg-background"><SelectValue placeholder="Filter Jobsite" /></SelectTrigger><SelectContent><SelectItem value="all">All Jobsites</SelectItem>{jobsitesList.map((j) => (<SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>))}</SelectContent></Select>
           </div>
           <div className="flex items-center gap-2">
             <div className="inline-flex rounded-lg border border-border bg-muted p-1 text-xs">
@@ -570,7 +578,7 @@ export function WorkforceBadgesView() {
                 header: "Assigned Jobsite",
                 className: "min-w-[160px]",
                 cell: (worker) => {
-                  const site = MOCK_JOBSITES.find((j) => j.id === worker.jobSiteId)
+                  const site = jobsitesList.find((j) => j.id === worker.jobSiteId)
                   return (
                     <div className="flex items-center gap-1.5 text-xs">
                       <Building2 className="size-3 text-primary shrink-0" />
@@ -786,7 +794,7 @@ export function WorkforceBadgesView() {
                         <Building2 className="size-3 text-primary" /> Assigned Site:
                       </span>
                       <span className="font-semibold text-foreground truncate max-w-[150px]">
-                        {MOCK_JOBSITES.find((j) => j.id === worker.jobSiteId)?.name || worker.jobSiteId || "Unassigned"}
+                        {jobsitesList.find((j) => j.id === worker.jobSiteId)?.name || worker.jobSiteId || "Unassigned"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-[11px]">
@@ -907,7 +915,7 @@ export function WorkforceBadgesView() {
               className="h-8 text-xs gap-1.5 cursor-pointer font-medium hover:border-primary/50"
               onClick={() => {
                 setBulkAssignType("jobsite")
-                setBulkTargetValue(MOCK_JOBSITES[0]?.id || "")
+                setBulkTargetValue(jobsitesList[0]?.id || "")
               }}
             >
               <Building2 className="size-3.5 text-primary" />
@@ -973,7 +981,7 @@ export function WorkforceBadgesView() {
                   <SelectValue placeholder="Select Jobsite" />
                 </SelectTrigger>
                 <SelectContent className="text-xs max-h-56">
-                  {MOCK_JOBSITES.map((j) => (
+                  {jobsitesList.map((j) => (
                     <SelectItem key={j.id} value={j.id} className="py-2 cursor-pointer">
                       {j.name}
                     </SelectItem>
@@ -1153,7 +1161,7 @@ export function WorkforceBadgesView() {
                       <SelectValue placeholder="Select Contractor" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
-                      {MOCK_COMPANIES.map((c) => (
+                      {companiesList.map((c) => (
                         <SelectItem key={c.id} value={c.name} className="py-2 cursor-pointer">
                           {c.name}
                         </SelectItem>
@@ -1176,7 +1184,7 @@ export function WorkforceBadgesView() {
                         <SelectValue placeholder="Select Jobsite" />
                       </SelectTrigger>
                       <SelectContent className="text-xs max-h-56">
-                        {MOCK_JOBSITES.map((j) => (
+                        {jobsitesList.map((j) => (
                           <SelectItem key={j.id} value={j.id} className="py-2 cursor-pointer">
                             {j.name}
                           </SelectItem>
@@ -1386,7 +1394,7 @@ export function WorkforceBadgesView() {
                         <Building2 className="size-3 text-primary" /> Active Jobsite
                       </div>
                       <div className="font-semibold text-foreground text-xs">
-                        {MOCK_JOBSITES.find((j) => j.id === viewingWorker.jobSiteId)?.name || viewingWorker.jobSiteId || "Unassigned"}
+                        {jobsitesList.find((j) => j.id === viewingWorker.jobSiteId)?.name || viewingWorker.jobSiteId || "Unassigned"}
                       </div>
                     </div>
 
@@ -1718,7 +1726,7 @@ export function WorkforceBadgesView() {
                           <SelectValue placeholder="Select Contractor" />
                         </SelectTrigger>
                         <SelectContent className="text-xs">
-                          {MOCK_COMPANIES.map((c) => (
+                          {companiesList.map((c) => (
                             <SelectItem key={c.id} value={c.name} className="py-2 cursor-pointer">
                               {c.name}
                             </SelectItem>
@@ -1738,7 +1746,7 @@ export function WorkforceBadgesView() {
                             <SelectValue placeholder="Select Jobsite" />
                           </SelectTrigger>
                           <SelectContent className="text-xs max-h-56">
-                            {MOCK_JOBSITES.map((j) => (
+                            {jobsitesList.map((j) => (
                               <SelectItem key={j.id} value={j.id} className="py-2 cursor-pointer">
                                 {j.name}
                               </SelectItem>
