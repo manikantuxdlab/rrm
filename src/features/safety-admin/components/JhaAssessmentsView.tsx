@@ -1057,6 +1057,7 @@ export function JhaAssessmentsView({
                 <label className="font-bold text-foreground">Activity Scope Title *</label>
                 <Input
                   value={editorActivity}
+                  maxLength={120}
                   onChange={(e) => setEditorActivity(e.target.value)}
                   placeholder="e.g. Deep Foundation Trenching & Footing Excavation"
                   className="rounded-xl text-xs h-10"
@@ -1069,6 +1070,7 @@ export function JhaAssessmentsView({
                   <label className="font-bold text-foreground">Trade Category</label>
                   <Input
                     value={editorTrade}
+                    maxLength={80}
                     onChange={(e) => setEditorTrade(e.target.value)}
                     placeholder="e.g. Excavation & Earthwork"
                     className="rounded-xl text-xs h-10"
@@ -1079,6 +1081,7 @@ export function JhaAssessmentsView({
                   <label className="font-bold text-foreground">OSHA Standard / Subpart</label>
                   <Input
                     value={editorOshaStandard}
+                    maxLength={80}
                     onChange={(e) => setEditorOshaStandard(e.target.value)}
                     placeholder="e.g. Cal/OSHA Title 8 § 1541"
                     className="rounded-xl text-xs h-10"
@@ -1139,6 +1142,7 @@ export function JhaAssessmentsView({
                 <div className="flex items-center gap-2 pt-1">
                   <Input
                     value={newHazardText}
+                    maxLength={160}
                     onChange={(e) => setNewHazardText(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -1198,6 +1202,7 @@ export function JhaAssessmentsView({
                 <div className="flex items-center gap-2 pt-1">
                   <Input
                     value={newControlText}
+                    maxLength={160}
                     onChange={(e) => setNewControlText(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -1257,6 +1262,7 @@ export function JhaAssessmentsView({
                 <div className="flex items-center gap-2 pt-1">
                   <Input
                     value={newPPEText}
+                    maxLength={100}
                     onChange={(e) => setNewPPEText(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -1479,11 +1485,17 @@ export function JhaAssessmentsView({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-foreground">
-                    Super Admin Legal Compliance Audit Notes:
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground">
+                      Super Admin Legal Compliance Audit Notes:
+                    </label>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {adminNotesInput.length}/400
+                    </span>
+                  </div>
                   <textarea
                     value={adminNotesInput}
+                    maxLength={400}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAdminNotesInput(e.target.value)}
                     placeholder="Enter compliance notes (e.g. Activity Hazard Analysis certified compliant under Cal/OSHA Title 8 § 1509)..."
                     className="flex min-h-[64px] w-full rounded-xl border border-input bg-background px-3 py-2 text-xs shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

@@ -903,11 +903,17 @@ export function NearMissHazardsView() {
               </div>
             ) : (
               <div className="space-y-1.5 pt-2">
-                <label className="text-xs font-bold text-foreground">
-                  Super Admin Closeout & OSHA 300 Non-Recordable Certification Notes:
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground">
+                    Super Admin Closeout & OSHA 300 Non-Recordable Certification Notes:
+                  </label>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {adminNotes.length}/400
+                  </span>
+                </div>
                 <Input
                   value={adminNotes}
+                  maxLength={400}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder="Confirm that no injury occurred and hazard is permanently neutralized..."
                   className="h-9 text-xs rounded-xl"

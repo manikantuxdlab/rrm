@@ -62,11 +62,13 @@ export function DispatchAlertModal({
         {/* Form Body (Scrollable) */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5 text-xs">
           <div className="space-y-1.5">
-            <label className="text-foreground font-semibold block text-xs">
-              Alert Title / Topic:
-            </label>
+            <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+              <label>Alert Title / Topic:</label>
+              <span className="text-[10px] text-muted-foreground font-mono">{title.length}/120</span>
+            </div>
             <Input
               value={title}
+              maxLength={120}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Mandatory Heat Illness & Hydration Stand-Down"
               className="text-xs h-10"
@@ -109,12 +111,14 @@ export function DispatchAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-foreground font-semibold block text-xs">
-              Instructions & Specific Action Items:
-            </label>
+            <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+              <label>Instructions & Specific Action Items:</label>
+              <span className="text-[10px] text-muted-foreground font-mono">{message.length}/1000</span>
+            </div>
             <textarea
               rows={6}
               value={message}
+              maxLength={1000}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Detail required controls, PPE guidelines, or emergency protocols..."
               className="w-full rounded-md border border-input bg-background p-3.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground leading-relaxed"
@@ -376,6 +380,7 @@ export function AddEquipmentModal({
               </label>
               <Input
                 value={unitNumber}
+                maxLength={30}
                 onChange={(e) => setUnitNumber(e.target.value)}
                 placeholder="e.g. CRANE-02"
                 className="text-xs h-10"
@@ -387,6 +392,7 @@ export function AddEquipmentModal({
               </label>
               <Input
                 value={year}
+                maxLength={4}
                 onChange={(e) => setYear(e.target.value)}
                 placeholder="2025"
                 className="text-xs h-10"
@@ -401,6 +407,7 @@ export function AddEquipmentModal({
               </label>
               <Input
                 value={make}
+                maxLength={50}
                 onChange={(e) => setMake(e.target.value)}
                 placeholder="e.g. Caterpillar"
                 className="text-xs h-10"
@@ -412,6 +419,7 @@ export function AddEquipmentModal({
               </label>
               <Input
                 value={model}
+                maxLength={50}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder="e.g. 336 Excavator"
                 className="text-xs h-10"
@@ -444,6 +452,7 @@ export function AddEquipmentModal({
               </label>
               <Input
                 value={vinOrSerial}
+                maxLength={50}
                 onChange={(e) => setVinOrSerial(e.target.value)}
                 placeholder="e.g. CAT0336X88902"
                 className="text-xs h-10"
@@ -456,6 +465,7 @@ export function AddEquipmentModal({
               <Input
                 type="number"
                 value={estimatedValue}
+                maxLength={15}
                 onChange={(e) => setEstimatedValue(e.target.value)}
                 placeholder="150000"
                 className="text-xs h-10"
