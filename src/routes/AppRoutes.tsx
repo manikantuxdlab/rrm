@@ -18,6 +18,7 @@ import {
   IncidentsClaimsView,
   NearMissHazardsView,
   JhaAssessmentsView,
+  ReferralsView,
 } from "@/features/safety-admin"
 import type { SubmissionRecord } from "@/types"
 import { AttendanceView } from "@/features/safety-admin/components/AttendanceView"
@@ -154,6 +155,8 @@ export function AppRoutes({
 
       {/* 9. Near-Miss Proactive Hazards */}
       <Route path="/near-miss" element={<NearMissHazardsView />} />
+      {/* Referrals */}
+      <Route path="/referrals" element={<ReferralsView />} />
 
       {/* 10. FAQ Management */}
       <Route path="/faqs" element={<FaqManagementView />} />

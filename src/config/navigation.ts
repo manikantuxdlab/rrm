@@ -84,6 +84,12 @@ export const SAFETY_MODULES: NavModuleItem[] = [
     url: "/workforce",
     description: "OSHA 10/30, CPR credentials & 30-day advance expiration alerts",
   },
+    {
+    key: "referrals",
+    title: "Referrals",
+    url: "/referrals",
+    description: "Contractor referrals submitted by foremen, follow-up status & crew reward boxes",
+  },
   {
     key: "faqs",
     title: "FAQ",

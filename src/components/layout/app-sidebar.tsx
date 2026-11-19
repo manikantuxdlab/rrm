@@ -31,6 +31,7 @@ import {
   ClipboardList,
   HardHat,
   ShieldCheck,
+  Gift,
 } from "lucide-react"
 import {
   SAFETY_MODULES,
@@ -57,6 +58,7 @@ const moduleIconMap: Record<string, React.ReactNode> = {
   "near-miss": <ShieldAlert className="size-5 shrink-0 text-amber-600" />,
   jha: <ClipboardList className="size-5 shrink-0 text-primary" />,
   workforce: <AwardIcon className="size-5 shrink-0" />,
+  referrals: <Gift className="size-5 shrink-0 text-amber-600" />,
   faqs: <HelpCircle className="size-5 shrink-0" />,
   tickets: <LifeBuoy className="size-5 shrink-0" />,
   settings: <Settings className="size-5 shrink-0" />,
